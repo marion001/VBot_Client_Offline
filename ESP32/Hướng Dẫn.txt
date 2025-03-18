@@ -1,3 +1,11 @@
+Phần Cứng: 
+	- ESP32 (ESP32, ESP32 Mini Wemos D1, V..v...)
+	- Mic i2s (INMP441, GY-SPH0645)
+	- Module Loa (MAX98357)
+	- LED (WS2812B)
+	- Nguồn 5V-2A
+	- Loa 3W 4-8ôm
+
 Hướng Dẫn Flash VBot Client Sử Dụng ESP32
 1: Chuẩn Bị Công Cụ
 	- Link Tải Phần Mềm Flash Của espressif: https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html
