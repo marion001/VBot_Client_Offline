@@ -17,7 +17,7 @@ Hướng Dẫn Flash VBot Client Sử Dụng ESP32
 	- Ở phần Download Path Config chọn lần lượt như sau:
 		+ Thêm file esp32_udp_stream.ino.bootloader.bin với địa chỉ 0x1000
 		+ Thêm file esp32_udp_stream.ino.partitions.bin với địa chỉ 0x8000
-		+ Thêm file esp32_udp_stream.ino.bin với địa chỉ 0x1000
+		+ Thêm file esp32_udp_stream.ino.bin với địa chỉ 0x10000
 	- Tích Chọn Tiếp Các Mục Sau:
 		+ SPI SPEED = 80MHz
 		+ SPI MODE = QIO
