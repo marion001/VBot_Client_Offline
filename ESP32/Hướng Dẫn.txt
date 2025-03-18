@@ -28,4 +28,6 @@ Hướng Dẫn Flash VBot Client Sử Dụng ESP32
 Cấu Hình Client:
 - Bạn có thể truy cập WebUI Của Client thông qua địa chỉ IP để Cấu Hình các chân Pin GPIO theo ý muốn
 
-- 
+Lưu Ý: 
+	- Khi Flash Xong Dùng Nguồn CỔng Từ USB Sẽ Bị Thiếu Nguồn Khiến ESP Bị RESET Liên Tục
+	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
