@@ -14,7 +14,7 @@ Hướng Dẫn Flash VBot Client Sử Dụng ESP32
 2: Cài Đặt Flash Download Tool
 	- Mở phần mềm flash_download_tool lên
 	- Chọn: (Chiptype = ESP32) -> (WorkMode = Develop) -> OK
-	- Ở phần Download Path Config chọn lần lượt như sau:
+	- Ở phần Download Path Config chọn lần lượt thứ tự và tên file như sau:
 		+ Thêm file esp32_udp_stream.ino.bootloader.bin với địa chỉ 0x1000
 		+ Thêm file esp32_udp_stream.ino.partitions.bin với địa chỉ 0x8000
 		+ Thêm file esp32_udp_stream.ino.bin với địa chỉ 0x10000
