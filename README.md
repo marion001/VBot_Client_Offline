@@ -52,3 +52,8 @@ Cấu Hình Client:
   
   	- Khi Flash Xong Dùng Nguồn CỔng Từ USB Sẽ Bị Thiếu Nguồn Khiến ESP Bị RESET Liên Tục
   	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
+   
+![Image](https://github.com/user-attachments/assets/8667b711-61a8-4edb-ad5c-398c85ee097c)
+
+
+![Image](https://github.com/user-attachments/assets/956d8cb5-6bd9-4296-a57b-deca7b9b0c69)
