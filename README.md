@@ -7,7 +7,7 @@ Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung 
      + Chọn Kiểu Loại Kết Nối Là: UDP Socket
      + Lưu Cấu Hình -> Khởi Động Lại Chương Trình VBot
 
-Phần Cứng: 
+Phần Cứng Client: 
 
 	  - ESP32 (ESP32, ESP32 Mini Wemos D1, V..v...)
 	  - Mic i2s (INMP441, GY-SPH0645)
