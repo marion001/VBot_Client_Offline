@@ -1,4 +1,4 @@
-Yêu Cầu: Thiết Bị Raspberrypi Chạy VBot Làm Server, Hoặc Sử Dung Loa Thông Minh Chạy VBot
+Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung Loa Thông Minh Chạy VBot
 
 - VBot Offline: https://github.com/marion001/VBot_Offline
 - B1: Cập Nhật Chương Trình Và Giao Diện VBot Lên Bản Mới Nhất
