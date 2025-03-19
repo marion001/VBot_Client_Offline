@@ -57,3 +57,5 @@ Cấu Hình Client:
 
 
 ![Image](https://github.com/user-attachments/assets/956d8cb5-6bd9-4296-a57b-deca7b9b0c69)
+
+![Image](https://github.com/user-attachments/assets/de9d1bcd-64a4-4e79-94a5-0d3f621e0349)
