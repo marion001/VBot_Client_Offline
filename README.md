@@ -28,17 +28,33 @@ Hướng Dẫn Flash VBot Client Sử Dụng ESP32
 2: Cài Đặt Flash Download Tool
 
   	- Mở phần mềm flash_download_tool lên
-  	- Chọn: (Chiptype = ESP32) -> (WorkMode = Develop) -> OK
-  	- Ở phần Download Path Config chọn lần lượt thứ tự và tên file như sau:
-  		+ Thêm file esp32_udp_stream.ino.bootloader.bin với địa chỉ 0x1000
-  		+ Thêm file esp32_udp_stream.ino.partitions.bin với địa chỉ 0x8000
-  		+ Thêm file esp32_udp_stream.ino.bin với địa chỉ 0x10000
-  	- Tích Chọn Tiếp Các Mục Sau:
-  		+ SPI SPEED = 80MHz
-  		+ SPI MODE = QIO
-  		+ COM = (Chọn cổng com mà ESP32 kết nối)
-  		+ BAUD = 921600 (hoặc chọn 115200 tốc độ nạp chậm hơn)
-  	- Nhấn nút Start để bắt đầu Nạp Chương Trình
+   
+   	+ Với ESP32 làm theo hướng dẫn sau: 
+	  	- Chọn: (Chiptype = ESP32) -> (WorkMode = Develop) -> OK
+	  	- Ở phần Download Path Config chọn lần lượt thứ tự và tên file như sau:
+	  		+ Thêm file esp32_udp_stream.ino.bootloader.bin với địa chỉ 0x1000
+	  		+ Thêm file esp32_udp_stream.ino.partitions.bin với địa chỉ 0x8000
+	  		+ Thêm file esp32_udp_stream.ino.bin với địa chỉ 0x10000
+	  	- Tích Chọn Tiếp Các Mục Sau:
+	  		+ SPI SPEED = 80MHz
+	  		+ SPI MODE = QIO
+	  		+ COM = (Chọn cổng com mà ESP32 kết nối)
+	  		+ BAUD = 921600 (hoặc chọn 115200 tốc độ nạp chậm hơn)
+	  	- Nhấn nút Start để bắt đầu Nạp Chương Trình
+
+
+	+ Với ESP32s3 làm theo hướng dẫn sau: 
+	  	- Chọn: (Chiptype = ESP32s3) -> (WorkMode = Develop) -> -> (LoadMode = UART) -> OK
+	  	- Ở phần Download Path Config chọn lần lượt thứ tự và tên file như sau:
+	  		+ Thêm file esp32s3_udp_stream.ino.bootloader.bin với địa chỉ 0x0
+	  		+ Thêm file esp32s3_udp_stream.ino.partitions.bin với địa chỉ 0x8000
+	  		+ Thêm file esp32s3_udp_stream.ino.bin với địa chỉ 0x10000
+	  	- Tích Chọn Tiếp Các Mục Sau:
+	  		+ SPI SPEED = 80MHz
+	  		+ SPI MODE = QIO
+	  		+ COM = (Chọn cổng com mà ESP32s3 kết nối)
+	  		+ BAUD = 921600 (hoặc chọn 115200 tốc độ nạp chậm hơn)
+	  	- Nhấn nút Start để bắt đầu Nạp Chương Trình
 
  
 Cấu Hình Client:
