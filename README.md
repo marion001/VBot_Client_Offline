@@ -63,6 +63,23 @@ Cấu Hình Client:
   - Cấu Hình Kết Nối Tới Server:
     + Thay Địa Chỉ IP Và Cổng PORT Tương Ứng Của Loa Đang Chạy VBot
     + 1 Số Cấu Hình Chân GPIO Cho Mic, Loa, LED Khác Sẽ nằm Bên Dưới
+
+  Hỗ trợ API trong cùng lớp mạng nội bộ Local chỉ dùng với LINK/URL http,  không hỗ trợ https: 
+
+  	- Phát âm thanh:
+   		curl -X POST http://192.168.14.80/play_audio -d "url=http://192.168.14.17/1.mp3"
+
+  	- Dừng phát âm thanh:
+   		curl http://192.168.14.80/stop_audio
+
+  	- Restart ESP:
+   		curl -X POST http://192.168.14.80/restart
+
+  	- Reset Wifi:
+   		curl -X POST http://192.168.14.80/resetwifi
+
+  	- Xóa, đặt lại toàn bộ dữ liệu về mặc định:
+   		curl -X POST http://192.168.14.80/cleanNVS
       
   Lưu Ý: 
   
