@@ -82,6 +82,7 @@ Cấu Hình Client:
    		curl -X POST http://192.168.14.80/cleanNVS
 
   Cách Xem Logs Serial UART: 
+	- Baud Rate : 115200
   
   	- Cắm cáp và kết nối ESP với cổng USB của máy tính
    
