@@ -85,6 +85,7 @@ Cấu Hình Client:
   
   	- Khi Flash Xong Dùng Nguồn CỔng Từ USB Sẽ Bị Thiếu Nguồn Khiến ESP Bị RESET Liên Tục
   	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
+	- Nếu Gặp Lỗi Này Khi Debug Logs Ở Cổng Serial UART: "E (3041) rmt: rmt_new_tx_channel(269): not able to power down in light sleep" -> Nguồn không đủ, yêu cầu tối thiếu 5V-2A trở lên nên dùng 2.4A hoặc 2.5A để được ổn định
    
 ![Image](https://github.com/user-attachments/assets/31df2568-ccbd-4a4f-95ca-d0a2180eca35)
 ![Image](https://github.com/user-attachments/assets/a4600a0f-54dd-4e89-961a-caf29b9ba95a)
