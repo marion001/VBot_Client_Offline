@@ -80,12 +80,23 @@ Cấu Hình Client:
 
   	- Xóa, đặt lại toàn bộ dữ liệu về mặc định:
    		curl -X POST http://192.168.14.80/cleanNVS
+
+  Cách Xem Logs Serial UART: 
+  
+  	- Cắm cáp và kết nối ESP với cổng USB của máy tính
+   
+  	- Truy cập WEB: https://web.esphome.io/ -> Chọn cổng COM tương ứng để kết nối với ESP
+   
+	- Kết nối thành công nhấn vào Logs để kiểm tra -> Restart lại ESP để Logs được cập nhật và hiển thị khi khởi động, hoặc quá trình hoạt động
       
   Lưu Ý: 
   
   	- Khi Flash Xong Dùng Nguồn CỔng Từ USB Sẽ Bị Thiếu Nguồn Khiến ESP Bị RESET Liên Tục
+   
   	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
-	- Nếu Gặp Lỗi Này Khi Debug Logs Ở Cổng Serial UART: "E (3041) rmt: rmt_new_tx_channel(269): not able to power down in light sleep" -> Nguồn không đủ, yêu cầu tối thiếu 5V-2A trở lên nên dùng 2.4A hoặc 2.5A để được ổn định
+   
+	- Nếu Gặp Lỗi Này Khi Debug Logs Ở Cổng Serial UART: "E (3041) rmt: rmt_new_tx_channel(269): not able to power down in light sleep"
+ 	  Nguồn không đủ, yêu cầu tối thiếu 5V-2A trở lên nên dùng 2.4A hoặc 2.5A để được ổn định
    
 ![Image](https://github.com/user-attachments/assets/31df2568-ccbd-4a4f-95ca-d0a2180eca35)
 ![Image](https://github.com/user-attachments/assets/a4600a0f-54dd-4e89-961a-caf29b9ba95a)
