@@ -1,4 +1,4 @@
 {
-	"build_date": "23/04/2025-1",
-	"description": "Tái cấu trúc code, hỗ trợ phát TTS, Nhạc trong mạng Local"
+	"build_date": "31/05/2025",
+	"description": "Sửa lỗi tự động khởi động lại ESP khi cấu hình sai gpio, khởi tạo lỗi Mic i2s"
 }
