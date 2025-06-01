@@ -1,7 +1,7 @@
 Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung Loa Thông Minh Chạy VBot
 
 
-Lưu ý: Các chân GPIO LED có thể sử dụng: 
+Lưu ý: Các chân GPIO LED có thể sử dụng với ESP32s3: 
 
 	  - GPIO0 -> GPIO21
 	  - GPIO26
