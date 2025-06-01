@@ -1,5 +1,21 @@
 Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung Loa Thông Minh Chạy VBot
 
+
+Lưu ý: Các chân GPIO LED có thể sử dụng: 
+
+	  Với ESP32s3 sử dụng các chân GPIO:
+		- GPIO0 -> GPIO21
+	   	- GPIO26
+	   	- GPIO33 -> GPIO48
+     
+	  Với ESP32 sử dụng các chân GPIO:
+		- GPIO0->GPIO5
+		- GPIO11->GPIO19
+		- GPIO21->GPIO23
+		- GPIO25->GPIO27
+  		- GPIO32
+		- GPIO33
+
 - VBot Offline: https://github.com/marion001/VBot_Offline
 - B1: Cập Nhật Chương Trình Và Giao Diện VBot Lên Bản Mới Nhất
 - B2: Trong Giao Diện WebUI VBot Đi Tới:
