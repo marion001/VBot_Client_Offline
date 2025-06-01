@@ -1,4 +1,4 @@
 {
-	"build_date": "01/06/2025",
+	"build_date": "01/06/2025-1",
 	"description": "Sửa lỗi tự động khởi động lại ESP khi cấu hình sai gpio, khởi tạo lỗi Mic i2s"
 }
