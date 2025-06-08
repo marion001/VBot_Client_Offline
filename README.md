@@ -20,7 +20,7 @@ Lưu ý: Các chân GPIO LED có thể sử dụng:
 - B1: Cập Nhật Chương Trình Và Giao Diện VBot Lên Bản Mới Nhất
 - B2: Trong Giao Diện WebUI VBot Đi Tới:
      + Cấu Hình Config -> Streming Audio Server -> Kích Hoạt (Bật Lên)
-     + Chọn Kiểu Loại Kết Nối Là: UDP Socket
+     + Chọn Kiểu Loại Kết Nối Là: Sử dụng ESP32, ESP32 D1 Mini, ESP32S3, ESP32S3 Supper Mini
      + Lưu Cấu Hình -> Khởi Động Lại Chương Trình VBot
 
 Phần Cứng Client: 
