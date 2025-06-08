@@ -87,6 +87,6 @@ Cấu Hình Client:
    
 ![Image](https://github.com/user-attachments/assets/31df2568-ccbd-4a4f-95ca-d0a2180eca35)
 ![Image](https://github.com/user-attachments/assets/a4600a0f-54dd-4e89-961a-caf29b9ba95a)
-
+![Image](https://github.com/user-attachments/assets/cbe69c43-8473-4594-a568-7d18ad2165ee)
 
 ![Image](https://github.com/user-attachments/assets/de9d1bcd-64a4-4e79-94a5-0d3f621e0349)
