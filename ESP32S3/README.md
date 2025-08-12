@@ -17,6 +17,7 @@ Lưu ý: Các chân GPIO LED có thể sử dụng:
 		- GPIO33
 
 - VBot Offline: https://github.com/marion001/VBot_Offline
+- Phần Mềm Tìm Kiếm Thiết Bị Chạy VBot Trong Mạng Lan: https://drive.google.com/drive/folders/1wLxamxFjP96LT-rN2iobJ8M3j5nGrxs_?usp=drive_link
 - B1: Cập Nhật Chương Trình Và Giao Diện VBot Lên Bản Mới Nhất
 - B2: Trong Giao Diện WebUI VBot Đi Tới:
      + Cấu Hình Config -> Streming Audio Server -> Kích Hoạt (Bật Lên)
