@@ -1,4 +1,4 @@
 {
-	"build_date": "08/06/2025",
-	"description": "Sửa lỗi khởi tạo LED, Tái cấu trúc thư viện điều khiển LED, Sửa lỗi tự động khởi động lại ESP khi cấu hình sai gpio, khởi tạo lỗi Mic i2s"
+	"build_date": "17/09/2025",
+	"description": "Tối ưu tăng tốc độ xử lý, bổ sung thêm nút tăng giảm âm lượng và nút nhấn dạng xoay Encoder"
 }
