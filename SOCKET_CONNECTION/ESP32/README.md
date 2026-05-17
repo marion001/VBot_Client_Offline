@@ -5,11 +5,12 @@ Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung 
 Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở chế độ Socket/WebSocket.
 
 ## 1. File cần chuẩn bị
-	cần có các file `.bin` sau trong thư mục bin:
-	bootloader.bin
-	partitions.bin
-	firmware.bin
-	littlefs.bin
+	Cần có các file `.bin` sau trong thư mục bin:
+		bootloader.bin
+		partitions.bin
+		firmware.bin
+		littlefs.bin
+	Phần mềm ESP Flash Download Tool
 
 ## 2. Thông tin phân vùng flash
 	Firmware này sử dụng partition như sau:
