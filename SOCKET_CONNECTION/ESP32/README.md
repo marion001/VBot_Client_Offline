@@ -109,3 +109,5 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
 	- Nên dùng SPI SPEED 40MHz và SPI MODE DIO để ổn định.
   	- Khi Flash Xong Dùng Nguồn CỔng Từ USB Sẽ Bị Thiếu Nguồn Khiến ESP Bị RESET Liên Tục
   	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
+
+<img width="990" height="802" alt="Image" src="https://github.com/user-attachments/assets/1aa26732-6459-4e19-a5cb-9c441afe3a66" />
