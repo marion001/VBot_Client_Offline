@@ -1,123 +1,115 @@
 Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung Loa Thông Minh Chạy VBot
 
+# Hướng Dẫn Nạp Firmware ESP32 VBot Client - Chế Độ Socket
 
-Lưu ý: Các chân GPIO LED có thể sử dụng: 
+Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở chế độ Socket/WebSocket.
 
-	  Với ESP32s3 sử dụng các chân GPIO:
-		- GPIO0 -> GPIO21
-	   	- GPIO26
-	   	- GPIO33 -> GPIO48
-     
-	  Với ESP32 sử dụng các chân GPIO:
-		- GPIO0->GPIO5
-		- GPIO11->GPIO19
-		- GPIO21->GPIO23
-		- GPIO25->GPIO27
-  		- GPIO32
-		- GPIO33
+## 1. File cần chuẩn bị
+	Cần có các file `.bin` sau trong thư mục bin:
+		bootloader.bin
+		partitions.bin
+		firmware.bin
+		littlefs.bin
+		
+	Phần mềm: ESP Flash Download Tool
 
-- VBot Offline: https://github.com/marion001/VBot_Offline
-- Phần Mềm Tìm Kiếm Thiết Bị Chạy VBot Trong Mạng Lan: https://drive.google.com/drive/folders/1wLxamxFjP96LT-rN2iobJ8M3j5nGrxs_?usp=drive_link
-- B1: Cập Nhật Chương Trình Và Giao Diện VBot Lên Bản Mới Nhất
-- B2: Trong Giao Diện WebUI VBot Đi Tới:
-     + Cấu Hình Config -> Streming Audio Server -> Kích Hoạt (Bật Lên)
-     + Chọn Kiểu Loại Kết Nối Là: Sử dụng ESP32, ESP32 D1 Mini, ESP32S3, ESP32S3 Supper Mini
-     + Lưu Cấu Hình -> Khởi Động Lại Chương Trình VBot
+## 2. Thông tin phân vùng flash
+	Firmware này sử dụng partition như sau:
+	
+	# Name,   Type, SubType, Offset,   Size,     Flags
+	nvs,      data, nvs,     0x9000,   0x5000,
+	otadata,  data, ota,     0xe000,   0x2000,
+	app0,     app,  ota_0,   0x10000,  0x1A0000,
+	app1,     app,  ota_1,   0x1B0000, 0x1A0000,
+	littlefs, data, spiffs,  0x350000, 0xA0000,
+	coredump, data, coredump,0x3F0000, 0x10000,
 
-Phần Cứng Client: 
+## 3. Bắt đầu tiến hành nạp firmware
+	Mở phần mềm ESP Flash Download Tool và chọn:
+	
+		Chip Type: ESP32
+		WorkMode: Develop
+		LoadMode: UART
 
-	  - ESP32 (ESP32, ESP32 Mini Wemos D1, V..v...)
-	  - Mic i2s (INMP441, GY-SPH0645)
-	  - Module Loa (MAX98357)
-	  - LED (WS2812B)
-	  - Nguồn 5V-2A
-	  - Loa 3W 4-8ôm
+	Cấu hình khuyến nghị:
+	
+		SPI SPEED : 40MHz
+		SPI MODE  : DIO
+		FLASH SIZE: 4MB
+		BAUD      : 921600
 
+	Khi nạp bằng ESP Flash Download Tool hoặc esptool, cần điền đúng các giá trị và lần lượt thứ tự file, Offset:
+	Tick chọn từng file và nhập offset tương ứng:
+		| File             | Offset     |
+		| ---------------- | ---------- |
+		| `bootloader.bin` | `0x1000`   |
+		| `partitions.bin` | `0x8000`   |
+		| `firmware.bin`   | `0x10000`  |
+		| `littlefs.bin`   | `0x350000` |
 
-Hướng Dẫn Flash VBot Client Sử Dụng ESP32
+	Sau đó:
+	
+		1. Chọn đúng cổng COM.
+		2. Bấm START.
+		3. Nếu ESP32 không tự vào chế độ nạp:
+			- Giữ nút BOOT.
+			- Nhấn nút EN/RST.
+			- Thả EN/RST.
+			- Thả BOOT.
 
-  1: Chuẩn Bị Công Cụ
-  
-	  - Link Tải Phần Mềm Flash Của espressif: https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html
-	  - Kết nối ESP32 với máy tính qua cáp USB.
+## 4. Nạp bằng esptool dòng lệnh
+	Có thể nạp đầy đủ bằng lệnh:
+		python -m esptool --chip esp32 --port COM11 --baud 921600 write_flash -z ^
+		0x1000 bootloader.bin ^
+		0x8000 partitions.bin ^
+		0x10000 firmware.bin ^
+		0x350000 littlefs.bin
 
+## 5. Erase flash khi cần
+	Nếu đổi partition hoặc nạp bản mới hoàn toàn, nên xóa flash trước:
+		python -m esptool --chip esp32 --port COM11 erase_flash
 
-2: Cài Đặt Flash Download Tool
+	Sau đó nạp lại đầy đủ các file .bin.
 
-  	- Mở phần mềm flash_download_tool lên
-   
-   	+ Với ESP32 làm theo hướng dẫn sau: 
-	  	- Chọn: (Chiptype = ESP32) -> (WorkMode = Develop) -> OK
-	  	- Ở phần Download Path Config chọn lần lượt thứ tự và tên file như sau:
-	  		+ Thêm file esp32_udp_stream.ino.bootloader.bin với địa chỉ 0x1000
-	  		+ Thêm file esp32_udp_stream.ino.partitions.bin với địa chỉ 0x8000
-	  		+ Thêm file esp32_udp_stream.ino.bin với địa chỉ 0x10000
-	  	- Tích Chọn Tiếp Các Mục Sau:
-	  		+ SPI SPEED = 80MHz
-	  		+ SPI MODE = QIO
-	  		+ COM = (Chọn cổng com mà ESP32 kết nối)
-	  		+ BAUD = 921600 (hoặc chọn 115200 tốc độ nạp chậm hơn)
-	  	- Nhấn nút Start để bắt đầu Nạp Chương Trình
+## 6. Sau khi nạp xong
 
+	ESP32 sẽ khởi động lại và chạy VBot Client.
+	Nếu chưa có WiFi, ESP32 sẽ phát WiFi cấu hình.
 
-	+ Với ESP32s3 làm theo hướng dẫn sau: 
-	  	- Chọn: (Chiptype = ESP32s3) -> (WorkMode = Develop) -> -> (LoadMode = UART) -> OK
-	  	- Ở phần Download Path Config chọn lần lượt thứ tự và tên file như sau:
-	  		+ Thêm file esp32s3_udp_stream.ino.bootloader.bin với địa chỉ 0x0
-	  		+ Thêm file esp32s3_udp_stream.ino.partitions.bin với địa chỉ 0x8000
-	  		+ Thêm file esp32s3_udp_stream.ino.bin với địa chỉ 0x10000
-	  	- Tích Chọn Tiếp Các Mục Sau:
-	  		+ SPI SPEED = 80MHz
-	  		+ SPI MODE = QIO
-	  		+ COM = (Chọn cổng com mà ESP32s3 kết nối)
-	  		+ BAUD = 921600 (hoặc chọn 115200 tốc độ nạp chậm hơn)
-	  	- Nhấn nút Start để bắt đầu Nạp Chương Trình
+	Kết nối vào WiFi cấu hình và thiết lập:
+		- Tên WiFi
+		- Mật khẩu WiFi
+		- IP máy chủ VBot Socket
+		- Port Socket
 
- 
-Cấu Hình Client:
+	Ví dụ cấu hình Socket:
+		- Host: 192.168.14.175
+		- Port: 5003
+		
+	Khi kết nối thành công,cso thể kết nối xem logs Serial sẽ hiện tương tự:
+		- Đã kết nối WebSocket
+		- Gửi cấu hình tới máy chủ VBot
+		- Đã nhận cấu hình Client
 
-  - Truy Cập Vào WebUI Của Client Bằng Địa Chỉ IP
-  - Cấu Hình Kết Nối Tới Server:
-    + Thay Địa Chỉ IP Và Cổng PORT Tương Ứng Của Loa Đang Chạy VBot
-    + 1 Số Cấu Hình Chân GPIO Cho Mic, Loa, LED Khác Sẽ nằm Bên Dưới
+## 7. Cập nhật OTA qua WebUI của thiết bị
+	Firmware có thể hỗ trợ cập nhật qua Web OTA.
+	
+	Trong giao diện WebUi nhấn vào: Flash Chương Trình, Firmware
+	
+		- Upload firmware.bin để cập nhật chương trình. trong giao diện Flash Mục: OTA Mode -> Firmware
+		- Upload littlefs.bin để cập nhật WebUI/filesystem trong giao diện Flash Mục: OTA Mode -> LittleFS / SPIFFS
+	
+	Không nên cập nhật partitions.bin qua Web OTA.
+	Nếu đổi partition, nên nạp lại bằng USB/esptool hoặc Flash Download Tool.
 
-  Hỗ trợ API trong cùng lớp mạng nội bộ Local chỉ dùng với LINK/URL http,  không hỗ trợ https: 
-
-  	- Phát âm thanh:
-   		curl -X POST http://192.168.14.80/play_audio -d "url=http://192.168.14.17/1.mp3"
-
-  	- Dừng phát âm thanh:
-   		curl http://192.168.14.80/stop_audio
-
-  	- Restart ESP:
-   		curl -X POST http://192.168.14.80/restart
-
-  	- Reset Wifi:
-   		curl -X POST http://192.168.14.80/resetwifi
-
-  	- Xóa, đặt lại toàn bộ dữ liệu về mặc định:
-   		curl -X POST http://192.168.14.80/cleanNVS
-
-  Cách Xem Logs Serial UART: 
-	- Baud Rate : 115200
-  
-  	- Cắm cáp và kết nối ESP với cổng USB của máy tính
-   
-  	- Truy cập WEB: https://web.esphome.io/ -> Chọn cổng COM tương ứng để kết nối với ESP
-   
-	- Kết nối thành công nhấn vào Logs để kiểm tra -> Restart lại ESP để Logs được cập nhật và hiển thị khi khởi động, hoặc quá trình hoạt động
-      
-  Lưu Ý: 
-  
+## 8. Lưu ý quan trọng
+	- Không nạp sai offset.
+	- littlefs.bin phải nạp tại 0x350000.
+	- firmware.bin phải nạp tại 0x10000.
+	- Nếu WebUI trắng hoặc thiếu file, kiểm tra lại LittleFS.
+	- Nếu đổi partition, bắt buộc erase flash rồi nạp lại đầy đủ.
+	- Nên dùng SPI SPEED 40MHz và SPI MODE DIO để ổn định.
   	- Khi Flash Xong Dùng Nguồn CỔng Từ USB Sẽ Bị Thiếu Nguồn Khiến ESP Bị RESET Liên Tục
-   
   	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
-   
-	- Nếu Đèn LED WS2812 Không Sáng Và Gặp Lỗi Này Khi Debug Logs Ở Cổng Serial UART: "E (3041) rmt: rmt_new_tx_channel(269): not able to power down in light sleep"
- 	  Nguồn không đủ, yêu cầu tối thiếu 5V-2A trở lên, nên dùng 2.4A hoặc 2.5A để được ổn định
-   
-![Image](https://github.com/user-attachments/assets/31df2568-ccbd-4a4f-95ca-d0a2180eca35)
-![Image](https://github.com/user-attachments/assets/a4600a0f-54dd-4e89-961a-caf29b9ba95a)
-![Image](https://github.com/user-attachments/assets/cbe69c43-8473-4594-a568-7d18ad2165ee)
 
-![Image](https://github.com/user-attachments/assets/de9d1bcd-64a4-4e79-94a5-0d3f621e0349)
+<img width="990" height="802" alt="Image" src="https://github.com/user-attachments/assets/1aa26732-6459-4e19-a5cb-9c441afe3a66" />
