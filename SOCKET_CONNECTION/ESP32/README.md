@@ -10,7 +10,8 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
 		partitions.bin
 		firmware.bin
 		littlefs.bin
-	Phần mềm ESP Flash Download Tool
+		
+	Phần mềm: ESP Flash Download Tool
 
 ## 2. Thông tin phân vùng flash
 	Firmware này sử dụng partition như sau:
