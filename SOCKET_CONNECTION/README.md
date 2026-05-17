@@ -127,3 +127,4 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
   	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
 
 <img width="990" height="802" alt="Image" src="https://github.com/user-attachments/assets/1aa26732-6459-4e19-a5cb-9c441afe3a66" />
+<img width="1452" height="987" alt="Image" src="https://github.com/user-attachments/assets/cb2bbb2c-d1ad-45b1-a0d1-34d0ca77fcdb" />
