@@ -86,10 +86,24 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
 		- Host: 192.168.14.175
 		- Port: 5003
 		
-	Khi kết nối thành công,cso thể kết nối xem logs Serial sẽ hiện tương tự:
+	Khi kết nối thành công, có thể kết nối xem logs Serial sẽ hiện tương tự:
 		- Đã kết nối WebSocket
 		- Gửi cấu hình tới máy chủ VBot
 		- Đã nhận cấu hình Client
+
+		[108] Booting - Khởi động chương trình VBot Client ESP32
+		*wm:AutoConnect 
+		*wm:Connecting to SAVED AP: PhongNgu
+		*wm:connectTimeout not set, ESP waitForConnectResult... 
+		*wm:AutoConnect: SUCCESS 
+		*wm:STA IP Address: 192.168.14.106
+		[850] Địa chỉ kết nối WebSocket ws://192.168.14.175:5003/
+		[852] Audio URL: http://192.168.14.175/assets/sound/welcome/computer-startup.mp3
+		[3043] Đã kết nối WebSocket
+		[3046] Gửi cấu hình tới máy chủ VBot: {"session_id":"VBot_ESP32_Client_Tuyen_4aca4b70_75cdd7c7","client_name":"VBot ESP32 Client Tuyen","working_mode":"main_processing","conversation_mode":true}
+		[Máy Chủ VBot]: {"vbot_client_id": "('192.168.14.106', 52368)", "message": "Đã kết nối tới Server VBot Socket"}
+		[Máy Chủ VBot]: {"vbot_client_id": "VBot_ESP32_Client_Tuyen_4aca4b70_75cdd7c7", "working_mode": "main_processing", "message": "Đã nhận cấu hình Client"}
+		
 
 ## 7. Cập nhật OTA qua WebUI của thiết bị
 	Firmware có thể hỗ trợ cập nhật qua Web OTA.
