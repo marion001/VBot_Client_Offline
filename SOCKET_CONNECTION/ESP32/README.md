@@ -1,5 +1,26 @@
 Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung Loa Thông Minh Chạy VBot
 
+## Tính năng
+
+- WiFiManager captive portal, tự reconnect WiFi và mở lại AP cấu hình khi mất WiFi.
+- WebUI chạy bằng ESPAsyncWebServer, cấu hình GPIO, WebSocket server, working mode, âm lượng, gain mic, log serial, LED WS2812, I2S mic INMP441, I2S DAC/MAX98357.
+- INMP441 có thể chọn kênh mic Left/Right trong WebUI, mặc định dùng Left (L).
+- WebUI hiển thị SSID WiFi đang kết nối và thông tin chip ESP32.
+- WebUI có cấu hình bật/tắt tự động gửi mic để server đánh thức hotword. Khi tắt, client chỉ gửi mic sau khi bấm WakeUP/start recording.
+- Lưu cấu hình bằng NVS `Preferences`.
+- OTA firmware bằng ElegantOTA tại `/update`.
+- API JSON trạng thái/cấu hình tại `/VBot_Client_Info`.
+- API check PSRAM tại `/Check_PS_RAM`, trả `psram_active`, `psram_capacity_mb`, `chip_suffix`.
+- Tải cấu hình NVS JSON tại `/download_config`, khôi phục cấu hình bằng upload JSON tại `/restore_config`.
+- Test hiệu ứng LED bằng HTTP POST `/test_led` với form field `effect`, ví dụ `LED_SPEAK`.
+- WebSocket protocol theo `README_Socket.md`.
+- Gửi mic PCM raw signed 16-bit little-endian mono 16 kHz, frame 512 samples.
+- Phát MP3 URL từ `status_audio` / `tts_audio`.
+- Phát PCM raw realtime từ cặp message `pcm_raw_audio` metadata + binary.
+- 4 nút: Mic, Volume +, Volume -, WakeUP.
+- Hiệu ứng LED: `LED_SPEAK`, `LED_THINK`, `LED_LOADING`, `LED_MUTE`, `LED_ERROR`, `LED_STARTUP`, `LED_PAUSE`, `LED_VOLUME`, `LED_OFF`.
+- FreeRTOS task riêng cho mic, WebSocket, DAC/audio, LED, button và WiFi reconnect.
+
 # Hướng Dẫn Nạp Firmware ESP32 VBot Client - Chế Độ Socket
 
 Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở chế độ Socket/WebSocket.
@@ -13,8 +34,8 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
 		
 	Phần mềm: ESP Flash Download Tool
 
-## 2. Thông tin phân vùng flash
-	Firmware này sử dụng partition như sau:
+## 2. Thông tin phân vùng flash (Mẫu với ESP32)
+	Ví Dụ Mẫu Firmware này sử dụng cho esp32 partition như sau:
 	
 	# Name,   Type, SubType, Offset,   Size,     Flags
 	nvs,      data, nvs,     0x9000,   0x5000,
@@ -23,22 +44,25 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
 	app1,     app,  ota_1,   0x1B0000, 0x1A0000,
 	littlefs, data, spiffs,  0x350000, 0xA0000,
 	coredump, data, coredump,0x3F0000, 0x10000,
+- LƯU Ý:
+  + Để xem đúng phân vùng partition tương ứng với thiết bị của bạn hãy xem file: flash_download_tool_entries.txt
+  + Phần này chỉ để tham khảo cơ cấu chia phân vùng của Firmware
 
-## 3. Bắt đầu tiến hành nạp firmware
+## 3. Bắt đầu tiến hành nạp firmware (Mẫu với ESP32)
 	Mở phần mềm ESP Flash Download Tool và chọn:
 	
 		Chip Type: ESP32
 		WorkMode: Develop
 		LoadMode: UART
 
-	Cấu hình khuyến nghị:
+	Cấu hình khuyến nghị (Mẫu ESP32):
 	
 		SPI SPEED : 40MHz
 		SPI MODE  : DIO
 		FLASH SIZE: 4MB
 		BAUD      : 921600
 
-	Khi nạp bằng ESP Flash Download Tool hoặc esptool, cần điền đúng các giá trị và lần lượt thứ tự file, Offset:
+	Khi nạp bằng ESP Flash Download Tool hoặc esptool, cần điền đúng các giá trị và lần lượt thứ tự file, Offset (Mẫu ESP32):
 	Tick chọn từng file và nhập offset tương ứng:
 		| File             | Offset     |
 		| ---------------- | ---------- |
@@ -57,21 +81,26 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
 			- Thả EN/RST.
 			- Thả BOOT.
 
-## 4. Nạp bằng esptool dòng lệnh
+	- LƯU Ý: Để nhập đúng phân vùng Offset tương ứng với thiết bị của bạn hãy xem file flash_download_tool_entries.txt để nhập cho đúng
+  
+## 4. Nạp bằng esptool dòng lệnh (Mẫu với ESP32)
 	Có thể nạp đầy đủ bằng lệnh:
 		python -m esptool --chip esp32 --port COM11 --baud 921600 write_flash -z ^
 		0x1000 bootloader.bin ^
 		0x8000 partitions.bin ^
 		0x10000 firmware.bin ^
 		0x350000 littlefs.bin
-
-## 5. Erase flash khi cần
+		
+	- LƯU Ý: Để nhập đúng phân vùng Offset tương ứng với thiết bị của bạn hãy xem file flash_download_tool_entries.txt để nhập cho đúng
+  
+## 5. Erase flash khi cần (Mẫu với ESP32)
 	Nếu đổi partition hoặc nạp bản mới hoàn toàn, nên xóa flash trước:
 		python -m esptool --chip esp32 --port COM11 erase_flash
 
 	Sau đó nạp lại đầy đủ các file .bin.
-
-## 6. Sau khi nạp xong
+	
+	- LƯU Ý: Để nhập đúng phân vùng Offset tương ứng với thiết bị của bạn hãy xem file flash_download_tool_entries.txt để nhập cho đúng
+## 6. Sau khi nạp xong (mẫu với ESP32)
 
 	ESP32 sẽ khởi động lại và chạy VBot Client.
 	Nếu chưa có WiFi, ESP32 sẽ phát WiFi cấu hình.
@@ -125,6 +154,26 @@ Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở 
 	- Nên dùng SPI SPEED 40MHz và SPI MODE DIO để ổn định.
   	- Khi Flash Xong Dùng Nguồn CỔng Từ USB Sẽ Bị Thiếu Nguồn Khiến ESP Bị RESET Liên Tục
   	- Nên Dùng Nguồn 5V-2A trở lên Để LED Được Sáng Ổn Định
+
+## Sau khi flash
+
+Nếu chưa có WiFi, ESP32 mở AP `VBot-ESP32-Setup`. Kết nối vào AP này để cấu hình WiFi.
+
+Sau khi ESP32 đã vào WiFi, WebUI nằm tại IP của ESP32. OTA firmware nằm tại:
+
+```text
+http://<IP_ESP32>/update
+```
+
+## Lưu ý phần cứng
+
+- INMP441 dùng I2S RX riêng.
+- MAX98357 dùng I2S TX. Code sẽ tạm dừng MP3 decoder khi phát PCM raw realtime và khởi tạo lại I2S TX theo cấu hình hiện tại.
+- LED dùng FastLED. GPIO WS2812 được lưu trong NVS và áp dụng sau khi ESP restart.
+- Server là WebSocket, ví dụ `ws://192.168.1.10:5003`, không phải TCP socket thô.
+- `session_id` gửi tới WebSocket được tạo ngẫu nhiên ở mỗi phiên kết nối, dùng giá trị Session ID trong WebUI làm prefix.
+- Phiên bản firmware hiện tại nằm trong biến `VBOT_CLIENT_VERSION` và hiển thị trong `/VBot_Client_Info`.
+- Default GPIO đã tránh các chân boot-strapping nhạy cảm của ESP32. Mặc định mới: LED 23, nút Mic 32, Volume+ 33, Volume- 18, WakeUP 19, INMP441 BCLK 14/WS 13/DOUT 34, MAX98357 BCLK 27/LRC 26/DIN 25.
 
 <img width="990" height="802" alt="Image" src="https://github.com/user-attachments/assets/1aa26732-6459-4e19-a5cb-9c441afe3a66" />
 <img width="1452" height="987" alt="Image" src="https://github.com/user-attachments/assets/cb2bbb2c-d1ad-45b1-a0d1-34d0ca77fcdb" />

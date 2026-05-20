@@ -1,4 +1,4 @@
 {
-	"build_date": "19/05/2026-2",
-	"description": "Tối ưu tăng tốc độ xử lý, bổ sung thêm nút tăng giảm âm lượng và nút nhấn dạng xoay Encoder"
+	"build_date": "20/05/2026",
+	"description": "Bổ sung cơ chế giao tiếp Socket"
 }

@@ -1,0 +1,189 @@
+# Các mục nhập Công cụ Tải xuống Flash cho môi trường VBot_Client
+# Tệp: flash_download_tool_entries.txt
+# Mỗi phần: Tên ENV, chip và flash_mode được đề xuất, sau đó là các dòng cần dán vào bảng "Tải xuống SPI" (Địa chỉ, Tệp)
+
+---
+ENV: esp32
+VBOT_BUILD_TARGET="ESP32"
+chip: esp32
+flash_mode: (use default for your board, e.g. qio)
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x350000,littlefs.bin
+Partition table (partitions_vbot_ota.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x1A0000,
+app1,     app,  ota_1,   0x1B0000, 0x1A0000,
+littlefs, data, spiffs,  0x350000, 0xA0000,
+coredump, data, coredump,0x3F0000, 0x10000,
+
+---
+ENV: esp32-psram
+VBOT_BUILD_TARGET="ESP32_PSRAM"
+chip: esp32
+flash_mode: (use default for your board, e.g. qio)
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x350000,littlefs.bin
+Partition table (partitions_vbot_ota.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x1A0000,
+app1,     app,  ota_1,   0x1B0000, 0x1A0000,
+littlefs, data, spiffs,  0x350000, 0xA0000,
+coredump, data, coredump,0x3F0000, 0x10000,
+
+---
+ENV: esp32-wrover
+VBOT_BUILD_TARGET="ESP32_WROVER"
+chip: esp32
+flash_mode: (use default for your board, wrover typically qio)
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x350000,littlefs.bin
+Partition table (partitions_vbot_ota.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x1A0000,
+app1,     app,  ota_1,   0x1B0000, 0x1A0000,
+littlefs, data, spiffs,  0x350000, 0xA0000,
+coredump, data, coredump,0x3F0000, 0x10000,
+
+---
+ENV: esp32-psram-8mb
+VBOT_BUILD_TARGET="ESP32_PSRAM_8MB"
+chip: esp32
+flash_mode: (use default for your board, e.g. qio)
+Partitions file: partitions_vbot_ota_8mb.csv
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x610000,littlefs.bin
+Partition table (partitions_vbot_ota_8mb.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x300000,
+app1,     app,  ota_1,   0x310000, 0x300000,
+littlefs, data, spiffs,  0x610000, 0x1E0000,
+coredump, data, coredump,0x7F0000, 0x10000,
+
+---
+ENV: esp32-psram-16mb
+VBOT_BUILD_TARGET="ESP32_PSRAM_16MB"
+chip: esp32
+flash_mode: (use default for your board, e.g. qio)
+Partitions file: partitions_vbot_ota_16mb.csv
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x810000,littlefs.bin
+Partition table (partitions_vbot_ota_16mb.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x400000,
+app1,     app,  ota_1,   0x410000, 0x400000,
+littlefs, data, spiffs,  0x810000, 0x7E0000,
+coredump, data, coredump,0xFF0000, 0x10000,
+
+---
+ENV: esp32s3
+VBOT_BUILD_TARGET="ESP32S3_N8"
+chip: esp32s3
+flash_mode: (default; use qio if unsure)
+Partitions file: partitions_vbot_ota.csv
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x350000,littlefs.bin
+Partition table (partitions_vbot_ota.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x1A0000,
+app1,     app,  ota_1,   0x1B0000, 0x1A0000,
+littlefs, data, spiffs,  0x350000, 0xA0000,
+coredump, data, coredump,0x3F0000, 0x10000,
+
+---
+ENV: esp32s3-n8r2
+VBOT_BUILD_TARGET="ESP32S3_N8R2"
+chip: esp32s3
+flash_mode: qio
+Partitions file: partitions_vbot_ota_8mb.csv
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x610000,littlefs.bin
+Partition table (partitions_vbot_ota_8mb.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x300000,
+app1,     app,  ota_1,   0x310000, 0x300000,
+littlefs, data, spiffs,  0x610000, 0x1E0000,
+coredump, data, coredump,0x7F0000, 0x10000,
+
+---
+ENV: esp32s3-n8r8
+VBOT_BUILD_TARGET="ESP32S3_N8R8"
+chip: esp32s3
+flash_mode: qio
+Partitions file: partitions_vbot_ota_8mb.csv
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x610000,littlefs.bin
+Partition table (partitions_vbot_ota_8mb.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x300000,
+app1,     app,  ota_1,   0x310000, 0x300000,
+littlefs, data, spiffs,  0x610000, 0x1E0000,
+coredump, data, coredump,0x7F0000, 0x10000,
+
+---
+ENV: esp32s3-n16r8
+VBOT_BUILD_TARGET="ESP32S3_N16R8"
+chip: esp32s3
+flash_mode: qio
+Partitions file: partitions_vbot_ota_16mb.csv
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0x10000,firmware.bin
+0x810000,littlefs.bin
+Partition table (partitions_vbot_ota_16mb.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x400000,
+app1,     app,  ota_1,   0x410000, 0x400000,
+littlefs, data, spiffs,  0x810000, 0x7E0000,
+coredump, data, coredump,0xFF0000, 0x10000,
+
+--- Ghi chú:
+- Kiểm tra `flash_mode` và `flash frequency` cần thiết của bo mạch trong `platformio.ini` hoặc tài liệu của bo mạch và thiết lập chúng trong Flash Download Tool cho phù hợp.
+
+- Nếu bạn sử dụng tệp phân vùng khác, hãy xác nhận độ lệch `littlefs` trong tệp CSV đó.
+
+- Đối với Flash Download Tool trên Windows, hãy tạo một "Cấu hình Tải xuống" cho mỗi ENV bằng cách sử dụng các cặp địa chỉ/tệp ở trên.
+
+Được tạo từ tệp không gian làm việc: platformio.ini và các tệp CSV phân vùng.
