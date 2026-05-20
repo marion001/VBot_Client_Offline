@@ -1,12 +1,13 @@
 # VBot Streaming Socket Protocol
 
-Tai lieu nay mo ta co che client ket noi toi VBot Streaming Server khi `connection_protocol` la `socket`.
+Tài liệu này mô tả cơ chế Client kết nối tới máy chủ VBot Streaming Server khi `connection_protocol` là `socket`.
 
-File server lien quan: `Streaming.py`
+File Server liên quan: `Streaming`
 
-## 1. Cau hinh server
+## 1. Cấu hình Server
 
-Trong `Config.json`, `working_mode` khong nam trong muc `socket` nua. Moi client se tu khai bao `working_mode` khi ket noi thanh cong.
+Mỗi Client sẽ tự khai báo `working_mode` khi kết nối thành công
+Cấu Hình mẫu Config.json trong VBot Server
 
 ```json
 {
@@ -30,42 +31,42 @@ Trong `Config.json`, `working_mode` khong nam trong muc `socket` nua. Moi client
 }
 ```
 
-Client ket noi toi:
+Client kết nối tới:
 
 ```text
 ws://<IP_VBOT>:<port>
 ```
 
-Vi du:
+Ví dụ:
 
 ```text
 ws://192.168.1.10:5003
 ```
 
-## 2. Kieu du lieu qua WebSocket
+## 2. Kiểu dữ liệu qua WebSocket
 
-Server va client trao doi 2 kieu message:
+Server và client trao đổi 2 kiểu message:
 
-| Kieu | Huong | Y nghia |
+| Kiểu | Hướng | Ý nghĩa |
 | --- | --- | --- |
-| Text JSON | Client -> Server | Khai bao `session_id`, `working_mode` |
-| Text command | Client -> Server | Lenh `start_recording`, `Skip_WakeUP`, `stop` |
-| Binary | Client -> Server | PCM raw microphone gui len STT/wakeup |
-| Text JSON | Server -> Client | Trang thai xu ly, transcript, metadata audio |
-| Binary | Server -> Client | PCM raw audio de client phat realtime |
+| Text JSON | Client -> Server | Khai báo `session_id`, `working_mode` |
+| Text command | Client -> Server | Lệnh `start_recording`, `Skip_WakeUP`, `stop` |
+| Binary | Client -> Server | PCM raw microphone gửi lên STT/wakeup |
+| Text JSON | Server -> Client | Trạng thái xử ý, transcript, metadata audio |
+| Binary | Server -> Client | PCM raw audio để client phát realtime |
 
-## 3. Ket noi va khai bao client
+## 3. Kết nối và khai báo Client
 
-Khi WebSocket vua ket noi, server tra:
+Khi WebSocket vừa kết nối, server trả:
 
 ```json
 {
   "vbot_client_id": "('192.168.1.20', 54321)",
-  "message": "Da ket noi VBot Socket Server"
+  "message": "Đã kết nối VBot Socket Server"
 }
 ```
 
-Sau do client nen gui JSON cau hinh:
+Sau đó client nên gửi JSON cấu hình:
 
 ```json
 {
@@ -74,31 +75,31 @@ Sau do client nen gui JSON cau hinh:
 }
 ```
 
-Server tra:
+Server trả về:
 
 ```json
 {
   "vbot_client_id": "client_phong_khach",
   "working_mode": "main_processing",
-  "message": "Da nhan cau hinh client"
+  "message": "Đã nhận cấu hình client"
 }
 ```
 
-`working_mode` ho tro:
+`working_mode` hỗ trợ các tham số:
 
-| Mode | Y nghia |
+| Mode | Ý Nghĩa |
 | --- | --- |
-| `main_processing` | Xu ly day du qua VBot. Neu assistant tra PCM raw, server stream `pcm_raw_audio` ve client. |
-| `chatbot` | Gui transcript vao chatbot va tra text/audio ket qua. |
-| `stt_to_tts` | Ten cu, hien tai chi tra text STT ve client, khong tao TTS. Alias `stt_to_text` cung duoc chap nhan. |
+| `main_processing` | Xử lý đầy đủ qua VBot. nếu assistant trả PCM raw, server stream `pcm_raw_audio` về Client. |
+| `chatbot` | gửi transcript vào chatbot và trả text/audio kết quả tùy dữ liệu |
+| `stt_to_tts` | Hiện tại chỉ trả text STT về Client, Không tạo TTS. Alias `stt_to_text` cũng được chấp nhận. |
 
-De tuong thich client cu, neu client gui text thuong khong phai lenh dac biet va khong phai JSON, server xem text do la `session_id`.
+Để tương thích Client cơ chế cũ, nếu Client gửi text thường không phải lệnh đặc biệt và không phải JSON, server xem text đó là `session_id`.
 
-## 4. Lenh text client gui
+## 4. Lệnh text Client gửi
 
-### Bat dau ghi am khong can wake word
+### Bắt đầu ghi âm không cần WakeUP HotWord
 
-Client gui mot trong cac text:
+Client gửi 1 trong các tham số text sau:
 
 ```text
 Skip_WakeUP
@@ -106,166 +107,166 @@ start
 start_recording
 ```
 
-Neu server ranh, server tra:
+Nếu Server rảnh (ở chế độ chờ), server sẽ trả:
 
 ```json
 {
   "processing_process": "wake_word_detected",
   "wake_word_detected": true,
   "status_audio": "http://192.168.1.10/assets/sound/default/ding.mp3",
-  "message": "Da duoc danh thuc!"
+  "message": "Đã được đánh thức!"
 }
 ```
 
-Neu server dang xu ly client khac:
+Nếu server đang xử lý dữ liệu client khác:
 
 ```json
 {
   "processing_process": "waiting_to_wake_up",
   "waiting_to_wake_up": true,
   "status_audio": "http://192.168.1.10/assets/sound/default/dong.mp3",
-  "message": "Yeu cau bi tu choi: Co client khac dang xu ly"
+  "message": "Yêu cầu bị từ chối: Có client khác đang xử lý"
 }
 ```
 
-### Dung ghi am
+### Dừng ghi âm
 
-Client gui:
+Client gửi:
 
 ```text
 stop
 ```
 
-Server ket thuc audio queue hien tai va dua audio da nhan sang STT.
+Server kết thúc audio queue hiện tại và đưa audio đã nhận sang STT.
 
-`status_audio` la rieng cho ket noi socket. UDP khong them truong nay.
+`status_audio` là tham số riêng cho kết nối socket. kết nối UDP không thêm trường giá trị này.
 
-## 5. Binary audio client gui len
+## 5. Binary audio client gửi lên Server
 
-Client gui microphone bang WebSocket binary:
+Client gửi microphone bằng WebSocket binary:
 
 ```text
 PCM raw
 Signed 16-bit little-endian
 Mono
-Khuyen nghi 16000 Hz
+Khuyến nghị 16000 Hz
 Frame wakeup: 512 samples = 1024 bytes
 ```
 
-Khi chua recording, server chi xu ly binary frame dung `1024` bytes de chay wake word.
+Khi chưa recording, server chỉ xử lý binary frame đúng `1024` bytes để chạy wake word.
 
-Khi da recording, server dua cac binary chunk vao STT. Chunk nen deu va nho de giam tre.
+Khi đã recording, server đưa các binary chunk vào STT. Chunk nên đều để giảm độ trễ.
 
-## 6. Luong hoat dong bo qua wake word
+## 6. Luồng hoạt động bỏ qua wake word
 
-1. Client ket noi WebSocket.
-2. Server tra message ket noi.
-3. Client gui JSON cau hinh gom `session_id`, `working_mode`.
-4. Client gui `start_recording`.
-5. Server tra `wake_word_detected`.
-6. Server tra `recording`.
-7. Client gui binary PCM microphone.
-8. Client gui `stop`, hoac server tu dung sau `maximum_recording_time`.
-9. Server STT va tra `data_processing`.
-10. Server tra ket qua theo `working_mode`.
-11. Neu co PCM raw audio phan hoi, server gui realtime tung cap `pcm_raw_audio` metadata + binary PCM.
+1. Client kết nối WebSocket.
+2. Server trả message kết nối.
+3. Client gửi JSON cấu hình gồm `session_id`, `working_mode`.
+4. Client gửi `start_recording`.
+5. Server trả `wake_word_detected`.
+6. Server trả `recording`.
+7. Client gửi binary PCM microphone.
+8. Client gửi `stop`, hoặc server tự dừng sau giá trị `maximum_recording_time` (giây) được cấu hình ở Config.json Server
+9. Server STT và trả `data_processing`.
+10. Server trả nội dung kết quả dữ liệu theo cơ chế `working_mode`.
+11. Nếu có PCM raw audio phản hồi, server gửi realtime từng cặp `pcm_raw_audio` metadata + binary PCM.
 
-## 7. JSON server tra ve
+## 7. JSON server trả về
 
-### Dang ghi am
+### Đang ghi âm
 
 ```json
 {
   "processing_process": "recording",
   "recording_streaming": true,
-  "message": "Dang thu am..."
+  "message": "Đang thu âm..."
 }
 ```
 
-### Khong co giong noi
+### Không có giọng nói
 
 ```json
 {
   "processing_process": "waiting_to_wake_up",
   "waiting_to_wake_up": true,
   "status_audio": "http://192.168.1.10/assets/sound/default/dong.mp3",
-  "message": "Khong co giong noi duoc truyen vao, dang cho duoc danh thuc"
+  "message": "Không có giọng nói được truyền vào, đang chờ được đánh thức"
 }
 ```
 
-### Da co transcript, bat dau xu ly
+### Đã có transcript, bắt đầu xử lý
 
 ```json
 {
   "processing_process": "data_processing",
-  "transcript_normed": "bat den phong khach",
-  "message": "Dang xu ly du lieu"
+  "transcript_normed": "bật đèn phòng khách",
+  "message": "Đang xử lý dữ liệu"
 }
 ```
 
-### Ket qua `main_processing`, tiep tuc hoi thoai
+### Kết quả `main_processing`, tiếp tục hỏi
 
 ```json
 {
   "processing_process": "continue_wake_up",
   "tts_audio": "http://192.168.1.10/assets/sound/TTS_Audio/file.mp3",
-  "assistant_text": "Da bat den phong khach",
-  "response_text": "Da bat den phong khach",
-  "message": "Da xu ly xong du lieu, tiep tuc duoc danh thuc"
+  "assistant_text": "Đã bật đèn phòng khách",
+  "response_text": "Đã bật đèn phòng khách",
+  "message": "Đã xử lý xong dữ liệu, tiếp tục được đánh thức"
 }
 ```
 
-### Ket qua `main_processing`, quay ve cho wake word
+### Kết quả `main_processing`, quay về chờ wake word
 
 ```json
 {
   "processing_process": "waiting_to_wake_up",
   "status_audio": "http://192.168.1.10/assets/sound/default/dong.mp3",
   "tts_audio": "http://192.168.1.10/assets/sound/TTS_Audio/file.mp3",
-  "assistant_text": "Da bat den phong khach",
-  "response_text": "Da bat den phong khach",
-  "message": "Da xu ly xong du lieu, dang cho duoc danh thuc"
+  "assistant_text": "Đã bật đèn phòng khách",
+  "response_text": "Đã bật đèn phòng khách",
+  "message": "Đã xử lý xong dữ liệu, đang chờ được đánh thức"
 }
 ```
 
-### Ket qua `chatbot`
+### Kết quả `chatbot`
 
 ```json
 {
   "processing_process": "chatbot_response",
   "tts_audio": "http://192.168.1.10/assets/sound/TTS_Audio/file.mp3",
-  "assistant_text": "Noi dung chatbot tra ve",
-  "response_text": "Noi dung chatbot tra ve",
-  "message": "Da xu ly xong du lieu chatbot"
+  "assistant_text": "Nội dung chatbot trả về",
+  "response_text": "Nội dung chatbot trả về",
+  "message": "Đã xử lý xong dữ liệu chatbot"
 }
 ```
 
-### Ket qua `stt_to_tts`
+### kết quả `stt_to_tts`
 
-Mode nay chi tra text STT, khong tao TTS:
+Mode này chỉ trả text STT, không tạo TTS:
 
 ```json
 {
   "processing_process": "stt_to_tts_response",
   "tts_audio": null,
-  "assistant_text": "noi dung stt",
-  "response_text": "noi dung stt",
-  "message": "Da chuyen doi STT sang text"
+  "assistant_text": "nội dung stt",
+  "response_text": "nội dung stt",
+  "message": "Đã chuyển đổi STT sang text"
 }
 ```
 
-### Loi
+### Lỗi
 
 ```json
 {
   "processing_process": "error",
-  "message": "Loi xu ly du lieu tren server"
+  "message": "Lỗi xử lý dữ liệu trên server"
 }
 ```
 
 ## 8. Realtime `pcm_raw_audio`
 
-Khi `working_mode` la `main_processing`, neu assistant tra ve audio PCM raw, server se stream realtime ve client. Moi chunk gom 2 message lien tiep:
+Khi `working_mode` là `main_processing`, nếu assistant trả về audio PCM raw, server sẽ stream realtime về client. Mỗi chunk gồm 2 message liên tiếp:
 
 1. Text JSON metadata:
 
@@ -278,84 +279,84 @@ Khi `working_mode` la `main_processing`, neu assistant tra ve audio PCM raw, ser
   "sample_width": 2,
   "audio_bytes": 1920,
   "streaming": true,
-  "message": "Du lieu am thanh PCM raw"
+  "message": "Dữ liệu âm thanh PCM raw"
 }
 ```
 
-2. Binary frame ngay sau do, do dai bang `audio_bytes`.
+2. Binary frame ngay sau đó, dộ dài bằng `audio_bytes`.
 
-Binary frame la:
+Binary frame là:
 
 ```text
 PCM raw
 Signed 16-bit little-endian
 Mono
-Sample rate theo metadata, mac dinh 16000 Hz
+Sample rate theo metadata, mặc định 16000 Hz
 ```
 
-Client nen xu ly nhu sau:
+Client nên xử lý như sau:
 
-1. Khi nhan JSON co `processing_process == "pcm_raw_audio"`, luu metadata nay.
-2. Binary frame tiep theo la audio cua metadata vua nhan.
-3. Kiem tra cau hinh client co muon phat audio hay khong.
-4. Neu co, phat PCM theo `sample_rate`, `channels`, `sample_width`.
-5. Neu khong, bo qua binary frame nhung van nen log `audio_bytes`.
+1. Khi nhận JSON có `processing_process == "pcm_raw_audio"`, luu metadata này.
+2. Binary frame tiếp theo là audio của metadata vừa nhận.
+3. Kiểm tra cấu hình client có muốn phát audio hay không.
+4. Nếu có, phát PCM theo `sample_rate`, `channels`, `sample_width`.
+5. Nếu không, bỏ qua binary frame nhưng vẫn nên log `audio_bytes`.
 
-## 9. Tham so client gui
+## 9. Tham số client gửi
 
-### JSON cau hinh client
+### JSON cấu hình client
 
-| Field | Kieu | Bat buoc | Y nghia |
+| Field | Kiểu | Bắt buộc | Ý Nghĩa |
 | --- | --- | --- | --- |
-| `session_id` | string | Khuyen nghi | Ten dinh danh client. |
-| `working_mode` | string | Khuyen nghi | `main_processing`, `chatbot`, `stt_to_tts` hoac `stt_to_text`. |
-| `vbot_client_id` | string | Khong | Alias cua `session_id`. |
-| `client_id` | string | Khong | Alias cua `session_id`. |
+| `session_id` | string | Khuyến nghị | Tên định danh client. |
+| `working_mode` | string | Khuyến nghị | `main_processing`, `chatbot`, `stt_to_tts` hoặc `stt_to_text`. |
+| `vbot_client_id` | string | không | Alias của `session_id`. |
+| `client_id` | string | Không | Alias của `session_id`. |
 
 ### Text command
 
-| Command | Y nghia |
+| Command | Ý nghĩa |
 | --- | --- |
-| `Skip_WakeUP` | Bat dau recording khong can wake word. |
-| `start` | Bat dau recording khong can wake word. |
-| `start_recording` | Bat dau recording khong can wake word. |
-| `stop` | Ket thuc recording hien tai. |
+| `Skip_WakeUP` | bắt đầu recording không cần wake word. |
+| `start` | Bắt đầu recording không cần wake word. |
+| `start_recording` | bắt đầu recording không cần wake word. |
+| `stop` | Kết thúc recording hiện tại. |
 
 ### Binary microphone
 
-| Tham so | Gia tri |
+| Tham số | Giá trị |
 | --- | --- |
 | Format | PCM raw |
 | Encoding | signed int16 little-endian |
 | Channels | 1 |
-| Sample rate | Nen khop STT, thuong la 16000 |
+| Sample rate | Nên khớp STT, thường là 16000 |
 | Wake frame | 512 samples, 1024 bytes |
 
-## 10. Tham so server tra ve
+## 10. Tham số server trả về
 
-| Field | Co trong | Y nghia |
+| Field | Có trong | Ý nghĩa |
 | --- | --- | --- |
-| `processing_process` | Hau het JSON | Trang thai hien tai cua server. |
-| `recording_streaming` | `recording` | Server dang nhan audio recording. |
-| `wake_word_detected` | `wake_word_detected` | Server da bat dau recording. |
-| `waiting_to_wake_up` | `waiting_to_wake_up` | Server quay ve trang thai cho. |
-| `transcript_normed` | `data_processing` | Text STT da nhan. |
-| `tts_audio` | Ket qua xu ly | URL/path audio neu co. Co the la `null` hoac `"None"`. |
-| `status_audio` | Trang thai wake/wait | URL day du cua am thanh trang thai, vi du ding/dong. |
-| `assistant_text` | Ket qua xu ly | Text assistant tra ve. |
-| `response_text` | Ket qua xu ly | Text response de client hien thi. |
-| `audio_format` | `pcm_raw_audio` | Dinh dang PCM raw, hien tai `pcm_s16le`. |
-| `sample_rate` | `pcm_raw_audio` | Sample rate cua binary frame tiep theo. |
-| `channels` | `pcm_raw_audio` | So kenh audio. |
-| `sample_width` | `pcm_raw_audio` | So byte moi sample. |
-| `audio_bytes` | `pcm_raw_audio` | Do dai binary frame tiep theo. |
-| `streaming` | `pcm_raw_audio` | `true` neu audio duoc gui realtime theo chunk. |
+| `processing_process` | Hầu hết JSON | Trạng thái hiện tại của server. |
+| `recording_streaming` | `recording` | Server đang nhận audio recording. |
+| `wake_word_detected` | `wake_word_detected` | Server đã bắt đầu recording. |
+| `waiting_to_wake_up` | `waiting_to_wake_up` | Server quay về trạng thái chờ. |
+| `transcript_normed` | `data_processing` | Text STT đã nhận. |
+| `tts_audio` | Kết quả xử lý | URL/path audio nếu có. Có thể là `null` hoặc `"None"`. |
+| `status_audio` | Trạng thái wake/wait | URL đầy đủ của âm thanh trạng thái, ví dụ ding/dong. |
+| `assistant_text` | Kết quả xử lý | Text assistant trả về. |
+| `response_text` | Kết quả xử lý | Text response để client hiển thị. |
+| `audio_format` | `pcm_raw_audio` | Định dạng PCM raw, hiện tại `pcm_s16le`. |
+| `sample_rate` | `pcm_raw_audio` | Sample rate của binary frame tiếp theo. |
+| `channels` | `pcm_raw_audio` | Số kênh audio. |
+| `sample_width` | `pcm_raw_audio` | Số byte mỗi sample. |
+| `audio_bytes` | `pcm_raw_audio` | Độ dài binary frame tiếp theo. |
+| `streaming` | `pcm_raw_audio` | `true` nếu audio được gửi realtime theo chunk. |
 
-Neu `smart_config.smart_wakeup.wakeup_reply.active = true`, `status_audio` cua `wake_word_detected` se la mot file ngau nhien trong danh sach `wakeup_reply.sound_file` dang active. Neu tat `wakeup_reply`, server dung am thanh mac dinh `Lib.Sound_Start`.
+Nếu `smart_config.smart_wakeup.wakeup_reply.active = true`, `status_audio` của `wake_word_detected` sẽ là một file ngẫu nhiên trong danh sách `wakeup_reply.sound_file` đang active. Nếu tắt `wakeup_reply`, server dùng âm thanh mặc định ding.mp3 `Lib.Sound_Start`.
 
-Ngoai le: neu client chu dong gui `Skip_WakeUP`, `status_audio` luon la am thanh mac dinh `Lib.Sound_Start` (`ding.mp3`), khong dung wakeup_reply.
+Ngoại lệ: nếu client chủ động gửi `Skip_WakeUP`, `status_audio` luôn là âm thanh mặc định `Lib.Sound_Start` (`ding.mp3`), không dùng wakeup_reply.
 
-## 11. Vi du client JavaScript nhan `pcm_raw_audio`
+## 11. Ví dụ client JavaScript nhận `pcm_raw_audio`
 
 ```javascript
 let pendingPcmMeta = null;
@@ -412,29 +413,29 @@ socket.onmessage = async (event) => {
 };
 ```
 
-## 12. Luu y
+## 12. Lưu ý
 
-- Client phai dung WebSocket, khong phai TCP raw socket.
-- Client nen gui JSON cau hinh ngay sau khi ket noi.
-- `working_mode` la theo tung client, khong con cau hinh trong `protocol.socket`.
-- Neu nhan `pcm_raw_audio`, binary frame ngay sau do la audio PCM tuong ung.
-- Neu client khong muon phat audio, van nen doc binary frame va bo qua de giu dung thu tu message.
-- WebSocket server dung ping `ping_interval=20`, `ping_timeout=10`; client nen dung thu vien WebSocket chuan de tu dong pong.
+- Client phải dùng WebSocket, không phải TCP raw socket.
+- Client nên gửi JSON cấu hình ngay sau khi kết nối.
+- `working_mode` là theo từng client, không cấu hình trong Config.json của server `protocol.socket`.
+- Nếu nhận `pcm_raw_audio`, binary frame ngay sau đó là audio PCM tương ứng.
+- Nếu client không muốn phát audio, vẫn nên đọc binary frame và bỏ qua để giữ thứ tự message.
+- WebSocket server dùng ping `ping_interval=20`, `ping_timeout=10`; client nên dùng thư viện WebSocket chuẩn để tự dong pong (kiểm tra kết nối)
 
-## 13. Cau hinh lien quan
+## 13. Cấu hình liên quan
 
-| Key | Y nghia |
+| Key | Ý nghĩa |
 | --- | --- |
-| `port` | Cong WebSocket server. |
-| `maximum_recording_time` | Thoi gian ghi am toi da cho mot luot noi. |
-| `maximum_client_connected` | So client WebSocket toi da. |
-| `source_stt` | Nguon STT: `stt_ggcloud`, `stt_ggcloud_v2`, `stt_default`. |
-| `select_wakeup` | Engine wake word: `snowboy` hoac `porcupine`. |
-| `client_conversation_mode` | Cho phep client tiep tuc hoi thoai sau khi xu ly xong. |
-| `music_playback_on_client` | Cho phep gui URL media ve client khi xu ly lenh phat nhac. |
-| `audio_queue_maxsize` | Tuy chon, kich thuoc queue audio. |
-| `ws_open_timeout` | Tuy chon, timeout mo ket noi toi STT websocket phu. |
-| `ws_recv_timeout` | Tuy chon, timeout nhan phan hoi tu STT websocket phu. |
-| `thread_join_timeout` | Tuy chon, timeout join thread STT. |
+| `port` | Cổng WebSocket server. |
+| `maximum_recording_time` | Thời gian thu âm tối đa cho mỗi lượt nói. |
+| `maximum_client_connected` | Số client WebSocket kết nối tối đa. |
+| `source_stt` | Nguồn xử lý STT: `stt_ggcloud`, `stt_ggcloud_v2`, `stt_default`. |
+| `select_wakeup` | Engine wake word: `snowboy` hoặc `porcupine`. |
+| `client_conversation_mode` | Cho phép client tiếp tục hội thoại sau khi xử lý xong. |
+| `music_playback_on_client` | Cho phép gửi URL media về client khi xử lý lệnh phát nhạc. |
+| `audio_queue_maxsize` | Tùy chọn, kích thước queue audio. |
+| `ws_open_timeout` | Tùy chọn, timeout mở kết nối tới STT websocket phụ. |
+| `ws_recv_timeout` | Tùy chọn, timeout nhận phản hồi từ STT websocket phụ. |
+| `thread_join_timeout` | Tùy chọn, timeout join thread STT. |
 
-`time_remove_inactive_clients` chi dung cho UDP, khong ap dung cho che do socket.
+`time_remove_inactive_clients` chỉ dùng cho UDP, không áp dụng cho chế độ socket.
