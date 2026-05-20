@@ -1,5 +1,9 @@
 Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung Loa Thông Minh Chạy VBot
-
+- 
+- Bạn muốn code Client cho loa VBot trên các nền tảng, thiết bị khác qua kết nối WebSocket có thể tham khảo 2 File sau:
+	 + README_Socket.md
+	 + Test_Client_WebSocket_Streaming.html
+  
 ## Tính năng
 
 - WiFiManager captive portal, tự reconnect WiFi và mở lại AP cấu hình khi mất WiFi.
