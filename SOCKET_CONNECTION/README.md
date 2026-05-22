@@ -25,6 +25,73 @@ Yêu Cầu: Thiết Bị Raspberry Pi Chạy VBot Làm Server, Hoặc Sử Dung 
 - Hiệu ứng LED: `LED_SPEAK`, `LED_THINK`, `LED_LOADING`, `LED_MUTE`, `LED_ERROR`, `LED_STARTUP`, `LED_PAUSE`, `LED_VOLUME`, `LED_OFF`.
 - FreeRTOS task riêng cho mic, WebSocket, DAC/audio, LED, button và WiFi reconnect.
 
+## Cơ chế `audio_proxy`
+
+ESP32 không phát trực tiếp ổn định các URL `https://...`, YouTube, ZingMP3 hoặc các trang nhạc cần bóc link stream thật. Vì vậy WebUI có thêm cấu hình:
+
+```text
+URL API stream audio_proxy
+Sử dụng URL API stream đã nhập
+```
+
+URL proxy này phải là server nội bộ dùng `http://`, không dùng `https://`. Ví dụ:
+
+```text
+http://192.168.1.20:5000/audio_proxy?url=
+```
+
+Hoặc chỉ nhập base URL:
+
+```text
+http://192.168.1.20:5000
+```
+
+Khi checkbox được bật, firmware sẽ tự đổi các URL cần xử lý thành:
+
+```text
+http://192.168.1.20:5000/audio_proxy?url=<URL_goc_da_encode>
+```
+
+Quy tắc xử lý URL:
+
+- URL âm thanh `https://...` luôn đi qua `audio_proxy` vì ESP32 client không xử lý HTTPS trực tiếp.
+- URL YouTube, ZingMP3 hoặc URL web nhạc người dùng nhập trong ô Play URL sẽ đi qua `audio_proxy`.
+- URL `/audio_proxy?id=...` hoặc `/audio_proxy?url=...` từ server VBot cũng có thể được chuyển qua proxy nội bộ đã nhập.
+- URL âm thanh nội bộ từ VBot server dạng `http://<ip_server>/...mp3`, `http://<ip_server>/assets/sound/...` sẽ phát trực tiếp, không đi qua proxy.
+- Nếu không tích checkbox, firmware giữ nguyên hành vi cũ và phát URL server trả về trực tiếp.
+
+Server mẫu để test nằm trong:
+
+```text
+audio_proxy_test_server.py
+audio_proxy_test_requirements.txt
+```
+
+Cách chạy server mẫu trên máy tính nội bộ:
+
+```powershell
+cd C:\Users\PC-Tuyen\Desktop\VBot_ToiUu\esp32_vbot_client
+python -m pip install -r audio_proxy_test_requirements.txt
+python audio_proxy_test_server.py --host 0.0.0.0 --port 5000
+```
+
+Các endpoint test:
+
+```text
+GET /health
+GET /resolve?url=<youtube_zingmp3_hoac_audio_url>
+GET /audio_proxy?url=<youtube_zingmp3_hoac_audio_url>
+GET /register?url=<youtube_zingmp3_hoac_audio_url>
+```
+
+Trong WebUI ESP32, nhập:
+
+```text
+http://<IP_may_chay_proxy>:5000/audio_proxy?url=
+```
+
+Sau đó tích `Sử dụng URL API stream đã nhập`, lưu cấu hình và khởi động lại ESP32.
+
 # Hướng Dẫn Nạp Firmware ESP32 VBot Client - Chế Độ Socket
 
 Tài liệu này hướng dẫn nạp firmware cho ESP32 VBot Client chạy ở chế độ Socket/WebSocket.
