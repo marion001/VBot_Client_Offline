@@ -188,6 +188,7 @@ goto :eof
 
 
 :install_ai
+adb shell pm grant com.vbot_client.phicommr1 android.permission.WRITE_SECURE_SETTINGS
 echo.
 echo ---------------------------------------------
 echo        Cai dat VBot Client (Socket)
