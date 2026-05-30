@@ -99,6 +99,9 @@ adb -s <ip>:5555 push app\build\outputs\apk\debug\app-debug.apk /data/local/tmp/
 adb -s <ip>:5555 shell pm install -r /data/local/tmp/vbot.apk
 adb -s <ip>:5555 shell rm /data/local/tmp/vbot.apk
 adb -s <ip>:5555 shell am start -n com.vbot.phicommr1/.MainActivity
+
+Cấp quyền button nút nhấn
+adb -s <ip>:5555 shell pm grant com.vbot_client.phicommr1 android.permission.WRITE_SECURE_SETTINGS
 ```
 
 ## 7. Ghi chú vận hành
@@ -110,3 +113,5 @@ adb -s <ip>:5555 shell am start -n com.vbot.phicommr1/.MainActivity
   - save config + reconnect
   - wakeword detect/log
   - websocket trạng thái kết nối
+ 
+<img width="1902" height="1092" alt="Image" src="https://github.com/user-attachments/assets/363614f6-bc84-40e4-9ab7-e616e1a3532c" />
