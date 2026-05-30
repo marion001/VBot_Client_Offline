@@ -1,0 +1,997 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="">
+	<!-- fields for Cloudsearch -->
+<meta name="title" content="IEEE SA - Registration Authority"/>
+<meta name="type" content="Page"/>
+<meta name="topic" content=""/>
+<meta name="category" content="Uncategorized"/>
+<meta name="description" content="Please note that the annual 3% price increase will go into effect for all registries on December 31, 2025, at 12:00 pm (ET). About the Registration Authority IEEE offers Registration&hellip;"/>
+<meta name="keywords" content="ieee-sa,mac address,mac addresses,registration authority"/>
+<!-- Default OG Image -->
+<meta property="og:image" content="https://standards.ieee.org/wp-content/uploads/2024/03/iStock-1413210242-DM-r1.jpg"/>
+
+	
+	
+	
+			<!-- v ieee cookie banner v -->
+		<script src="https://cmp.osano.com/AzyzptTmRlqVd2LRf/5b89ff83-255a-489b-b1d7-925a53475ed0/osano.js"></script>
+		<link rel="stylesheet" href="https://cookie-consent.ieee.org/ieee-cookie-banner.css" type="text/css"/>
+		<!-- ^ ieee cookie banner ^ -->
+
+		<!-- Google Tag Manager -->
+		<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+								new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+						j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+						'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+				})(window,document,'script','dataLayer','GTM-MR8T843');</script>
+		<!-- End Google Tag Manager -->
+	
+	<title>IEEE SA - Registration Authority</title><link rel="preload" data-smush-preload as="image" href="https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top.png" imagesrcset="https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top.png 1000w, https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top-300x81.png 300w, https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top-150x41.png 150w, https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top-768x207.png 768w" imagesizes="(max-width: 1000px) 100vw, 1000px" fetchpriority="high" />
+	<script type="text/javascript" src="https://cdns.gigya.com/js/gigya.js?apikey=3_ihC9k-currG51rxnDiN6bhiAzQy1-4zw1zOtNOrZ11jAxUhFRKPUrVKs553Kv7px"></script>
+	<!--<link rel="icon" href="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee_favicon.ico">-->
+	<link rel="apple-touch-icon" href="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee_apple_touch_icon.png">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap" rel="stylesheet">
+
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+		<link href="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/style.css" rel="stylesheet">
+
+	<meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />
+	<style>img:is([sizes="auto" i], [sizes^="auto," i]) { contain-intrinsic-size: 3000px 1500px }</style>
+	
+	<!-- This site is optimized with the Yoast SEO Premium plugin v26.6 (Yoast SEO v26.6) - https://yoast.com/wordpress/plugins/seo/ -->
+	<meta name="description" content="IEEE offers Registration Authority programs or registries which maintain lists of unique identifiers under standards and issue unique identifiers to those wishing to register them." />
+	<link rel="canonical" href="https://standards.ieee.org/products-programs/regauth/" />
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:type" content="article" />
+	<meta property="og:title" content="Registration Authority" />
+	<meta property="og:description" content="IEEE offers Registration Authority programs or registries which maintain lists of unique identifiers under standards and issue unique identifiers to those wishing to register them." />
+	<meta property="og:url" content="https://standards.ieee.org/products-programs/regauth/" />
+	<meta property="og:site_name" content="IEEE Standards Association" />
+	<meta property="article:modified_time" content="2025-11-03T17:25:27+00:00" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="Registration Authority" />
+	<meta name="twitter:description" content="IEEE offers Registration Authority programs or registries which maintain lists of unique identifiers under standards and issue unique identifiers to those wishing to register them." />
+	<meta name="twitter:site" content="@IEEESA" />
+	<meta name="twitter:label1" content="Est. reading time" />
+	<meta name="twitter:data1" content="5 minutes" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://standards.ieee.org/products-programs/regauth/","url":"https://standards.ieee.org/products-programs/regauth/","name":"Registration Authority - IEEE Standards Association","isPartOf":{"@id":"https://standards.ieee.org/#website"},"datePublished":"2025-01-08T05:01:12+00:00","dateModified":"2025-11-03T17:25:27+00:00","description":"IEEE offers Registration Authority programs or registries which maintain lists of unique identifiers under standards and issue unique identifiers to those wishing to register them.","breadcrumb":{"@id":"https://standards.ieee.org/products-programs/regauth/#breadcrumb"},"inLanguage":"en-US","potentialAction":[{"@type":"ReadAction","target":["https://standards.ieee.org/products-programs/regauth/"]}]},{"@type":"BreadcrumbList","@id":"https://standards.ieee.org/products-programs/regauth/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://standards.ieee.org/"},{"@type":"ListItem","position":2,"name":"Products &amp; Programs","item":"https://standards.ieee.org/products-programs/"},{"@type":"ListItem","position":3,"name":"Registration Authority"}]},{"@type":"WebSite","@id":"https://standards.ieee.org/#website","url":"https://standards.ieee.org/","name":"IEEE Standards Association","description":"","publisher":{"@id":"https://standards.ieee.org/#organization"},"potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://standards.ieee.org/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"en-US"},{"@type":"Organization","@id":"https://standards.ieee.org/#organization","name":"IEEE SA","url":"https://standards.ieee.org/","logo":{"@type":"ImageObject","inLanguage":"en-US","@id":"https://standards.ieee.org/#/schema/logo/image/","url":"https://standards.ieee.org/wp-content/uploads/import/ieeesa-logo.png","contentUrl":"https://standards.ieee.org/wp-content/uploads/import/ieeesa-logo.png","width":720,"height":432,"caption":"IEEE SA"},"image":{"@id":"https://standards.ieee.org/#/schema/logo/image/"},"sameAs":["https://x.com/IEEESA"]}]}</script>
+	<!-- / Yoast SEO Premium plugin. -->
+
+
+<link rel='dns-prefetch' href='//kit.fontawesome.com' />
+		<style>
+			.lazyload,
+			.lazyloading {
+				max-width: 100%;
+			}
+		</style>
+		<script type="text/javascript">
+/* <![CDATA[ */
+window._wpemojiSettings = {"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/16.0.1\/72x72\/","ext":".png","svgUrl":"https:\/\/s.w.org\/images\/core\/emoji\/16.0.1\/svg\/","svgExt":".svg","source":{"concatemoji":"https:\/\/standards.ieee.org\/wp-includes\/js\/wp-emoji-release.min.js?ver=6.8.3"}};
+/*! This file is auto-generated */
+!function(s,n){var o,i,e;function c(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function p(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data),a=(e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0),new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data));return t.every(function(e,t){return e===a[t]})}function u(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);for(var n=e.getImageData(16,16,1,1),a=0;a<n.data.length;a++)if(0!==n.data[a])return!1;return!0}function f(e,t,n,a){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\udde8\ud83c\uddf6","\ud83c\udde8\u200b\ud83c\uddf6")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!a(e,"\ud83e\udedf")}return!1}function g(e,t,n,a){var r="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):s.createElement("canvas"),o=r.getContext("2d",{willReadFrequently:!0}),i=(o.textBaseline="top",o.font="600 32px Arial",{});return e.forEach(function(e){i[e]=t(o,e,n,a)}),i}function t(e){var t=s.createElement("script");t.src=e,t.defer=!0,s.head.appendChild(t)}"undefined"!=typeof Promise&&(o="wpEmojiSettingsSupports",i=["flag","emoji"],n.supports={everything:!0,everythingExceptFlag:!0},e=new Promise(function(e){s.addEventListener("DOMContentLoaded",e,{once:!0})}),new Promise(function(t){var n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+g.toString()+"("+[JSON.stringify(i),f.toString(),p.toString(),u.toString()].join(",")+"));",a=new Blob([e],{type:"text/javascript"}),r=new Worker(URL.createObjectURL(a),{name:"wpTestEmojiSupports"});return void(r.onmessage=function(e){c(n=e.data),r.terminate(),t(n)})}catch(e){}c(n=g(i,f,p,u))}t(n)}).then(function(e){for(var t in e)n.supports[t]=e[t],n.supports.everything=n.supports.everything&&n.supports[t],"flag"!==t&&(n.supports.everythingExceptFlag=n.supports.everythingExceptFlag&&n.supports[t]);n.supports.everythingExceptFlag=n.supports.everythingExceptFlag&&!n.supports.flag,n.DOMReady=!1,n.readyCallback=function(){n.DOMReady=!0}}).then(function(){return e}).then(function(){var e;n.supports.everything||(n.readyCallback(),(e=n.source||{}).concatemoji?t(e.concatemoji):e.wpemoji&&e.twemoji&&(t(e.twemoji),t(e.wpemoji)))}))}((window,document),window._wpemojiSettings);
+/* ]]> */
+</script>
+<link rel='stylesheet' id='js_composer_front-css' href='//standards.ieee.org/wp-content/uploads/js_composer/js_composer_front_custom.css?ver=8.7.2' type='text/css' media='all' />
+<link rel='stylesheet' id='vc_font_awesome_5_shims-css' href='https://standards.ieee.org/wp-content/plugins/js_composer/assets/lib/vendor/dist/@fortawesome/fontawesome-free/css/v4-shims.min.css?ver=8.7.2' type='text/css' media='all' />
+<link rel='stylesheet' id='vc_font_awesome_6-css' href='https://standards.ieee.org/wp-content/plugins/js_composer/assets/lib/vendor/dist/@fortawesome/fontawesome-free/css/all.min.css?ver=8.7.2' type='text/css' media='all' />
+<style id='wp-emoji-styles-inline-css' type='text/css'>
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+</style>
+<link rel='stylesheet' id='wp-block-library-css' href='https://standards.ieee.org/wp-includes/css/dist/block-library/style.min.css?ver=6.8.3' type='text/css' media='all' />
+<style id='classic-theme-styles-inline-css' type='text/css'>
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+</style>
+<style id='wpengine-smart-search-filter-facet-style-inline-css' type='text/css'>
+.wpengine-smart-dropdown-facet .wpengine-smart-search-dropdown-facet__label{color:var(--wp--preset--color--contrast,inherit);display:block;font-size:var(--wp--preset--font-size--medium,1rem);font-weight:600;margin-bottom:.5rem}.wpengine-smart-dropdown-facet .wpengine-smart-dropdown-facet__fields{display:flex;flex:auto;flex-wrap:nowrap;max-width:100%}.wpengine-smart-dropdown-facet .wpengine-smart-dropdown-facet__field{-webkit-appearance:none;appearance:none;background-color:var(--wp--preset--color--base,#fff);background-image:url("data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"8\" viewBox=\"0 0 12 8\"><path fill=\"%23949494\" d=\"M1.41 0L6 4.59L10.59 0L12 1.41l-6 6l-6-6z\"/></svg>");background-position:right .625rem center;background-repeat:no-repeat;border:var(--wp--custom--input-border-width,1px) solid var(--wp--custom--input-border-color,#949494);border-radius:var(--wp--custom--input-border-radius,4px);color:var(--wp--preset--color--contrast,inherit);cursor:pointer;flex-grow:var(--wp--custom--input-flex-grow,1);font-size:var(--wp--preset--font-size--small,.875rem);min-height:var(--wp--custom--input-min-height,2.5em);padding:var(--wp--custom--input--padding,.625rem);padding-right:2.25rem;transition:border-color .15s ease-in-out;width:var(--wp--custom--input-width,100%)}.wpengine-smart-dropdown-facet .wpengine-smart-dropdown-facet__field:hover{border-color:var(--wp--preset--color--contrast,#666)}.wpengine-smart-dropdown-facet .wpengine-smart-dropdown-facet__field:focus{outline:2px solid var(--wp--preset--color--primary,#007cba);outline-offset:2px}.wpengine-smart-dropdown-facet .wpengine-smart-dropdown-facet__field:disabled{cursor:not-allowed;opacity:.5}.wpengine-smart-dropdown-facet .wpengine-smart-dropdown-facet__apply-button{margin-top:1rem;width:100%}.wpengine-smart-checkbox-facet .wpengine-smart-search-checkbox-facet__label{color:var(--wp--preset--color--contrast,inherit);display:block;font-size:var(--wp--preset--font-size--medium,1rem);font-weight:600;margin:0 0 .75rem}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__search{margin-bottom:.75rem}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__search .wpengine-smart-checkbox-facet__search-input{-webkit-appearance:none;appearance:none;background-color:var(--wp--preset--color--base,#fff);border:var(--wp--custom--input-border-width,1px) solid var(--wp--custom--input-border-color,#949494);border-radius:var(--wp--custom--input-border-radius,4px);box-sizing:border-box;color:var(--wp--preset--color--contrast,inherit);font-size:var(--wp--preset--font-size--small,.875rem);max-width:100%;min-height:var(--wp--custom--input-min-height,2.5em);padding:var(--wp--custom--input--padding,.625rem);transition:border-color .15s ease-in-out;width:100%}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__search .wpengine-smart-checkbox-facet__search-input::placeholder{color:var(--wp--preset--color--contrast-3,#999);opacity:1}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__search .wpengine-smart-checkbox-facet__search-input:hover{border-color:var(--wp--preset--color--contrast,#666)}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__search .wpengine-smart-checkbox-facet__search-input:focus{outline:2px solid var(--wp--preset--color--primary,#007cba);outline-offset:2px}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__fields{display:flex;flex-direction:column;gap:var(--wp--custom--checkbox-gap,.5rem);max-width:100%;padding:.25rem 0}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__fields.scrollable{overflow-y:auto;padding-right:.25rem}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__fields.scrollable::-webkit-scrollbar{width:8px}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__fields.scrollable::-webkit-scrollbar-track{background:var(--wp--preset--color--base-2,#f0f0f0);border-radius:4px}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__fields.scrollable::-webkit-scrollbar-thumb{background:var(--wp--preset--color--contrast-3,#999);border-radius:4px}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__fields.scrollable::-webkit-scrollbar-thumb:hover{background:var(--wp--preset--color--contrast-2,#666)}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__fields>div:only-child{color:var(--wp--preset--color--contrast-2,#666);font-size:var(--wp--preset--font-size--small,.875rem);font-style:italic;padding:1rem;text-align:center}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field{align-items:center;border-radius:var(--wp--custom--checkbox-border-radius,4px);display:flex;padding:.375rem .5rem;transition:background-color .15s ease-in-out}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field:hover{background-color:var(--wp--preset--color--base-2,#f5f5f5)}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field label{align-items:center;color:var(--wp--preset--color--contrast,inherit);cursor:pointer;display:flex;font-size:var(--wp--preset--font-size--small,.875rem);line-height:1.5;margin:0;-webkit-user-select:none;user-select:none;width:100%}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field input[type=checkbox]{appearance:none;-webkit-appearance:none;-moz-appearance:none;background-color:var(--wp--preset--color--base,#fff);border:var(--wp--custom--input-border-width,1px) solid var(--wp--custom--input-border-color,#949494);border-radius:var(--wp--custom--checkbox-border-radius,4px);cursor:pointer;flex-shrink:0;height:1.125rem;margin:0 .625rem 0 0;position:relative;transition:all .15s ease-in-out;width:1.125rem}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field input[type=checkbox]:hover{border-color:var(--wp--preset--color--contrast,#666)}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field input[type=checkbox]:checked{background-color:var(--wp--preset--color--primary,#007cba);border-color:var(--wp--preset--color--primary,#007cba)}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field input[type=checkbox]:checked:after{border-width:medium;border-bottom:2px solid var(--wp--preset--color--base,#fff);border-left:0 solid var(--wp--preset--color--base,#fff);border-right:2px solid var(--wp--preset--color--base,#fff);border-top:0 solid var(--wp--preset--color--base,#fff);content:"";height:.5625rem;left:50%;position:absolute;top:50%;transform:translate(-50%,-50%) rotate(45deg);width:.3125rem}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field input[type=checkbox]:focus{outline:2px solid var(--wp--preset--color--primary,#007cba);outline-offset:2px}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__field input[type=checkbox]:disabled{cursor:not-allowed;opacity:.5}.wpengine-smart-checkbox-facet .wpengine-smart-checkbox-facet__apply-button{margin-top:1rem;width:100%}
+
+</style>
+<style id='wpengine-smart-search-active-filters-facet-style-inline-css' type='text/css'>
+.active-filters-block{background:#f9fafb;border:1px solid #e5e7eb;border-radius:.5rem;font-family:sans-serif;margin-bottom:1rem;padding:1rem}.active-filters-header{align-items:center;display:flex;justify-content:space-between;margin-bottom:1rem}.active-filters-header h4{color:#111827;font-size:var(--wp--preset--font-size--medium);font-weight:600;margin:0}.header-actions{display:flex;gap:.5rem}.clear-all{align-items:center;background:#ededed;border:1px solid #4b4b4b;border-radius:15px;cursor:pointer;display:flex;font-size:var(--wp--preset--font-size--small);height:10px;justify-content:center;padding:15px}.clear-all:hover{background:#a6a6a6;box-shadow:0 4px 8px #00000026}.clear-all:focus{outline:none}.hide-filters{align-items:center;background:#ededed;border:1px solid #4b4b4b;border-radius:15px;cursor:pointer;display:flex;font-size:var(--wp--preset--font-size--small);height:10px;justify-content:center;padding:15px}.hide-filters:hover{background:#a6a6a6;box-shadow:0 4px 8px #00000026}.hide-filters:focus{outline:none}.dashicons{margin-left:-5px;margin-right:3px}.text{color:#333}.active-filters-list{list-style:none;margin:0;padding:0}.active-filter{background:#fff;border:1px solid #e5e7eb;border-radius:.375rem;display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;padding:.5rem}.filter-name{cursor:default;display:flex;font-weight:var(--wp--preset--font-weight--semi-bold,700);height:10px;margin:5px 0 0 5px;padding:6px}.filter-name,.filter-value{align-items:center;color:#374151;font-size:var(--wp--preset--font-size--small)}.filter-value{background:#ededed;border:1px solid #4b4b4b;border-radius:9999px;font-weight:var(--wp--preset--font-weight--regular,300);margin-left:.5rem;padding:.25rem .5rem;text-transform:capitalize}.remove-filter{background:none;border:none;color:#000;cursor:pointer;font-size:var(--wp--preset--font-size--small);line-height:1}.remove-filter:hover{color:#dc2626}.remove-filter:focus{outline:none}
+
+</style>
+<style id='font-awesome-svg-styles-default-inline-css' type='text/css'>
+.svg-inline--fa {
+  display: inline-block;
+  height: 1em;
+  overflow: visible;
+  vertical-align: -.125em;
+}
+</style>
+<link rel='stylesheet' id='font-awesome-svg-styles-css' href='https://standards.ieee.org/wp-content/uploads/font-awesome/v6.7.2/css/svg-with-js.css' type='text/css' media='all' />
+<style id='font-awesome-svg-styles-inline-css' type='text/css'>
+   .wp-block-font-awesome-icon svg::before,
+   .wp-rich-text-font-awesome-icon svg::before {content: unset;}
+</style>
+<style id='global-styles-inline-css' type='text/css'>
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgba(252,185,0,1) 0%,rgba(255,105,0,1) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgba(255,105,0,1) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgba(255, 255, 255, 1), 6px 6px rgba(0, 0, 0, 1);--wp--preset--shadow--crisp: 6px 6px 0px rgba(0, 0, 0, 1);}:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}
+:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}
+:root :where(.wp-block-pullquote){font-size: 1.5em;line-height: 1.6;}
+</style>
+<link rel='stylesheet' id='ieee-cloudsearch-css-css' href='https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/cloudsearch/css/ieee-cloudsearch.css?time=20240517&#038;ver=6.8.3' type='text/css' media='all' />
+<link rel='stylesheet' id='ieee-widget-css-css' href='https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/widgets/css/widgets.css?time=20240329&#038;ver=6.8.3' type='text/css' media='all' />
+<link rel='stylesheet' id='ieee-color-book-css-css' href='https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/color-books/color-books.css?time=20230920&#038;ver=6.8.3' type='text/css' media='all' />
+<link rel='stylesheet' id='ieee-print-css-css' href='https://standards.ieee.org/wp-content/themes/ieee-sa-theme/print.css?time=20250508&#038;ver=6.8.3' type='text/css' media='print' />
+<link rel='stylesheet' id='subscribe-forms-css-css' href='https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/modules/subscribe-forms.min.css?ver=10.7.1' type='text/css' media='all' />
+<link rel='stylesheet' id='easy-social-share-buttons-css' href='https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/css/easy-social-share-buttons.min.css?ver=10.7.1' type='text/css' media='all' />
+<style id='easy-social-share-buttons-inline-css' type='text/css'>
+.essb_links .essb_link_mastodon { --essb-network: #6364ff;}.essb_links.essb_share .essb_link_facebook a:hover, .essb_links .essb_link_facebook a:focus{background-color:#3b5998!important;}.essb_links.essb_share .essb_link_twitter a:hover, .essb_links .essb_link_twitter a:focus{background-color:#1da1f2!important;}.essb_links.essb_share .essb_link_linkedin a:hover, .essb_links .essb_link_linkedin a:focus{background-color:#0072b1!important;}.essb_links.essb_share .essb_link_mail a:hover, .essb_links .essb_link_mail a:focus{background-color:#57595d!important;}
+</style>
+<script type="text/javascript" src="https://standards.ieee.org/wp-includes/js/jquery/jquery.min.js?ver=3.7.1" id="jquery-core-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1" id="jquery-migrate-js"></script>
+<script type="text/javascript" id="ieee-cloudsearch-js-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/cloudsearch/js/ieee-cloudsearch.js?time=20240517&amp;ver=6.8.3" id="ieee-cloudsearch-js-js"></script>
+<script type="text/javascript" id="ieee-wpes-js-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/wp-engine-search/js/wp-engine-search.js?time=20250505&amp;ver=6.8.3" id="ieee-wpes-js-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/widgets/js/ieee-widgets.js?time=20240329&amp;ver=6.8.3" id="ieee-widget-js-js"></script>
+<script type="text/javascript" id="ieee-color-book-scripts-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/color-books/color-books.js?time=20230920&amp;ver=6.8.3" id="ieee-color-book-scripts-js"></script>
+<script type="text/javascript" id="ieee-recent-standards-scripts-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/recent-standards/recent-standards.js?time=20250319&amp;ver=6.8.3" id="ieee-recent-standards-scripts-js"></script>
+<script type="text/javascript" id="ieee-sa-scripts-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/js/ieee-sa.js?time=20250508&amp;ver=6.8.3" id="ieee-sa-scripts-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/js/marketo.js?ver=6.8.3" id="ieee-marketo-js"></script>
+<script defer crossorigin="anonymous" type="text/javascript" src="https://kit.fontawesome.com/3182722a43.js" id="font-awesome-official-js"></script>
+<script></script><script id="essb-inline-js"></script><link rel="https://api.w.org/" href="https://standards.ieee.org/wp-json/" /><link rel="alternate" title="JSON" type="application/json" href="https://standards.ieee.org/wp-json/wp/v2/pages/2744" /><meta name="cdp-version" content="1.5.0" /><meta name="silktide-cms" content="TykxuYr/BapJ+ZkgsxXqCP1YXccnc8KtQ8NfNdqaJ2GqnoEP9hTYO2ny6S0YQ2S3TMhK8uM+ZKsTKjH597NmTTuqSlstqE6YdwHNUwEvSRwWQYhAJttN8aydcnqMonhKuVYpWyfLdgpHphWVno7ISGrUrXommvDEf9EPv8LKZ+71ySgsCjIjsZDP6Gcbdbhy" />
+<meta name="tec-api-version" content="v1"><meta name="tec-api-origin" content="https://standards.ieee.org"><link rel="alternate" href="https://standards.ieee.org/wp-json/tribe/events/v1/" />		<script>
+			document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
+		</script>
+		<meta name="generator" content="Powered by WPBakery Page Builder - drag and drop page builder for WordPress."/>
+<link rel="icon" href="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-150x150.png" sizes="32x32" />
+<link rel="icon" href="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-300x300.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-300x300.png" />
+<meta name="msapplication-TileImage" content="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-300x300.png" />
+<style type="text/css" data-type="vc_shortcodes-default-css">.vc_do_message{padding-top:1em;padding-bottom:1em;padding-right:1em;padding-left:4em;margin-bottom:22px;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_message{padding-top:1em;padding-bottom:1em;padding-right:1em;padding-left:4em;margin-bottom:22px;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}.vc_do_custom_heading{margin-bottom:0.625rem;margin-top:0;}</style><noscript><style> .wpb_animate_when_almost_visible { opacity: 1; }</style></noscript>
+</head>
+<body class="wp-singular page-template page-template-page-templates page-template-template-blank-page-fixed-width page-template-page-templatestemplate-blank-page-fixed-width-php page page-id-2744 page-parent page-child parent-pageid-2631 wp-theme-ieee-sa-theme tribe-no-js essb-10.7.1 wpb-js-composer js-comp-ver-8.7.2 vc_responsive" >
+	<!-- Google Tag Manager (noscript) -->
+	<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MR8T843" height="0" width="0" style="display:none;visibility:hidden" loading="lazy"></iframe></noscript>
+	<!-- End Google Tag Manager (noscript) -->
+	<header>
+		<section id="top-bar">
+			<div class="container">
+				<div class="row">
+					<div class="col-10 col-lg-9 d-none d-md-block">
+						<ul class="nav top-bar top-bar-left" role="navigation" aria-label="Global left">
+							<li class="nav-item"><a class="nav-link" href="https://www.ieee.org/" target="_blank" title="IEEE.org"><i class="nav-icon fa fa-home"></i>IEEE.org</a></li>
+							<li class="nav-item"><a class="nav-link" href="https://ieeexplore.ieee.org/Xplore/home.jsp" target="_blank" title="IEEE Xplore&reg;">IEEE <em>Xplore</em><sup>&reg;</sup></a></li>
+							<li class="nav-item"><a class="nav-link" href="https://standards.ieee.org/" target="_blank" title="IEEE Standards">IEEE Standards</a></li>
+							<li class="nav-item"><a class="nav-link" href="https://spectrum.ieee.org/" target="_blank" title="IEEE Spectrum">IEEE Spectrum</a></li>
+							<li class="nav-item"><a class="nav-link" href="https://www.ieee.org/sitemap.html" target="_blank" title="More Sites">More Sites</a></li>
+						</ul> <!-- /.nav .top-bar-left -->
+					</div> <!-- /.col-10 .col-lg-9 .d-none .d-md-block -->
+					<div class="col-2 col-lg-3 d-none d-md-block">
+						<ul class="nav top-bar top-bar-right" role="navigation" aria-label="Global right">
+							<li class="nav-item"><a class="nav-link" href="/development/etools/" title="eTools">eTools</a></li>
+							<li class="nav-item"><a class="nav-link logo-link ieee" href="https://www.ieee.org/" title="Visit IEEE.org">IEEE.org</a></li>
+						</ul> <!-- /.nav .top-bar-right -->
+					</div> <!-- /.col-2 .col-lg-3 .d-none .d-md-block -->
+				</div> <!-- /.row -->
+			</div> <!-- /.container -->
+		</section> <!-- /#top-bar -->
+
+		<section id="masthead">
+			<div class="container">
+				<div class="row">
+					<div class="col-12 col-sm-6">
+						<div id="primary-logo" class="logo">
+							<a class="logo-link" href="/" title="IEEE Standards Association"><img src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/img/ieee-sa-logo2x.png" alt="IEEE Standards Association logo" loading="lazy"></a>
+						</div> <!-- /#primary-logo .logo -->
+					</div> <!-- /.col-12 .col-sm-6 -->
+					<div class="col-6 d-none d-sm-block">
+						<div class="btn-group float-end d-none d-lg-block search">
+							<div id="search-input-wrapper" data-test="123" class="search-input-wrapper collapse collapse-horizontal">
+								<form id="search" class="form-inline" action="https://standards.ieee.org/search/" method="get">
+									<button class="btn" type="submit" aria-label="Click/Tap to Execute the Search Functionality." id="search-form-magnifying-glass"><i class="fa fa-search" style="color:#000000;-webkit-text-stroke: 1.5px;font-size:1.25rem;"></i></button>
+									<input class="form-control" type="text" placeholder="What are you looking for?" autofocus="autofocus" autocomplete="off" name="q" id="q" aria-label="What are you looking for?">
+									<div class="container search-ux-menu">
+										<div class="row search-ux-menu-row">
+											<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+												<h2 class="h6">Featured Links</h2>
+												<div class="menu-featured-links-search-container"><ul id="menu-featured-links-search" class="search-ux-menu-col"><li class="mb-2" id="menu-item-19417" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19417"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/products-programs/icap/">IEEE Conformity Assessment Program (ICAP)</a></li>
+<li class="mb-2" id="menu-item-19418" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19418"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/organizations/">IEEE SA Entity Membership</a></li>
+<li class="mb-2" id="menu-item-19419" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-19419"><a class="arrow-link text-decoration-none" target="_blank" href="https://sagroups.ieee.org/planetpositive2030/our-work/">Strong Sustainability by Design: IEEE Planet Positive 2030</a></li>
+</ul></div>											</div>
+											<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+												<h2 class="h6">Quick Links</h2>
+												<div class="menu-quick-links-search-container"><ul id="menu-quick-links-search" class="search-ux-menu-col"><li class="mb-2" id="menu-item-18834" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18834"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/standard/">Search Standards</a></li>
+<li class="mb-2" id="menu-item-18835" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18835"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/access-standards/">Access Standards</a></li>
+<li class="mb-2" id="menu-item-18836" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18836"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/">IEEE SA Membership</a></li>
+</ul></div>											</div>
+											<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+												<h2 class="h6">Most Viewed Pages</h2>
+												<ul class="list-unstyled search-ux-menu-col"><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/search/" style="text-decoration:none" class="arrow-link" title="Search">Search</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/" style="text-decoration:none" class="arrow-link" title="Home">Home</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/products-programs/regauth/" style="text-decoration:none" class="arrow-link" title="Registration Authority">Registration Authority</a></li></ul>											</div>
+										</div>
+									</div>
+								</form> <!-- /#search .form-inline -->
+							</div> <!-- /#search-input-wrapper -->
+							<button id="masthead-search-button" class="btn btn-md search-bar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#search-input-wrapper" aria-expanded="false" aria-controls="search-input-wrapper" aria-label="Click/Tap to Toggle the Search."><i class="fa fa-search"></i><span class="mx-2" id="search-bar-text" style="height:54px">Search the IEEE SA Website...</span></button>
+						</div> <!-- /.btn-group .float-end .d-none .d-md-block .search -->
+						<div id="secondary-logo" class="d-lg-none logo">
+							<a class="logo-link" href="https://www.ieee.org/" title="Visit IEEE.org"><img src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/img/ieee-logo2x.png" alt="IEEE logo" loading="lazy"></a>
+						</div> <!-- /#secondary-logo .d-lg-none .logo -->
+					</div> <!-- /.col-6 .d-none .d-sm-block -->
+				</div> <!-- /.row -->
+			</div> <!-- /.container -->
+
+			<nav id="main-nav" class="navbar navbar-expand-lg navbar-light" aria-label="Main">
+	<div class="container">
+		<button class="navbar-toggler" type="button" data-trigger="mobile-menu" aria-controls="mobile-menu" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"><i class="fas fa-bars"></i></span>
+		</button>
+		<div id="mobile-menu" class="collapse navbar-collapse">
+			<button type="button" class="btn-close mobile-menu" aria-label="close"></button>
+
+            <!-- array(1) {
+  ["main-menu"]=>
+  int(14992)
+}
+ -->
+
+			<!-- begin wordpress menu -->
+			<ul id="menu-main-navigation-2025" class="navbar-nav mr-auto main w-100 "><li  id="menu-item-22109" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22109"><a title="" data-item-id="22109" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">About Us</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22105" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22105"><a title="" href="https://standards.ieee.org/about/" data-item-id="22105" class="nav-link ">IEEE SA</a></li>
+	<li  id="menu-item-22110" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22110"><a title="" href="https://standards.ieee.org/about/governance/" data-item-id="22110" class="nav-link ">IEEE SA Governance</a></li>
+	<li  id="menu-item-22111" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22111"><a title="" href="https://standards.ieee.org/about/awards/" data-item-id="22111" class="nav-link ">IEEE Standards Association Awards</a></li>
+	<li  id="menu-item-22096" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22096"><a title="" href="https://standards.ieee.org/events/" data-item-id="22096" class="nav-link ">Events</a></li>
+	<li  id="menu-item-22100" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22100"><a title="" href="https://standards.ieee.org/news/" data-item-id="22100" class="nav-link ">News</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22070" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22070"><a title="" data-item-id="22070" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Standards</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22071" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22071"><a title="" href="https://standards.ieee.org/access-standards/" data-item-id="22071" class="nav-link ">Access Standards</a></li>
+	<li  id="menu-item-22073" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22073"><a title="" href="https://standards.ieee.org/develop/" data-item-id="22073" class="nav-link ">Developing Standards</a></li>
+	<li  id="menu-item-22112" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22112"><a title="" href="https://standards.ieee.org/about/standards-in-action/" data-item-id="22112" class="nav-link ">Standards in Action</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22076" class="menu-item menu-item-type-custom menu-item-object-custom current-menu-ancestor current-menu-parent menu-item-has-children dropdown nav-item nav-item-22076"><a title="" data-item-id="22076" class="nav-link active dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Products &#038; Programs</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22113" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22113"><a title="" href="https://standards.ieee.org/products-programs/ieee-get-program/" data-item-id="22113" class="nav-link ">IEEE GET Program™</a></li>
+	<li  id="menu-item-22115" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22115"><a title="" data-item-id="22115" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Conformity Assessment &#038; Certification</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22077" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22077"><a title="" href="https://standards.ieee.org/products-programs/icap/" data-item-id="22077" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22114" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22114"><a title="" href="https://standards.ieee.org/products-programs/icap/ieee-certifaied/" data-item-id="22114" class="nav-link ">IEEE CertifAIEd™</a></li>
+		<li  id="menu-item-22116" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22116"><a title="" href="https://standards.ieee.org/products-programs/icap/programs/medical-devices-cybersecurity/" data-item-id="22116" class="nav-link ">Medical Devices Cybersecurity</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22080" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22080"><a title="" href="https://standards.ieee.org/industry-connections/" data-item-id="22080" class="nav-link ">Industry Connections</a></li>
+	<li  id="menu-item-22082" class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item page_item page-item-2744 current_page_item nav-item nav-item-22082"><a title="" href="https://standards.ieee.org/products-programs/regauth/" data-item-id="22082" class="nav-link active">Registration Authority</a></li>
+	<li  id="menu-item-22118" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22118"><a title="" data-item-id="22118" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Standards Related Products</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22117" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22117"><a title="" href="https://standards.ieee.org/products-programs/standards-related/" data-item-id="22117" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22081" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22081"><a title="" href="https://standards.ieee.org/products-programs/nesc/" data-item-id="22081" class="nav-link ">The National Electrical Safety Code® (NESC®)</a></li>
+		<li  id="menu-item-22119" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22119"><a title="" href="https://standards.ieee.org/products-programs/time-sensitive-networking/" data-item-id="22119" class="nav-link ">Time Sensitive Networking (TSN) Licensing</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22122" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22122"><a title="" data-item-id="22122" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Training &#038; Development</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22099" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22099"><a title="" href="https://standards.ieee.org/about/training/" data-item-id="22099" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22120" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22120"><a title="" href="https://standards.ieee.org/about/training/ethics-for-ai-system-design/" data-item-id="22120" class="nav-link ">Ethical AI For Systems Design</a></li>
+		<li  id="menu-item-22121" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22121"><a title="" href="https://standards.ieee.org/products-programs/icap/programs/der/" data-item-id="22121" class="nav-link ">IEEE 1547-2018 (DER) In-Person Training</a></li>
+		<li  id="menu-item-22154" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22154"><a title="" href="https://standards.ieee.org/products-programs/icap/ieee-certifaied/professional-certification/" data-item-id="22154" class="nav-link ">IEEE CertifAIEd™ Professional Certification</a></li>
+		<li  id="menu-item-22124" class="menu-item menu-item-type-custom menu-item-object-custom nav-item nav-item-22124"><a title="(Opens in a New Tab)" target="_blank" href="https://iln.ieee.org/Public/ContentDetails.aspx?id=A8B87554A5914826AD91C19986C0D74F" data-item-id="22124" class="nav-link ">Time Sensitive Networking</a></li>
+	</ul>
+	</div>
+</li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22086" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22086"><a title="" data-item-id="22086" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Practices &#038; Focuses</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22125" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22125"><a title="" data-item-id="22125" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Global Practices</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22127" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22127"><a title="" href="https://standards.ieee.org/practices/" data-item-id="22127" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22088" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22088"><a title="" href="https://standards.ieee.org/practices/connectivity-telecom/" data-item-id="22088" class="nav-link ">Connectivity &amp; Telecom</a></li>
+		<li  id="menu-item-22089" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22089"><a title="" href="https://standards.ieee.org/practices/energy/" data-item-id="22089" class="nav-link ">Energy</a></li>
+		<li  id="menu-item-22090" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22090"><a title="" href="https://standards.ieee.org/practices/foundational/" data-item-id="22090" class="nav-link ">Foundational Technologies</a></li>
+		<li  id="menu-item-22092" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22092"><a title="" href="https://standards.ieee.org/practices/healthcare-life-sciences/" data-item-id="22092" class="nav-link ">Healthcare and Life Sciences</a></li>
+		<li  id="menu-item-22093" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22093"><a title="" href="https://standards.ieee.org/practices/mobility/" data-item-id="22093" class="nav-link ">Mobility</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22126" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22126"><a title="" data-item-id="22126" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Focus Areas</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22128" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22128"><a title="" href="https://standards.ieee.org/initiatives/" data-item-id="22128" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22087" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22087"><a title="" href="https://standards.ieee.org/initiatives/autonomous-intelligence-systems/" data-item-id="22087" class="nav-link ">Autonomous and Intelligent Systems (AIS)</a></li>
+		<li  id="menu-item-22129" class="menu-item menu-item-type-custom menu-item-object-custom nav-item nav-item-22129"><a title="(Opens in a New Tab)" target="_blank" href="https://engagestandards.ieee.org/Childrens-tech-design-governance.html" data-item-id="22129" class="nav-link ">Children’s Data Governance</a></li>
+	</ul>
+	</div>
+</li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22094" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22094"><a title="" data-item-id="22094" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Engage</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22095" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22095"><a title="" href="https://standards.ieee.org/participate/" data-item-id="22095" class="nav-link ">Opportunities to Participate</a></li>
+	<li  id="menu-item-22130" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22130"><a title="" data-item-id="22130" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Membership</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22097" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22097"><a title="" href="https://standards.ieee.org/about/membership/" data-item-id="22097" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22131" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22131"><a title="" href="https://standards.ieee.org/about/membership/individuals/" data-item-id="22131" class="nav-link ">IEEE SA Membership for Individuals</a></li>
+		<li  id="menu-item-22132" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22132"><a title="" href="https://standards.ieee.org/about/membership/organizations/" data-item-id="22132" class="nav-link ">IEEE SA Entity Membership</a></li>
+		<li  id="menu-item-22079" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22079"><a title="" href="https://standards.ieee.org/products-programs/industry-affiliate-network/" data-item-id="22079" class="nav-link ">Industry Affiliate Network (IAN)</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22133" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22133"><a title="" href="https://standards.ieee.org/about/distrib/" data-item-id="22133" class="nav-link ">Distributor Partner Program</a></li>
+	<li  id="menu-item-22091" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22091"><a title="" href="https://standards.ieee.org/about/intl/" data-item-id="22091" class="nav-link ">Government Engagement</a></li>
+	<li  id="menu-item-22107" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22107"><a title="" href="https://standards.ieee.org/about/feedback/" data-item-id="22107" class="nav-link ">Provide Feedback</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22098" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22098"><a title="" data-item-id="22098" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Resources</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22103" class="menu-item menu-item-type-taxonomy menu-item-object-category nav-item nav-item-22103"><a title="" href="https://standards.ieee.org/beyond-standards/" data-item-id="22103" class="nav-link ">IEEE SA Beyond Standards Blog</a></li>
+	<li  id="menu-item-22101" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22101"><a title="" href="https://standards.ieee.org/news/swire/" data-item-id="22101" class="nav-link ">IEEE SA Newsletter</a></li>
+	<li  id="menu-item-22134" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22134"><a title="" href="https://standards.ieee.org/about/policies/" data-item-id="22134" class="nav-link ">Policies and Procedures</a></li>
+	<li  id="menu-item-22135" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22135"><a title="" href="https://standards.ieee.org/faqs/" data-item-id="22135" class="nav-link ">Frequently Asked Questions (FAQs)</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22108" class="nav-type-button menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22108"><a title="" href="https://standards.ieee.org/products-programs/regauth/mac/" data-item-id="22108" class="nav-link ">MAC ADDRESS</a></li>
+</ul>			<!-- end wordpress menu -->
+
+		</div> <!-- /#mobile-menu aaaa -->
+		<div class="btn-group float-end d-lg-none search">
+			<div id="search-input-wrapper" class="search-input-wrapper collapse collapse-horizontal">
+				<form id="search" class="form-inline" action="https://standards.ieee.org/search/" method="get">
+					<button class="btn" type="submit" aria-label="Click/Tap to Execute the Search Functionality." id="search-form-magnifying-glass"><i class="fa fa-search" style="color:#000000;-webkit-text-stroke: 1.5px;font-size:1.25rem;"></i></button>
+					<input class="form-control" type="text" placeholder="What are you looking for?" autofocus="autofocus" autocomplete="off" name="q" id="q" aria-label="What are you looking for?">
+					<div class="container search-ux-menu">
+						<div class="row search-ux-menu-row">
+							<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+
+								<!-- begin wordpress search menu -->
+								<h2 class="h6">Featured Links</h2>
+								<div class="menu-featured-links-search-container"><ul id="menu-featured-links-search-1" class="search-ux-menu-col"><li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19417"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/products-programs/icap/">IEEE Conformity Assessment Program (ICAP)</a></li>
+<li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19418"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/organizations/">IEEE SA Entity Membership</a></li>
+<li class="mb-2" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-19419"><a class="arrow-link text-decoration-none" target="_blank" href="https://sagroups.ieee.org/planetpositive2030/our-work/">Strong Sustainability by Design: IEEE Planet Positive 2030</a></li>
+</ul></div>							</div>
+							<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+								<h2 class="h6">Quick Links</h2>
+								<div class="menu-quick-links-search-container"><ul id="menu-quick-links-search-1" class="search-ux-menu-col"><li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18834"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/standard/">Search Standards</a></li>
+<li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18835"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/access-standards/">Access Standards</a></li>
+<li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18836"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/">IEEE SA Membership</a></li>
+</ul></div>							</div>
+							<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+								<h2 class="h6">Most Viewed Pages</h2>
+								<ul class="list-unstyled search-ux-menu-col"><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/search/" style="text-decoration:none" class="arrow-link" title="Search">Search</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/" style="text-decoration:none" class="arrow-link" title="Home">Home</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/products-programs/regauth/" style="text-decoration:none" class="arrow-link" title="Registration Authority">Registration Authority</a></li></ul>								<!-- end wordpress search menu -->
+
+							</div>
+						</div>
+					</div>
+				</form>
+				<!-- /#search -->
+			</div> <!-- /#search-input-wrapper -->
+			<button id="main-nav-search-button" class="btn btn-md search-bar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#search-input-wrapper" aria-expanded="false" aria-controls="search-input-wrapper" aria-label="Click/Tap to Toggle the Search."><i class="fa fa-search"></i><span class="ms-2 me-2" id="search-bar-text" style="height:54px">Search the IEEE SA Website...</span></button>
+		</div> <!-- /.btn-group .search -->
+		<div class="screen-darken"></div>
+	</div> <!-- /.container-fluid -->
+</nav> <!-- /#main-nav .navbar -->
+		</section> <!-- /#masthead -->
+	</header>
+<main>
+    <section id="page-title">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <h1 class="page-title">Registration Authority</h1>
+                </div> <!-- /.col-12 -->
+            </div> <!-- /.row -->
+        </div> <!-- /.container -->
+    </section> <!-- /#page-title -->
+
+    
+    <section id="breadcrumbs">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <nav id="breadcrumb-nav" aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="https://standards.ieee.org" title="Home">Home</a>
+                            </li>
+                            <li class="breadcrumb-item"><a href="https://standards.ieee.org/products-programs/" title="Products &amp; Programs">Products &amp; Programs</a></li>
+                                                            <li class="breadcrumb-item active"
+                                    aria-current="page">Registration Authority                                                                    </li>
+                            
+                        </ol> <!-- /.breadcrumb -->
+                    </nav> <!-- /#breadcrumb-nav -->
+                </div> <!-- /.col-12 -->
+            </div> <!-- /.row -->
+        </div> <!-- /.container -->
+    </section> <!-- /#breadcrumbs -->
+    
+    <section id="content">
+        <div class="container">
+            <div class="row">
+                <div id="main-content" class="col-12">
+                   <div class="post"><div class="wpb-content-wrapper"><div class="vc_row wpb_row vc_row-fluid"><div class="wpb_column vc_column_container vc_col-sm-12"><div class="vc_column-inner"><div class="wpb_wrapper"><div class="vc_message_box vc_message_box-standard vc_message_box-rounded vc_color-grey vc_do_message" ><div class="vc_message_box-icon"><i class="fa fa-solid fa-circle-info"></i></div><p><span style="color: #ba0c00;"><strong>Please note that the annual 3% price increase will go into effect for all registries on December 31, 2025, at 12:00 pm (ET).</strong></span></p>
+</div></div></div></div></div><div class="vc_row wpb_row vc_row-fluid"><div class="right wpb_column vc_column_container vc_col-sm-8" id="inner-content"><div class="vc_column-inner"><div class="wpb_wrapper"><h2 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h3" >About the Registration Authority</h2>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>IEEE offers Registration Authority programs or registries which maintain lists of unique identifiers under standards and issue unique identifiers to those wishing to register them. The IEEE Registration Authority assigns unambiguous names to objects in a way which makes the assignment available to interested parties.</p>
+
+		</div>
+	</div>
+
+	<div class="wpb_video_widget wpb_content_element vc_clearfix  mt-5  vc_video-aspect-ratio-169 vc_video-el-width-100 vc_video-align-left" >
+		<div class="wpb_wrapper">
+			
+			<div class="wpb_video_wrapper"><iframe title="How to obtain MAC addresses (English)" width="500" height="281" src="https://www.youtube.com/embed/0nlkxVfyxL4?feature=oembed" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe></div>
+		</div>
+	</div>
+
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p><strong>View in:</strong> <a href="http://www.youtube.com/embed/bWtfk_xJHL8" target="_blank" rel="noopener">Chinese</a> | <a href="http://www.youtube.com/embed/0nlkxVfyxL4" target="_blank" rel="noopener">English</a> | <a href="http://www.youtube.com/embed/otp36ceWhEQ" target="_blank" rel="noopener">Japanese</a> | <a href="http://www.youtube.com/embed/RaTv_ttvuf0" target="_blank" rel="noopener">Korean</a> | <a href="http://www.youtube.com/embed/r8D26-YuJ9k" target="_blank" rel="noopener">Russian</a></p>
+
+		</div>
+	</div>
+
+	<div  class="wpb_single_image wpb_content_element vc_align_center wpb_content_element  mt-5">
+		
+		<figure class="wpb_wrapper vc_figure">
+			<a href="/products-programs/regauth/mac/" target="_self" class="vc_single_image-wrapper   vc_box_border_grey"><img decoding="async" width="1000" height="270" src="https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top.png" class="vc_single_image-img attachment-full" alt="Infographic. Finding the right MAC Address for your business. Wired in or wireless, to connect to the Internet of Things (IoT), all things must have a home address. Learn More." title="Finding the right MAC Address for your business" srcset="https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top.png 1000w, https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top-300x81.png 300w, https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top-150x41.png 150w, https://standards.ieee.org/wp-content/uploads/import/ieeemacaddress_top-768x207.png 768w" sizes="(max-width: 1000px) 100vw, 1000px" fetchpriority="high" /></a>
+		</figure>
+	</div>
+
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p><a class="arrow-link" href="/products-programs/regauth/mac/">View Infographic</a></p>
+
+		</div>
+	</div>
+<h3 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h4" >Public Listing</h3>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p><a class="arrow-link" href="https://regauth.standards.ieee.org/standards-ra-web/pub/view.html#registries" target="_blank" rel="noopener">Search for an Assignment</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-4" >Download Public Listing</h4><div class="vc_message_box vc_message_box-standard vc_message_box-rounded vc_color-grey vc_do_message" ><div class="vc_message_box-icon"><i class="fa fa-solid fa-circle-info"></i></div><p>In order to download the entire public listing for a registry, please select either the text or CSV file below.</p>
+<p><small>Note: the CSV files below use the UTF-8 character set. Please open the files in an application that supports UTF-8.</small></p>
+</div><div class="vc_row wpb_row vc_inner vc_row-fluid"><div class="wpb_column vc_column_container vc_col-sm-6"><div class="vc_column-inner"><div class="wpb_wrapper">
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<ul>
+<li><a href="http://standards-oui.ieee.org/oui/oui.csv" target="_blank" rel="noopener">IEEE MA-L Assignments (CSV)</a></li>
+<li><a href="http://standards-oui.ieee.org/oui28/mam.csv" target="_blank" rel="noopener">IEEE MA-M Assignments (CSV)</a></li>
+<li><a href="http://standards-oui.ieee.org/oui36/oui36.csv" target="_blank" rel="noopener">IEEE MA-S Assignments (CSV)</a></li>
+<li><a href="http://standards-oui.ieee.org/iab/iab.csv" target="_blank" rel="noopener">IEEE IAB Assignments (CSV)</a></li>
+<li><a href="http://standards-oui.ieee.org/cid/cid.csv" target="_blank" rel="noopener">IEEE CID Assignments (CSV)</a></li>
+<li><a href="http://standards-oui.ieee.org/ethertype/eth.csv" target="_blank" rel="noopener">IEEE EtherType™ Assignments (CSV)</a></li>
+</ul>
+
+		</div>
+	</div>
+</div></div></div><div class="wpb_column vc_column_container vc_col-sm-6"><div class="vc_column-inner"><div class="wpb_wrapper"><div class="vc_empty_space  hide-desktop"   style="height: 0.5rem"><span class="vc_empty_space_inner"></span></div>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<ul>
+<li><a href="http://standards-oui.ieee.org/manid/manid.csv" target="_blank" rel="noopener">IEEE Manufacturer ID Assignments (CSV)</a></li>
+<li><a href="http://standards-oui.ieee.org/bopid/opid.csv" target="_blank" rel="noopener">IEEE Operator ID Assignments (CSV)</a></li>
+<li><a href="/products-programs/regauth/psid/public/" target="_blank" rel="noopener">IEEE PSID Assignment</a></li>
+<li><a href="/products-programs/regauth/llc/public/" target="_blank" rel="noopener">IEEE Logical Link Control Assignments</a></li>
+<li><a href="/products-programs/regauth/grpmac/public/" target="_blank" rel="noopener">IEEE Standards Group Assignments</a></li>
+<li><a href="/products-programs/regauth/stid/public/" target="_blank" rel="noopener">IEEE STID Assignments</a></li>
+</ul>
+
+		</div>
+	</div>
+</div></div></div></div><h3 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h4 mt-5" >Registries</h3><div class="vc_row wpb_row vc_inner vc_row-fluid"><div class="wpb_column vc_column_container vc_col-sm-6"><div class="vc_column-inner"><div class="wpb_wrapper"><h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5" >MAC Address Block Large (MA-L)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>An MA-L assignment includes an OUI and large blocks of EUI-48 and EUI-64 values which can be used as MAC Addresses, Bluetooth Device Addresses, Ethernet Addresses or object identifiers.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/oui/">Learn More About MA-L</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >MAC Address Block Medium (MA-M)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>An MA-M assignment includes medium blocks of EUI-48 and EUI-64 values which can be used as MAC Addresses, Bluetooth Device Addresses, Ethernet Addresses or object identifiers.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/oui28/">Learn More About MA-M</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >MAC Address Block Small (MA-S)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>An MA-S assignment includes an OUI-36 and small blocks of EUI-48 and EUI-64 values which can be used as MAC Addresses, Bluetooth Device Addresses, Ethernet Addresses or object identifiers.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/oui36/">Learn More About MA-S</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Company ID (CID)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>A unique 24-bit identifier that cannot be used to generate EUI-48 or EUI-64 values. Therefore, the CID is especially applicable in applications where unique MAC addresses are not required.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/cid/">Learn More About CID</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >EtherType™</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>Provides a context for interpretation of the data field of an Ethernet/IEEE 802.3 data frame (protocol identification).</p>
+<p><a class="arrow-link" href="/products-programs/regauth/ethertype/">Learn More About EtherType™</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Manufacturer ID</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>The manufacturer of a transducer is defined with a 14-bit code called the manufacturer ID.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/manid/">Learn More About Manufacturer ID</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Logical Link Control (LLC)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>Contains addressing information that consists of the Destination Service Access Point (DSAP) and the Source Service Access Point (SSAP) address field.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/llc/">Learn More About LLC</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >AcpcTreeId</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>An identifier for a specific set of binary trees used to convey certificate access codes to certificate users who are using the Activation Codes for Pseudonym Certificates (ACPC) technique specified in IEEE Std 1609.2.1. The assignee of an AcpcTreeId is assigned to operate an ACPC Certificate Access Manager using that AcpcTreeId.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/acpctid/">Learn More About AcpcTreeId</a></p>
+
+		</div>
+	</div>
+</div></div></div><div class="wpb_column vc_column_container vc_col-sm-6"><div class="vc_column-inner"><div class="wpb_wrapper"><div class="vc_empty_space  hide-desktop"   style="height: 3rem"><span class="vc_empty_space_inner"></span></div><h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5" >Unique Registration Number (URN)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>A 64-bit unique identifier contained in memory devices, or nodes, in which IEEE 1451.4 TEDS data is stored.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/urn/">Learn More About URN</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >IEEE Template/TDL Item</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>IEEE template is a definition of the placement and significance of each piece of data stored within the TEDS memory. A TDL&#8217;s purpose is to map bits.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/tdl/">Learn More About IEEE Template/TDL Item</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Provider Service Identifier (PSID)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>Used by IEEE 1609 standards to identify a particular application service provider that announces it is providing a service to potential users of an application or service.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/psid/">Learn More About PSID</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >IEEE 802.16 Operator ID</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>A 24-bit number that is broadcast by a base station as part of its Base Station ID.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/bopid/">Learn More About IEEE 802.16 Operator ID</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Standard Group MAC Address</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>NOTE: For Standards Development use ONLY. A Universally Administered Address Block allocated for the assignment of Group MAC Addresses for use in Standards.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/grpmac/">Learn More About Standard Group MAC Address</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >IEEE 1667 Silo Type Identifier (STID)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>IEEE 1667 specifies the interface to and behavior of several silos (e.g., Probe Silo, TCG Storage Transport Silo, Password Silo, and Smart Card Transport Silo). External silos may be defined outside of the standard, be either public or private, and involve third-party licensing. Guidelines for external silos are specified in IEEE 1667.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/stid/">Learn More About STID</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >IEEE Std 1588™ sdoId</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>The sdoId (Standards Development Organization Identifier) is a protocol attribute, per IEEE Std 1588, that identifies the PTP Profile in use by the PTP Instance.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/sdoid/">Learn More About IEEE Std 1588™ sdoId</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >CtlSeriesId</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>An identifier for a Certificate Trust List series allowing for the management of roots of trust within the certificate management system as specified in IEEE Std 1609.2.1. The assignee of an CtlSeriesId serves as the SCMS Manager of that CtlSeriesId.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/ctlseriesid/">Learn More About CtlSeriesId</a></p>
+
+		</div>
+	</div>
+</div></div></div></div><h3 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h4 mt-5" >Registration Authority Governance and Additional Information</h3>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>The IEEE Registration Authority operates under the direction of the <a href="/about/bog/">IEEE SA Board of Governors</a>.</p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Registration Authority Committee (RAC)</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>Oversight committee that assists standard developing organizations to establish unambiguous, sustainable registration authorities.</p>
+<p><a class="arrow-link" href="/about/bog/rac/">Learn More About the Registration Authority Committee (RAC)</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Tutorials</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>Informative documents to assist with learning more about IEEE Standard Association Registries.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/tut/">Learn More About Tutorials</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Credit Application Form</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>For those interested in paying for a registry via purchase order.</p>
+<p><a class="arrow-link" href="/wp-content/uploads/import/documents/forms/creditapp_form.pdf" target="_blank" rel="noopener">Learn More About Credit Application Form</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >FAQs</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>The commonly most asked questions about our registries and how they are used.</p>
+<p><a class="arrow-link" href="/faqs/regauth/">View Frequently Asked Questions</a></p>
+
+		</div>
+	</div>
+<h4 style="text-align: left" class="vc_custom_heading vc_do_custom_heading h5 mt-5" >Contact Us</h4>
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<p>Contact Registration Authority staff via <a href="/cdn-cgi/l/email-protection#650c000000481700020c16111704110c0a0b480410110d0a170c111c250c0000004b0a1702"><span class="__cf_email__" data-cfemail="f59c909090d88790929c86818794819c9a9bd89480819d9a879c818cb59c909090db9a8792">[email&#160;protected]</span></a>, snail mail, phone or fax.</p>
+<p><a class="arrow-link" href="/products-programs/regauth/contact/">View Contact Information</a></p>
+
+		</div>
+	</div>
+</div></div></div><div class="left wpb_column vc_column_container vc_col-sm-4" id="inner-sidebar"><div class="vc_column-inner"><div class="wpb_wrapper"><div class="vc_row wpb_row vc_inner vc_row-fluid widget"><div class="wpb_column vc_column_container vc_col-sm-12"><div class="vc_column-inner"><div class="wpb_wrapper">
+	<div class="wpb_text_column wpb_content_element" >
+		<div class="wpb_wrapper">
+			<ul class="nav nav-secondary flex-column "><li class="nav-item"><a class="nav-link " title="Infographic" href="https://standards.ieee.org/products-programs/regauth/mac/">Infographic </a></li><li class="nav-item"><a class="nav-link " title="Apply for Assignment" href="https://regauth.standards.ieee.org/standards-ra-web/pub/view.html#registries">Apply for Assignment </a></li><li class="nav-item"><a class="nav-link " title="Assignment Information Change Form" href="https://standards.ieee.org/products-programs/regauth/infocx/">Assignment Information Change Form </a></li><li class="nav-item"><a class="nav-link " title="Credit Application Form" href="/wp-content/uploads/import/documents/forms/creditapp_form.pdf">Credit Application Form </a></li><li class="nav-item"><a class="nav-link " title="Tutorials" href="https://standards.ieee.org/products-programs/regauth/tut/">Tutorials </a></li><li class="nav-item"><a class="nav-link " title="Contact the IEEE Registration Authority" href="https://standards.ieee.org/products-programs/regauth/contact/">Contact the IEEE Registration Authority </a></li><li class="nav-item"><a class="nav-link " title="MA-L" href="https://standards.ieee.org/products-programs/regauth/oui/">MA-L </a></li><li class="nav-item"><a class="nav-link " title="MA-M" href="https://standards.ieee.org/products-programs/regauth/oui28/">MA-M </a></li><li class="nav-item"><a class="nav-link " title="MA-S" href="https://standards.ieee.org/products-programs/regauth/oui36/">MA-S </a></li><li class="nav-item"><a class="nav-link " title="CID" href="https://standards.ieee.org/products-programs/regauth/cid/">CID </a></li><li class="nav-item"><a class="nav-link " title="EtherType™" href="https://standards.ieee.org/products-programs/regauth/ethertype/">EtherType™ </a></li><li class="nav-item"><a class="nav-link " title="Manufacturer ID" href="https://standards.ieee.org/products-programs/regauth/manid/">Manufacturer ID </a></li><li class="nav-item"><a class="nav-link " title="Logical Link Control (LLC)" href="https://standards.ieee.org/products-programs/regauth/llc/">Logical Link Control (LLC)  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="LLC Application" href="https://standards.ieee.org/products-programs/regauth/llc/app/">LLC Application </a></li><li class="nav-item"><a class="nav-link " title="LLC Public Listing" href="https://standards.ieee.org/products-programs/regauth/llc/public/">LLC Public Listing </a></li><li class="nav-item"><a class="nav-link " title="LLC Application (PDF)" href="/wp-content/uploads/import/documents/forms/llc_application.pdf">LLC Application (PDF) </a></li></ul></li><li class="nav-item"><a class="nav-link " title="Unique Registration Number" href="https://standards.ieee.org/products-programs/regauth/urn/">Unique Registration Number  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="URN Application (PDF)" href="/wp-content/uploads/import/documents/forms/urn_application.pdf">URN Application (PDF) </a></li></ul></li><li class="nav-item"><a class="nav-link " title="Template Description Language (TDL)" href="https://standards.ieee.org/products-programs/regauth/tdl/">Template Description Language (TDL)  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="TDL Application (PDF)" href="/wp-content/uploads/import/documents/forms/tdl_application.pdf">TDL Application (PDF) </a></li></ul></li><li class="nav-item"><a class="nav-link " title="PSID" href="https://standards.ieee.org/products-programs/regauth/psid/">PSID  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="PSID Application (PDF)" href="/wp-content/uploads/import/documents/forms/psid_application.pdf">PSID Application (PDF) </a></li><li class="nav-item"><a class="nav-link " title="Public Service Identifier (PSID) Public Listing" href="https://standards.ieee.org/products-programs/regauth/psid/public/">Public Service Identifier (PSID) Public Listing </a></li><li class="nav-item"><a class="nav-link " title="Provider Service Identifier (PSID) Information Change Form" href="https://standards.ieee.org/products-programs/regauth/psid/infocx/">Provider Service Identifier (PSID) Information Change Form </a></li></ul></li><li class="nav-item"><a class="nav-link " title="IEEE 802.16 Operator ID" href="https://standards.ieee.org/products-programs/regauth/bopid/">IEEE 802.16 Operator ID </a></li><li class="nav-item"><a class="nav-link " title="Standards Group MAC Address" href="https://standards.ieee.org/products-programs/regauth/grpmac/">Standards Group MAC Address  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="Standards Group MAC Public Listing" href="https://standards.ieee.org/products-programs/regauth/grpmac/public/">Standards Group MAC Public Listing </a></li><li class="nav-item"><a class="nav-link " title="Application (PDF)" href="/wp-content/uploads/import/documents/forms/sgm_application.pdf">Application (PDF) </a></li></ul></li><li class="nav-item"><a class="nav-link " title="IEEE 1667 Silo Type Identifier (STID)" href="https://standards.ieee.org/products-programs/regauth/stid/">IEEE 1667 Silo Type Identifier (STID)  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="Silo Type Identifier (STID) Public Listing" href="https://standards.ieee.org/products-programs/regauth/stid/public/">Silo Type Identifier (STID) Public Listing </a></li><li class="nav-item"><a class="nav-link " title="STID Application (PDF)" href="/wp-content/uploads/import/documents/forms/stid_application.pdf">STID Application (PDF) </a></li></ul></li><li class="nav-item"><a class="nav-link " title="About sdoId" href="https://standards.ieee.org/products-programs/regauth/sdoid/">About sdoId  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="sdoId Application (PDF)" href="/wp-content/uploads/import/documents/forms/sdoid_application.pdf">sdoId Application (PDF) </a></li></ul></li><li class="nav-item"><a class="nav-link " title="About AcpcTreeId (ACPCTID)" href="https://standards.ieee.org/products-programs/regauth/acpctid/">About AcpcTreeId (ACPCTID)  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="AcpcTreeId Application" href="https://standards.ieee.org/products-programs/regauth/acpctid/acpctid-application/">AcpcTreeId Application </a></li><li class="nav-item"><a class="nav-link " title="AcpcTreeId Public Listing" href="https://standards.ieee.org/products-programs/regauth/acpctid/public/">AcpcTreeId Public Listing </a></li><li class="nav-item"><a class="nav-link " title="AcpcTreeId Information Change Form" href="https://standards.ieee.org/products-programs/regauth/acpctid/infocx/">AcpcTreeId Information Change Form </a></li></ul></li><li class="nav-item"><a class="nav-link " title="CtlSeriesId" href="https://standards.ieee.org/products-programs/regauth/ctlseriesid/">CtlSeriesId  <i class="fas fa-plus"></i></a><ul class="sub-menu children"><li class="nav-item"><a class="nav-link " title="CtlSeriesId Application" href="https://standards.ieee.org/products-programs/regauth/ctlseriesid/application/">CtlSeriesId Application </a></li><li class="nav-item"><a class="nav-link " title="CtlSeriesId Public Listing" href="https://standards.ieee.org/products-programs/regauth/ctlseriesid/public/">CtlSeriesId Public Listing </a></li><li class="nav-item"><a class="nav-link " title="CtlSeriesId Information Change Form" href="https://standards.ieee.org/products-programs/regauth/ctlseriesid/infocx/">CtlSeriesId Information Change Form </a></li></ul></li></ul>
+
+		</div>
+	</div>
+</div></div></div></div></div></div></div></div>
+</div><div class="essb-pinterest-pro-content-marker" style="display: none !important;"></div></div><!-- .post -->                </div> <!-- /#main-content .col-12 -->
+            </div> <!-- /.row -->
+        </div> <!-- /.container -->
+    </section> <!-- /#content -->
+</main>
+
+    <footer>
+        <section id="footer-top">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-12 col-sm-4">
+                        <div id="footer-logo" class="logo">
+                            <a class="logo-link" href="https://www.ieee.org/" title="Visit IEEE.org" target="_blank" aria-label="Visit IEEE.org (opens in new tab)"><img src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/img/ieee-logo2x.png" alt="IEEE logo" height="30px" width="auto" loading="lazy"></a>
+                        </div> <!-- /#footer-logo .logo -->
+                    </div> <!-- /.col-12 .col-sm-4 -->
+                    <div class="col-12 col-sm-8">
+                        <div id="social-media">
+                            <ul class="nav social-media justify-content-sm-end">
+                                <li class="nav-item"><a class="nav-link social-icon social-linkedin" href="https://www.linkedin.com/company/ieee-sa-ieee-standards-association/" title="LinkedIn" target="_blank" aria-label="LinkedIn (opens in new tab)"><i class="fa-brands fa-linkedin-in"></i> <span class="sr-only">LinkedIn</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-facebook" href="https://www.facebook.com/ieeesa/" title="Facebook" target="_blank" aria-label="Facebook (opens in new tab)"><i class="fa-brands fa-facebook-f"></i> <span class="sr-only">Facebook</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-instagram" href="https://www.instagram.com/ieeesa/" title="Instagram" target="_blank" aria-label="Instagram (opens in new tab)"><i class="fa-brands fa-instagram"></i> <span class="sr-only">Instagram</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-youtube" href="https://www.youtube.com/ieeesa" title="YouTube" target="_blank" aria-label="YouTube (opens in new tab)"><i class="fa-brands fa-youtube"></i> <span class="sr-only">YouTube</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-twitter" href="https://twitter.com/ieeesa" title="X" target="_blank" aria-label="X (opens in new tab)"><i class="fa-brands fa-x-twitter"></i> <span class="sr-only">X</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-rss" href="/category/beyond-standards/feed/" title="Beyond Standards RSS Feed" target="_blank" aria-label="Beyond Standards RSS Feed (opens in new tab)"><i class="fa-solid fa-rss"></i> <span class="sr-only">Beyond Standards RSS Feed</span></a></li>
+                            </ul> <!-- /.nav .social-media -->
+                        </div> <!-- /#social-media -->
+                    </div> <!-- /.col-12 .col-sm-8 -->
+                </div> <!-- /.row -->
+            </div> <!-- /.container -->
+        </section> <!-- /#footer-top -->
+
+        <section id="footer-widgets">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">IEEE SA</div>
+<div class="menu-footer-menu-ieee-sa-container"><ul id="menu-footer-menu-ieee-sa" class="menu"><li id="menu-item-8437" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8437"><a href="https://standards.ieee.org/about/">About Us</a></li>
+<li id="menu-item-8370" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8370"><a href="https://standards.ieee.org/about/membership/">IEEE SA Membership</a></li>
+<li id="menu-item-9418" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-9418"><a href="https://standards.ieee.org/about/distrib/">Distributor Partner Program</a></li>
+<li id="menu-item-8372" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8372"><a href="https://standards.ieee.org/about/training/">Training &#038; Development</a></li>
+<li id="menu-item-8438" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8438"><a href="https://standards.ieee.org/about/policies/">Policies &#038; Procedures</a></li>
+<li id="menu-item-8439" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8439"><a href="https://standards.ieee.org/about/contact/">Contact Us</a></li>
+<li id="menu-item-18383" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18383"><a href="https://standards.ieee.org/about/feedback/">Provide Feedback</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">Board of Governors</div>
+<div class="menu-footer-menu-board-of-governors-container"><ul id="menu-footer-menu-board-of-governors" class="menu"><li id="menu-item-8363" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8363"><a href="https://standards.ieee.org/about/bog/">About Board of Governors</a></li>
+<li id="menu-item-8364" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8364"><a href="https://standards.ieee.org/about/bog/arcom/">Awards Committee</a></li>
+<li id="menu-item-8367" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8367"><a href="https://standards.ieee.org/about/bog/rac/">Registration Authority Committee (RAC)</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">Entity Collaborative Activities Governance Board</div>
+<div class="menu-footer-menu-cag-container"><ul id="menu-footer-menu-cag" class="menu"><li id="menu-item-19712" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19712"><a href="https://standards.ieee.org/about/bog/cag/">About the Entity Collaborative Activities Governance Board</a></li>
+<li id="menu-item-19713" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-19713"><a target="_blank" href="https://blp.ieee.org/">Blended Learning Platform</a></li>
+<li id="menu-item-19714" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19714"><a href="https://standards.ieee.org/products-programs/industry-affiliate-network/">Industry Affiliate Network</a></li>
+<li id="menu-item-19715" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19715"><a href="https://standards.ieee.org/about/bog/iccom/">Industry Connections Committee</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">Standards Board</div>
+<div class="menu-footer-menu-standards-board-container"><ul id="menu-footer-menu-standards-board" class="menu"><li id="menu-item-8378" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8378"><a href="https://standards.ieee.org/about/sasb/">About Standards Board</a></li>
+<li id="menu-item-8379" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8379"><a href="https://standards.ieee.org/about/sasb/sba/">Board Approvals</a></li>
+<li id="menu-item-8380" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8380"><a href="https://standards.ieee.org/about/sasb/audcom/">Audit Committee</a></li>
+<li id="menu-item-8381" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8381"><a href="https://standards.ieee.org/about/sasb/nescom/">New Standards Committee</a></li>
+<li id="menu-item-8382" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8382"><a href="https://standards.ieee.org/about/sasb/patcom/">Patent Committee</a></li>
+<li id="menu-item-8383" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8383"><a href="https://standards.ieee.org/about/sasb/procom/">Procedures Committee</a></li>
+<li id="menu-item-8384" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8384"><a href="https://standards.ieee.org/about/sasb/revcom/">Standards Review Committee</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">News &#038; Events</div>
+<div class="menu-footer-menu-news-events-container"><ul id="menu-footer-menu-news-events" class="menu"><li id="menu-item-8440" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8440"><a href="https://standards.ieee.org/news/">News</a></li>
+<li id="menu-item-8376" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8376"><a href="https://standards.ieee.org/news/swire/">IEEE SA Newsletter</a></li>
+<li id="menu-item-8441" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8441"><a href="https://standards.ieee.org/events/">Events</a></li>
+<li id="menu-item-12798" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12798"><a href="https://standards.ieee.org/beyond-standards/">Beyond Standards Blog</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+                </div> <!-- /.row -->
+            </div> <!-- /.container -->
+        </section> <!-- /#footer-widgets -->
+
+        <section id="footer-bar">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <ul class="nav footer-bar">
+                            <li class="nav-item"><a class="nav-link" href="/" title="Home">Home</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/sitemap/" title="Sitemap">Sitemap</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/about/contact.html" target="_blank" title="Contact &amp; Support" aria-label="Contact &amp; Support (opens in new tab)">Contact &amp; Support</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/accessibility-statement.html" target="_blank" title="Accessibility" aria-label="Accessibility (opens in new tab)">Accessibility</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/about/corporate/governance/p9-26.html" target="_blank" title="Nondiscrimination Policy" aria-label="Nondiscrimination Policy (opens in new tab)">Nondiscrimination Policy</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://secure.ethicspoint.com/domain/media/en/gui/20410/index.html" target="_blank" title="IEEE Ethics Reporting" aria-label="IEEE Ethics Reporting (opens in new tab)">IEEE Ethics Reporting</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/security-privacy.html" target="_blank" title="IEEE Privacy Policy" aria-label="IEEE Privacy Policy (opens in new tab)">IEEE Privacy Policy</a></li>
+							<li class="nav-item"><a class="nav-link" href="https://www.ieee.org/about/help/site-terms-conditions.html" target="_blank" title="Terms & Disclosures" aria-label="Terms & Disclosures (opens in new tab)">Terms & Disclosures</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/ipr/" title="IEEE SA Copyright Policy">IEEE SA Copyright Policy</a></li>
+                        </ul> <!-- /.nav .footer -->
+                        <div id="copyright">
+                            <p>&copy; Copyright <span id="copyright-year">2021</span> IEEE &ndash; All rights reserved. A public charity, IEEE is the world's largest technical professional organization dedicated to advancing technology for the benefit of humanity.</p>
+                        </div> <!-- /#copyright -->
+                    </div> <!-- /.col-12 -->
+                </div> <!-- /.row -->
+            </div> <!-- /.container -->
+        </section> <!-- /#footer-bar -->
+    </footer>
+
+	    <button class="btn btn-subscribe" type="button" data-bs-toggle="offcanvas" data-bs-target="#newsletter-subscribe" aria-controls="newsletter-subscribe" aria-label="Toggle newsletter subscribe form" role="region">Subscribe</button> <!-- /.btn .btn-subscribe -->
+
+    <div id="newsletter-subscribe" class="offcanvas offcanvas-end" data-bs-scroll="true" data-bs-backdrop="true" tabindex="-1" aria-labelledby="newsletter-subscribe-title">
+        <div class="offcanvas-header">
+            <h5 class="h2 offcanvas-title" id="newsletter-subscribe-title">Subscribe to our Newsletter</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div> <!-- /.offcavas-header -->
+        <div class="offcanvas-body">
+            <p>Sign up for our monthly newsletter to learn about new developments, including resources, insights and more.</p>
+            <!-- Marketo Form -->
+            <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="//app-ab28.marketo.com/js/forms2/js/forms2.min.js"></script>
+<form id="mktoForm_1022" class="marketoForm"></form>
+<script>MktoForms2.loadForm("//app-ab28.marketo.com", "211-FYL-955", 1022);</script>
+
+<!--Script to display a confirmation message after submission-->
+<script src="//app-ab28.marketo.com/js/forms2/js/forms2.js"></script>
+<script>
+MktoForms2.whenReady(function (form){
+  var subscribeForms = [1022];
+  if ( subscribeForms.indexOf(form.getId()) != -1 ) {
+	  form.onSuccess(function(values, followUpUrl){
+	   form.getFormElem().hide();
+	   document.getElementById('confirmform').style.visibility = 'visible';
+	   return false;
+		  
+     });
+  }
+});
+</script>
+<div id="confirmform" style="visibility:hidden;"><p><strong>Thank you for signing up for the IEEE SA Newsletter. Check your email for a confirmation message.</strong></p></div>
+        </div> <!-- /.offcavas-body -->
+    </div> <!-- /#newsletter-subscribe .offcanvas -->
+
+    <div class="screen-darken"></div> <!-- /.screen-darken -->
+
+   <!-- <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+
+    <script>
+        // offcanvas mobile menu
+        function darken_screen(yesno) {
+            if( yesno == true ) {
+                document.querySelector('.screen-darken').classList.add('active');
+            }
+            else if(yesno == false) {
+                document.querySelector('.screen-darken').classList.remove('active');
+            }
+        }
+
+        function close_offcanvas() {
+            darken_screen(false);
+            document.querySelector('#mobile-menu.show').classList.remove('show');
+            document.body.classList.remove('offcanvas-active');
+        }
+
+        function show_offcanvas(offcanvas_id) {
+            darken_screen(true);
+            document.getElementById(offcanvas_id).classList.add('show');
+            document.body.classList.add('offcanvas-active');
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // affix header to top on scroll
+            window.addEventListener('scroll', function() {
+
+                if (window.scrollY > 50) {
+
+                    document.getElementById('top-bar').classList.add('d-none');
+                    document.getElementById('masthead').classList.add('fixed-top');
+
+                    // add padding top to show content behind navbar
+                    mastheadHeight = document.querySelector('#masthead').offsetHeight;
+
+                    document.body.style.paddingTop = mastheadHeight + 'px';
+
+                } else {
+
+                    document.getElementById('top-bar').classList.remove('d-none');
+                    document.getElementById('masthead').classList.remove('fixed-top');
+
+                    // remove padding top from body
+                    document.body.style.paddingTop = '0';
+                }
+            });
+
+
+
+            // offcanvas mobile menu
+            document.querySelectorAll('[data-trigger]').forEach(function(everyelement) {
+                let offcanvas_id = everyelement.getAttribute('data-trigger');
+                everyelement.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    show_offcanvas(offcanvas_id);
+                });
+            });
+
+            document.querySelectorAll('.btn-close').forEach(function(everybutton) {
+                everybutton.addEventListener('click', function (e) {
+                    close_offcanvas();
+                });
+            });
+
+            document.querySelector('.screen-darken').addEventListener('click', function(event) {
+                close_offcanvas();
+            });
+        });
+        // DOMContentLoaded end
+
+
+
+        // display current year
+        document.querySelector('#copyright-year').innerText = new Date().getFullYear();
+		
+		//20250530: WP Bakery Post Grid Custom Javascript - CSS Class Adjustment*/
+		jQuery.noConflict();
+		jQuery( "#sa-custom-post-grid div.vc_gitem-zone" ).removeClass( "vc_gitem-zone-a" );
+		
+		document.querySelectorAll('#sa-custom-post-grid h3 > a.vc_gitem-link').forEach(link => {
+  		link.classList.add('arrow-link', 'stretched-link');
+		link.innerHTML = `<span class="arrow-icon">${link.textContent}</span>`;
+		});
+    </script>
+    
+    <script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"\/*"},{"not":{"href_matches":["\/wp-*.php","\/wp-admin\/*","\/wp-content\/uploads\/*","\/wp-content\/*","\/wp-content\/plugins\/*","\/wp-content\/themes\/ieee-sa-theme\/*","\/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+		<script>
+		( function ( body ) {
+			'use strict';
+			body.className = body.className.replace( /\btribe-no-js\b/, 'tribe-js' );
+		} )( document.body );
+		</script>
+		<script> /* <![CDATA[ */var tribe_l10n_datatables = {"aria":{"sort_ascending":": activate to sort column ascending","sort_descending":": activate to sort column descending"},"length_menu":"Show _MENU_ entries","empty_table":"No data available in table","info":"Showing _START_ to _END_ of _TOTAL_ entries","info_empty":"Showing 0 to 0 of 0 entries","info_filtered":"(filtered from _MAX_ total entries)","zero_records":"No matching records found","search":"Search:","all_selected_text":"All items on this page were selected. ","select_all_link":"Select all pages","clear_selection":"Clear Selection.","pagination":{"all":"All","next":"Next","previous":"Previous"},"select":{"rows":{"0":"","_":": Selected %d rows","1":": Selected 1 row"}},"datepicker":{"dayNames":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"dayNamesShort":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"dayNamesMin":["S","M","T","W","T","F","S"],"monthNames":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesShort":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesMin":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"nextText":"Next","prevText":"Prev","currentText":"Today","closeText":"Done","today":"Today","clear":"Clear"}};/* ]]> */ </script><script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/js_composer/assets/js/dist/js_composer_front.min.js?ver=8.7.2" id="wpb_composer_front_js-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/the-events-calendar/common/build/js/user-agent.js?ver=da75d0bdea6dde3898df" id="tec-user-agent-js"></script>
+<script type="text/javascript" id="user-session-store-js-extra">
+/* <![CDATA[ */
+var userSessionConfig = {"isAcknowledged":"false"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/atlas-search/includes/../public/js/user-session-store.js?ver=0.3.10" id="user-session-store-js"></script>
+<script type="text/javascript" id="analytics-js-extra">
+/* <![CDATA[ */
+var wpeAitkAnalytics = {"nonce":"d916d5dd46","documentID":"page:2744","title":"Registration Authority","searchResults":[],"restUrl":"https:\/\/standards.ieee.org\/wp-json\/","currentPage":"0","postsPerPage":"0"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/atlas-search/includes/../public/js/analytics.js?ver=0.3.10" id="analytics-js"></script>
+<script type="text/javascript" id="smush-detector-js-extra">
+/* <![CDATA[ */
+var smush_detector = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php","nonce":"ec33cc30aa","is_mobile":"","data_store":{"type":"post-meta","data":{"post_id":2744}},"previous_data_version":"0","previous_data_hash":"3c753ca82dbf24efe82e583f1e348156"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/wp-smush-pro/app/assets/js/smush-detector.min.js?ver=3.23.1" id="smush-detector-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/modules/subscribe-forms.min.js?ver=10.7.1" id="subscribe-forms-js-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/js/essb-core.min.js?ver=10.7.1" id="easy-social-share-buttons-core-js"></script>
+<script type="text/javascript" id="easy-social-share-buttons-core-js-after">
+/* <![CDATA[ */
+var essb_settings = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php","essb3_nonce":"e1cbb68c1b","essb3_plugin_url":"https:\/\/standards.ieee.org\/wp-content\/plugins\/easy-social-share-buttons3","essb3_stats":true,"essb3_ga":false,"essb3_ga_ntg":false,"blog_url":"https:\/\/standards.ieee.org\/","post_id":"2744","internal_stats":true};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/page-links-to/dist/new-tab.js?ver=3.3.7" id="page-links-to-js"></script>
+<script type="text/javascript" id="wdt-custom-avada-js-js-extra">
+/* <![CDATA[ */
+var wdt_ajax_object = {"ajaxurl":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/wpdatatables/integrations/starter/page-builders/avada/assets/js/wdt-custom-avada-js.js?ver=7.3.2" id="wdt-custom-avada-js-js"></script>
+<script></script><style type="text/css" data-key="essb-copylink-popup">.essb-copylink-shadow{display:none;align-items:center;justify-content:center;position:fixed;top:0;left:0;z-index:1300;background-color:rgba(0,0,0,0.2);width:100%;height:100%}.essb-copylink-window{width:90%;max-width:600px;display:none;align-items:center;justify-content:center;flex-direction:column;overflow.:hidden;z-index:1310;background-color:#fff;border-radius:5px;overflow:hidden}.essb-copylink-window-header{width:100%;display:flex;align-items:center;justify-content:space-between;overflow:hidden;font-size:16px;padding:10px;background-color:#1b84ff;color:#fff}.essb-copylink-window-content{width:100%;padding:20px}.essb-copylink-window-close{fill:#fff}</style><div class="essb-copylink-shadow"><div class="essb-copylink-window"><div class="essb-copylink-window-header"> <span>&nbsp;</span> <a href="#" class="essb-copylink-window-close"><svg style="width: 24px; height: 24px; padding: 5px;" height="32" viewBox="0 0 32 32" width="32" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M32,25.7c0,0.7-0.3,1.3-0.8,1.8l-3.7,3.7c-0.5,0.5-1.1,0.8-1.9,0.8c-0.7,0-1.3-0.3-1.8-0.8L16,23.3l-7.9,7.9C7.6,31.7,7,32,6.3,32c-0.8,0-1.4-0.3-1.9-0.8l-3.7-3.7C0.3,27.1,0,26.4,0,25.7c0-0.8,0.3-1.3,0.8-1.9L8.7,16L0.8,8C0.3,7.6,0,6.9,0,6.3c0-0.8,0.3-1.3,0.8-1.9l3.7-3.6C4.9,0.2,5.6,0,6.3,0C7,0,7.6,0.2,8.1,0.8L16,8.7l7.9-7.9C24.4,0.2,25,0,25.7,0c0.8,0,1.4,0.2,1.9,0.8l3.7,3.6C31.7,4.9,32,5.5,32,6.3c0,0.7-0.3,1.3-0.8,1.8L23.3,16l7.9,7.9C31.7,24.4,32,25,32,25.7z"/></svg></a> </div><div class="essb-copylink-window-content"><div class="essb_copy_internal" style="display: flex; align-items: center;"><div style="width: calc(100% - 50px); padding: 5px;"><input type="text" id="essb_copy_link_field" style="width: 100%;padding: 5px 10px;font-size: 15px;background: #f5f6f7;border: 1px solid #ccc;font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,\"Helvetica Neue\",sans-serif;" /></div><div style="width:50px;text-align: center;"><a href="#" class="essb-copy-link" title="Press to copy the link" style="color:#5867dd;background:#fff;padding:10px;text-decoration: none;"><svg style="width: 24px; height: 24px; fill: currentColor;" class="essb-svg-icon" aria-hidden="true" role="img" focusable="false" width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M25.313 28v-18.688h-14.625v18.688h14.625zM25.313 6.688c1.438 0 2.688 1.188 2.688 2.625v18.688c0 1.438-1.25 2.688-2.688 2.688h-14.625c-1.438 0-2.688-1.25-2.688-2.688v-18.688c0-1.438 1.25-2.625 2.688-2.625h14.625zM21.313 1.313v2.688h-16v18.688h-2.625v-18.688c0-1.438 1.188-2.688 2.625-2.688h16z"></path></svg></a></div></div><div class="essb-copy-message" style="font-size: 13px; font-family: -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Oxygen-Sans,Ubuntu,Cantarell,\"Helvetica Neue\",sans-serif;"></div></div></div></div><script type="text/javascript">function essb_open_copy_link_window(e,o){let s=window.location.href;if(e&&document.querySelector(".essb_"+e)){let n=document.querySelector(".essb_"+e).getAttribute("data-essb-url")||"";""!=n&&(s=n)}if(o&&""!=o&&(s=o),essb_settings&&essb_settings.copybutton_direct){essb.copy_link_direct(s);return}document.querySelector(".essb-copylink-window")&&(document.querySelector("#essb_copy_link_field")&&(document.querySelector("#essb_copy_link_field").value=s),document.querySelector(".essb-copylink-window").style.display="flex",document.querySelector(".essb-copylink-shadow").style.display="flex",document.querySelector(".essb-copylink-window-close")&&(document.querySelector(".essb-copylink-window-close").onclick=function(e){e.preventDefault(),document.querySelector(".essb-copylink-window").style.display="none",document.querySelector(".essb-copylink-shadow").style.display="none"}),document.querySelector(".essb-copylink-window .essb-copy-link")&&(document.querySelector(".essb-copylink-window .essb-copy-link").onclick=function(e){e.preventDefault();let o=document.querySelector("#essb_copy_link_field");try{o.focus(),o.select(),o.setSelectionRange(0,99999),document.execCommand("copy"),navigator.clipboard.writeText(o.value),document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML=essb_settings.translate_copy_message2?essb_settings.translate_copy_message2:"Copied to clipboard.",setTimeout(function(){document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML="&nbsp;"},2e3)}catch(s){console.log(s.stack),document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML=essb_settings.translate_copy_message3?essb_settings.translate_copy_message3:"Please use Ctrl/Cmd+C to copy the URL.",setTimeout(function(){document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML="&nbsp;"},2e3)}}))}</script>
+    </body>
+</html>
+
