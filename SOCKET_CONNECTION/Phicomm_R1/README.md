@@ -102,6 +102,8 @@ adb -s <ip>:5555 shell am start -n com.vbot.phicommr1/.MainActivity
 
 Cấp quyền button nút nhấn
 adb -s <ip>:5555 shell pm grant com.vbot_client.phicommr1 android.permission.WRITE_SECURE_SETTINGS
+adb -s <ip>:5555 shell settings put secure enabled_accessibility_services com.vbot_client.phicommr1/com.vbot_client.phicommr1.VBotKeyAccessibilityService
+adb -s <ip>:5555 shell settings put secure accessibility_enabled 1
 ```
 
 ## 7. Ghi chú vận hành
