@@ -170,10 +170,12 @@ goto menu
 :hide_packages
 echo.
 echo Tat cac ung dung khong can thiet tren loa:
-::adb shell /system/bin/pm hide com.phicomm.speaker.airskill
-::adb shell /system/bin/pm hide com.phicomm.speaker.exceptionreporter
-::adb shell /system/bin/pm hide com.phicomm.speaker.systemtool
-::adb shell /system/bin/pm hide com.phicomm.speaker.device
+
+adb shell /system/bin/pm hide com.phicomm.speaker.airskill
+adb shell /system/bin/pm hide com.phicomm.speaker.exceptionreporter
+adb shell /system/bin/pm hide com.phicomm.speaker.systemtool
+adb shell /system/bin/pm hide com.phicomm.speaker.device
+
 adb shell /system/bin/pm hide com.phicomm.speaker.otaservice
 adb shell /system/bin/pm hide com.phicomm.speaker.productiontest
 adb shell /system/bin/pm hide com.phicomm.speaker.bugreport
@@ -188,10 +190,10 @@ adb shell /system/bin/pm unhide com.phicomm.speaker.netctl
 echo ================================
 echo Bat cac service he thong dung cho bluetooth...
 echo ================================
-adb shell /system/bin/pm unhide com.phicomm.speaker.airskill
-adb shell /system/bin/pm unhide com.phicomm.speaker.exceptionreporter
-adb shell /system/bin/pm unhide com.phicomm.speaker.systemtool
-adb shell /system/bin/pm unhide com.phicomm.speaker.device
+::adb shell /system/bin/pm unhide com.phicomm.speaker.airskill
+::adb shell /system/bin/pm unhide com.phicomm.speaker.exceptionreporter
+::adb shell /system/bin/pm unhide com.phicomm.speaker.systemtool
+::adb shell /system/bin/pm unhide com.phicomm.speaker.device
 goto :eof
 
 
