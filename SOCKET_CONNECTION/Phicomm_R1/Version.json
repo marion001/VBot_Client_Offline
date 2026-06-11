@@ -1,4 +1,4 @@
 {
-	"build_date": "08/06/2026",
-	"description": "Tích hợp cơ chế kết nối Bluetooth phát nhạc"
+	"build_date": "11/06/2026",
+	"description": "Tích hợp đăng nhập WebUI, bổ sung tương tác với Media Player qua Webui"
 }
