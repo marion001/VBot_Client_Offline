@@ -57,11 +57,31 @@ Android client cho loa Phicomm R1, giao tiếp với VBot server qua WebSocket v
 - `client`: Snowboy detect local, trúng wakeword sẽ gửi `Skip_WakeUP`/start flow recording.
 - `none`: không detect wakeword, chỉ thao tác thủ công bằng api hoặc nút nhấn
 
-## 4. WebUI
+## 4. WebUI, Quên Mật Khẩu WebUI
 
 Mở tại:
 
 `http://<ip-loa>:8081`
+
+  - Xem mật khẩu đăng nhập WebUI khi bị quên (thay địa chỉ ip loa tương ứng trong: `<ip>`)
+
+      `$:> adb -s <ip>:5555 shell run-as com.vbot_client.phicommr1 "cat /data/data/com.vbot_client.phicommr1/shared_prefs/vbot_r1.xml"`
+    
+    Hoặc Lệnh:
+    
+      `$:> adb -s <ip>:5555 shell run-as com.vbot_client.phicommr1 "cat shared_prefs/vbot_r1.xml"`
+    
+    Tìm giá trị string có name="webUiPassword" trong kết quả.
+
+  - Hoặc sử dụng lệnh sau để chỉ lấy giá trị mật khẩu:
+
+      `$:> adb -s 192.168.14.159:5555 shell run-as com.vbot_client.phicommr1 cat /data/data/com.vbot_client.phicommr1/shared_prefs/vbot_r1.xml | findstr webUiPassword`
+  
+    Hoặc Lệnh:
+    
+      `$:> adb -s <ip>:5555 shell run-as com.vbot_client.phicommr1 cat shared_prefs/vbot_r1.xml | findstr webUiPassword`
+
+      
 
 ### 4.1 Nhóm chức năng
 
