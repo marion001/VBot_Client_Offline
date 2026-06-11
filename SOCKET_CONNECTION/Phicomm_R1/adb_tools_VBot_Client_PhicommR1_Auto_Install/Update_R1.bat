@@ -16,7 +16,9 @@ echo 2. Cap nhat firmware
 echo 3. Xoa bo nho dem
 echo 4. Cai dat Auto DLNA + Unisound (Fix am thanh)
 echo 5. Cai dat VBot Client (Socket)
-echo 6. Exit
+echo 6. Xem Mat Khau WebUI VBot Client Da Luu
+echo 7. Xem Du Lieu Cau Hinh Config VBot Client
+echo 8. Exit
 echo -------------------------------------------------------
 echo.
 set /p choice= Chon thao tac ban muon thuc hien:
@@ -26,7 +28,9 @@ if /i "%choice%"=="2" goto update
 if /i "%choice%"=="3" goto clear_cache
 if /i "%choice%"=="4" goto install_apk
 if /i "%choice%"=="5" goto install_ai
-if /i "%choice%"=="6" goto exit
+if /i "%choice%"=="6" goto view_pass_vbot_ui
+if /i "%choice%"=="7" goto view_config_vbot
+if /i "%choice%"=="8" goto exit
 echo.
 echo Lua chon khong hop le, vui long chon lai!
 goto menu
@@ -271,6 +275,39 @@ echo Dang khoi dong lai loa...
 adb reboot > nul
 echo.
 echo Cai dat xong, an phim bat ky de thoat...
+pause > nul
+goto menu
+
+:view_pass_vbot_ui
+echo.
+echo -------------------------------------------------------
+echo     Xem Mat Khau WebUI Da Cai VBot Client Phicommr1
+echo -------------------------------------------------------
+echo.
+call :connect
+echo Mat Khau Dang Nhap Giao Dien WebUI Cua Thiet Bi La:
+echo.
+adb shell run-as com.vbot_client.phicommr1 cat shared_prefs/vbot_r1.xml | findstr webUiPassword
+echo.
+echo.
+adb shell run-as com.vbot_client.phicommr1 cat /data/data/com.vbot_client.phicommr1/shared_prefs/vbot_r1.xml | findstr webUiPassword
+echo.
+echo Nhan phim bat ky de quay lai!
+pause > nul
+goto menu
+
+:view_config_vbot
+echo.
+echo -------------------------------------------------------
+echo     Xem Du Lieu Config VBot Client Phicommr1
+echo -------------------------------------------------------
+echo.
+call :connect
+echo Du Lieu Cau Hinh Config Cua Ban:
+echo.
+adb shell run-as com.vbot_client.phicommr1 "cat /data/data/com.vbot_client.phicommr1/shared_prefs/vbot_r1.xml"
+echo.
+echo Nhan phim bat ky de quay lai!
 pause > nul
 goto menu
 
