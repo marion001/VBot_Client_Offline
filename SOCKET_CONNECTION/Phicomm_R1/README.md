@@ -67,17 +67,17 @@ Mở tại:
 
       `$:> adb -s <ip>:5555 shell run-as com.vbot_client.phicommr1 "cat /data/data/com.vbot_client.phicommr1/shared_prefs/vbot_r1.xml"`
     
-    Hoặc Lệnh:
+    Hoặc Lệnh Sau:
     
       `$:> adb -s <ip>:5555 shell run-as com.vbot_client.phicommr1 "cat shared_prefs/vbot_r1.xml"`
     
     Tìm giá trị string có name="webUiPassword" trong kết quả.
 
-  - Hoặc sử dụng lệnh sau để chỉ lấy giá trị mật khẩu:
+  - Hoặc sử dụng 1 trong 2 lệnh sau để chỉ lấy giá trị mật khẩu:
 
       `$:> adb -s 192.168.14.159:5555 shell run-as com.vbot_client.phicommr1 cat /data/data/com.vbot_client.phicommr1/shared_prefs/vbot_r1.xml | findstr webUiPassword`
   
-    Hoặc Lệnh:
+    Hoặc Lệnh Sau:
     
       `$:> adb -s <ip>:5555 shell run-as com.vbot_client.phicommr1 cat shared_prefs/vbot_r1.xml | findstr webUiPassword`
 
