@@ -1,4 +1,4 @@
 {
-	"build_date": "12/06/2026",
-	"description": "Tích hợp đăng nhập WebUI, bổ sung tương tác với Media Player qua Webui"
+	"build_date": "28/06/2026",
+	"description": "Cải thiện thu tín hiệu Microphone, Hỗ trợ hiển thị đồng hồ VU Meter cho Micro trên WebUI, Và một vài thay đổi khác"
 }
