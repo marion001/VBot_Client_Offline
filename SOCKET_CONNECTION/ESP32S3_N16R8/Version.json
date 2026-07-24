@@ -1,4 +1,4 @@
 {
-	"build_date": "05/06/2026",
-	"description": "Bổ sung cơ chế giao tiếp Socket"
+	"build_date": "24/07/2026",
+	"description": "Hỗ trợ mDNS, liên kết và tương tác thiết bị với HomeAssistant(HASS) thông qua VBot_Offline_Custom_Component"
 }
