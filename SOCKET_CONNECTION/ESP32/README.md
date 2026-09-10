@@ -31,3 +31,5 @@ Các environment hỗ trợ:
 | MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 |
 
 Các nút được đấu giữa GPIO và GND, firmware sử dụng `INPUT_PULLUP`.
+
+<img width="467" height="750" alt="Image" src="https://github.com/user-attachments/assets/ccdd30b1-b3fa-4fb8-ada4-90d1df020e2c" />
