@@ -31,5 +31,3 @@ Các environment hỗ trợ:
 | MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 |
 
 Các nút được đấu giữa GPIO và GND, firmware sử dụng `INPUT_PULLUP`.
-
-Khi dùng Flash Download Tool, bootloader ESP32 nằm tại `0x1000`. Xem đầy đủ offset và cách xử lý lỗi trong [README_FLASH.md](README_FLASH.md).
