@@ -1,5 +1,15 @@
 # ESP32 và ESP32 PSRAM/WROVER
 
+## Nạp bằng Espressif Flash Download Tool
+
+ESP32 Thông Tin Phân Vùng Dùng Để Nạp, Flash Chương Trình bằng Espressif Flash Download Tool:
+```text
+0x1000   bootloader.bin
+0x8000   partitions.bin
+0x10000  firmware.bin
+0x350000  littlefs.bin
+```
+
 Các environment hỗ trợ:
 
 | Phần cứng | Environment | Flash | LittleFS |
@@ -21,14 +31,5 @@ Các environment hỗ trợ:
 | MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 |
 
 Các nút được đấu giữa GPIO và GND, firmware sử dụng `INPUT_PULLUP`.
-
-Ví dụ build và nạp ESP32 thường:
-
-```powershell
-pio run -e esp32
-pio run -e esp32 -t buildfs
-pio run -e esp32 -t upload --upload-port COM11
-pio run -e esp32 -t uploadfs --upload-port COM11
-```
 
 Khi dùng Flash Download Tool, bootloader ESP32 nằm tại `0x1000`. Xem đầy đủ offset và cách xử lý lỗi trong [README_FLASH.md](README_FLASH.md).
