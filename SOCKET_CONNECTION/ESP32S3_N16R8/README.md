@@ -8,17 +8,7 @@
 - LittleFS: `0x810000`
 - Bootloader ESP32-S3: `0x0000`
 
-## Build và nạp bằng PlatformIO
-
-```powershell
-pio run -e esp32s3-n16r8
-pio run -e esp32s3-n16r8 -t buildfs
-pio run -e esp32s3-n16r8 -t erase --upload-port COM11
-pio run -e esp32s3-n16r8 -t upload --upload-port COM11
-pio run -e esp32s3-n16r8 -t uploadfs --upload-port COM11
-```
-
-## Offset Flash Download Tool
+## Nạp bằng Espressif Flash Download Tool
 
 ```text
 0x0000    bootloader.bin
