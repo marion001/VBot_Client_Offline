@@ -30,5 +30,3 @@ ESP32-S3 không có GPIO22 đến GPIO25. Trên module N16R8, GPIO26 đến GPIO
 | Rotary CLK / DT / SW | 41 / 40 / 42 |
 | Mic SCK/BCLK / WS / SD | 5 / 4 / 6 |
 | MAX98357 BCLK / LRC / DIN | 15 / 16 / 7 |
-
-Xem thêm [README_FLASH.md](README_FLASH.md).
