@@ -28,3 +28,5 @@ GPIO mặc định: mic WS/SCK/SD là `4/5/6`, MAX98357 DIN/BCLK/LRC là `7/15/1
 | MAX98357 BCLK / LRC / DIN | 15 / 16 / 7 |
 
 Nút mặc định: WakeUp `GPIO42`, Volume- `GPIO39`, Volume+ `GPIO40`, Mic `GPIO41`.
+
+<img width="468" height="743" alt="Image" src="https://github.com/user-attachments/assets/289ec094-edcc-4819-a648-43f4e0aa1751" />
