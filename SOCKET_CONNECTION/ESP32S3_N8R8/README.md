@@ -28,5 +28,3 @@ Nút mặc định: WakeUp `GPIO42`, Volume- `GPIO39`, Volume+ `GPIO40`, Mic `GP
 | Nút Mic / Volume+ / Volume- / WakeUp | 41 / 40 / 39 / 42 |
 | Mic INMP441 SCK/BCLK / WS / SD | 5 / 4 / 6 |
 | MAX98357 BCLK / LRC / DIN | 15 / 16 / 7 |
-
-Xem [README_FLASH.md](README_FLASH.md) để nạp thủ công và khắc phục lỗi boot.
