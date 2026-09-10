@@ -27,9 +27,4 @@ GPIO mặc định: mic WS/SCK/SD là `4/5/6`, MAX98357 DIN/BCLK/LRC là `7/15/1
 | Mic INMP441 SCK/BCLK / WS / SD | 5 / 4 / 6 |
 | MAX98357 BCLK / LRC / DIN | 15 / 16 / 7 |
 
-
 Nút mặc định: WakeUp `GPIO42`, Volume- `GPIO39`, Volume+ `GPIO40`, Mic `GPIO41`.
-
-
-
-Không dùng firmware này cho bo cần PSRAM. Xem [README_FLASH.md](README_FLASH.md) để nạp thủ công.
