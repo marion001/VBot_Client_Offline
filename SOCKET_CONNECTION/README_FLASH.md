@@ -29,29 +29,6 @@
 
 Các nút được đấu giữa GPIO tương ứng và GND; firmware sử dụng `INPUT_PULLUP`. Không dùng GPIO22–37 cho ngoại vi trên ESP32-S3 N8R8/N16R8 vì các chân khả dụng trong vùng này có thể thuộc bus flash/OPI PSRAM.
 
-## Build bằng PlatformIO
-
-Thay `<env>` bằng environment trong bảng:
-
-```powershell
-pio run -e <env>
-pio run -e <env> -t buildfs
-```
-
-Các file kết quả nằm trong `.pio/build/<env>/`.
-
-## Nạp trực tiếp bằng PlatformIO
-
-Đây là cách được khuyến nghị vì PlatformIO tự chọn đúng offset:
-
-```powershell
-pio run -e <env> -t erase --upload-port COM11
-pio run -e <env> -t upload --upload-port COM11
-pio run -e <env> -t uploadfs --upload-port COM11
-```
-
-Đổi `COM11` thành cổng thực tế.
-
 ## Nạp bằng Espressif Flash Download Tool
 
 Xóa toàn bộ flash trước khi đổi loại firmware hoặc khi gặp `Invalid image block`.
