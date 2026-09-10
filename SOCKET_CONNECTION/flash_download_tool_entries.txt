@@ -12,6 +12,7 @@ Entries:
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x350000,littlefs.bin
+
 Partition table (partitions_vbot_ota.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
@@ -31,6 +32,7 @@ Entries:
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x350000,littlefs.bin
+
 Partition table (partitions_vbot_ota.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
@@ -50,6 +52,7 @@ Entries:
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x350000,littlefs.bin
+
 Partition table (partitions_vbot_ota.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
@@ -70,6 +73,7 @@ Entries:
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x610000,littlefs.bin
+
 Partition table (partitions_vbot_ota_8mb.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
@@ -90,6 +94,7 @@ Entries:
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x810000,littlefs.bin
+
 Partition table (partitions_vbot_ota_16mb.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
@@ -104,20 +109,21 @@ ENV: esp32s3
 VBOT_BUILD_TARGET="ESP32S3_N8"
 chip: esp32s3
 flash_mode: (default; use qio if unsure)
-Partitions file: partitions_vbot_ota.csv
+Partitions file: partitions_vbot_ota_8mb.csv
 Entries:
-0x1000,bootloader.bin
+0x0000,bootloader.bin
 0x8000,partitions.bin
 0x10000,firmware.bin
-0x350000,littlefs.bin
-Partition table (partitions_vbot_ota.csv):
+0x610000,littlefs.bin
+
+Partition table (partitions_vbot_ota_8mb.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
 otadata,  data, ota,     0xe000,   0x2000,
-app0,     app,  ota_0,   0x10000,  0x1A0000,
-app1,     app,  ota_1,   0x1B0000, 0x1A0000,
-littlefs, data, spiffs,  0x350000, 0xA0000,
-coredump, data, coredump,0x3F0000, 0x10000,
+app0,     app,  ota_0,   0x10000,  0x300000,
+app1,     app,  ota_1,   0x310000, 0x300000,
+littlefs, data, spiffs,  0x610000, 0x1E0000,
+coredump, data, coredump,0x7F0000, 0x10000,
 
 ---
 ENV: esp32s3-n8r2
@@ -126,10 +132,11 @@ chip: esp32s3
 flash_mode: qio
 Partitions file: partitions_vbot_ota_8mb.csv
 Entries:
-0x1000,bootloader.bin
+0x0000,bootloader.bin
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x610000,littlefs.bin
+
 Partition table (partitions_vbot_ota_8mb.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
@@ -146,10 +153,11 @@ chip: esp32s3
 flash_mode: qio
 Partitions file: partitions_vbot_ota_8mb.csv
 Entries:
-0x1000,bootloader.bin
+0x0000,bootloader.bin
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x610000,littlefs.bin
+
 Partition table (partitions_vbot_ota_8mb.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
@@ -166,10 +174,11 @@ chip: esp32s3
 flash_mode: qio
 Partitions file: partitions_vbot_ota_16mb.csv
 Entries:
-0x1000,bootloader.bin
+0x0000,bootloader.bin
 0x8000,partitions.bin
 0x10000,firmware.bin
 0x810000,littlefs.bin
+
 Partition table (partitions_vbot_ota_16mb.csv):
 # Name,   Type, SubType, Offset,   Size,     Flags
 nvs,      data, nvs,     0x9000,   0x5000,
