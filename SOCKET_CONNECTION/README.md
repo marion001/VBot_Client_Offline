@@ -1,18 +1,5 @@
 # ESP32 VBot Socket Client
 
-## Hướng dẫn theo từng loại bo mạch
-
-- [ESP32 và các biến thể PSRAM](README_ESP32.md)
-- [ESP32 PSRAM](README_ESP32_PSRAM.md)
-- [ESP32-WROVER](README_ESP32_WROVER.md)
-- [ESP32 PSRAM flash 8 MB](README_ESP32_PSRAM_8MB.md)
-- [ESP32 PSRAM flash 16 MB](README_ESP32_PSRAM_16MB.md)
-- [ESP32-S3 N8](README_ESP32S3.md)
-- [ESP32-S3 N8R2](README_ESP32S3_N8R2.md)
-- [ESP32-S3 N8R8](README_ESP32S3_N8R8.md)
-- [ESP32-S3 N16R8](README_ESP32S3_N16R8.md)
-- [Quy trình flash thủ công dùng chung](README_FLASH.md)
-
 Lưu ý quan trọng: bootloader ESP32 dùng offset `0x1000`, còn bootloader ESP32-S3 dùng offset `0x0000`. Không dùng chung offset giữa hai dòng chip.
 
 WebUI có thể chọn khởi chạy kết nối máy chủ VBot hoặc chạy độc lập. Chế độ độc lập không khởi tạo Mic/WebSocket; MQTT, mDNS, phát âm thanh, nút nhấn, LED, WebUI và OTA vẫn hoạt động.
