@@ -398,9 +398,9 @@ def audio_proxy() -> Response:
 
     headers = {
         "Cache-Control": "no-store",
-        "Connection": "close",
         "X-Accel-Buffering": "no",
     }
+
     for name in ("Content-Range", "Content-Length", "Accept-Ranges", "ETag", "Last-Modified"):
         if upstream.headers.get(name):
             headers[name] = upstream.headers[name]
