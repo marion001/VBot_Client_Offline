@@ -106,6 +106,76 @@ Mở tại:
 - Model upload custom lưu trong thư mục app và có thể xóa.
 - Nếu không active model nào thì Snowboy không detect (no wakeword).
 
+### 4.3 API phát âm thanh không cần đăng nhập
+
+Thay `IP_LOA` bằng địa chỉ IP của Phicomm R1. Các API dưới đây có thể gọi trực tiếp trong mạng LAN mà không cần cookie đăng nhập WebUI.
+
+#### 1. Đọc văn bản (TTS)
+
+`POST /tts` — tham số: `text`, `lang`, `speed`.
+
+```bash
+curl -X POST \
+  -d "text=chào bạn" \
+  -d "lang=vi-VN" \
+  -d "speed=1.0" \
+  "http://IP_LOA:8081/tts"
+```
+
+Cũng hỗ trợ truyền tham số trên URL:
+
+```bash
+curl -X POST "http://IP_LOA:8081/tts?text=ch%C3%A0o+b%E1%BA%A1n&lang=vi-VN&speed=1.0"
+```
+
+#### 2. Phát URL âm thanh, YouTube hoặc Zing MP3
+
+`POST /play_audio` — dùng chung trường `audioSource` cho URL audio, URL YouTube và URL Zing MP3.
+
+Phát URL âm thanh trực tiếp:
+
+```bash
+curl -X POST \
+  --data-urlencode "audioSource=https://example.com/audio.mp3" \
+  "http://IP_LOA:8081/play_audio"
+```
+
+Phát URL YouTube:
+
+```bash
+curl -X POST \
+  --data-urlencode "audioSource=https://www.youtube.com/watch?v=VIDEO_ID" \
+  "http://IP_LOA:8081/play_audio"
+```
+
+Phát URL Zing MP3:
+
+```bash
+curl -X POST \
+  --data-urlencode "audioSource=https://zingmp3.vn/bai-hat/..." \
+  "http://IP_LOA:8081/play_audio"
+```
+
+#### 3. Điều khiển phát
+
+Tạm dừng:
+
+```bash
+curl -X POST "http://IP_LOA:8081/pause_audio"
+```
+
+Tiếp tục:
+
+```bash
+curl -X POST "http://IP_LOA:8081/continue_audio"
+```
+
+Dừng phát:
+
+```bash
+curl -X POST "http://IP_LOA:8081/stop_audio"
+```
+
 ## 5. Kiểm tra cập nhật
 
 App gọi GitHub API:
