@@ -1,4 +1,4 @@
 {
-	"build_date": "14/09/2026",
-	"description": "Sửa các lỗi cấu hình GPIO, tối ưu hệ thống xử lý"
+	"build_date": "20/09/2026",
+	"description": "Sửa lỗi đồng bộ với Custom VBot của Home Assistant"
 }
