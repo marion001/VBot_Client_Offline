@@ -1,4 +1,4 @@
 {
-	"build_date": "20/09/2026",
-	"description": "Hỗ trợ MQTT Liên Kết Home Assistant, Tối Ưu Và Sửa Các Lỗi Hệ Thống"
+	"build_date": "25/10/2026",
+	"description": "Sửa lỗi kết nối Bluetooth"
 }
