@@ -8,17 +8,7 @@
 - LittleFS: `0x810000`
 - Bootloader ESP32-S3: `0x0000`
 
-## Build và nạp bằng PlatformIO
-
-```powershell
-pio run -e esp32s3-n16r8
-pio run -e esp32s3-n16r8 -t buildfs
-pio run -e esp32s3-n16r8 -t erase --upload-port COM11
-pio run -e esp32s3-n16r8 -t upload --upload-port COM11
-pio run -e esp32s3-n16r8 -t uploadfs --upload-port COM11
-```
-
-## Offset Flash Download Tool
+## Nạp bằng Espressif Flash Download Tool
 
 ```text
 0x0000    bootloader.bin
@@ -41,4 +31,5 @@ ESP32-S3 không có GPIO22 đến GPIO25. Trên module N16R8, GPIO26 đến GPIO
 | Mic SCK/BCLK / WS / SD | 5 / 4 / 6 |
 | MAX98357 BCLK / LRC / DIN | 15 / 16 / 7 |
 
-Xem thêm [README_FLASH.md](README_FLASH.md).
+
+<img width="468" height="743" alt="Image" src="https://github.com/user-attachments/assets/289ec094-edcc-4819-a648-43f4e0aa1751" />
