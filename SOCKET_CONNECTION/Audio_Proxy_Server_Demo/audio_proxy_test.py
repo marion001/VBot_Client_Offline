@@ -202,18 +202,19 @@ def _resolve_with_ytdlp_uncached(source_url: str) -> dict[str, Any]:
 
     if not RESOLVE_SEMAPHORE.acquire(timeout=DEFAULT_TIMEOUT[1]):
         raise TimeoutError("Server is busy resolving media URLs")
+    info = None
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(source_url, download=False)
     finally:
         RESOLVE_SEMAPHORE.release()
-        if info and info.get("_type") == "playlist":
-            entries = [entry for entry in (info.get("entries") or []) if entry]
-            if not entries:
-                raise RuntimeError("Playlist has no playable entries")
-            info = entries[0]
-        if not info:
-            raise RuntimeError("Cannot resolve audio URL")
+    if info and info.get("_type") == "playlist":
+        entries = [entry for entry in (info.get("entries") or []) if entry]
+        if not entries:
+            raise RuntimeError("Playlist has no playable entries")
+        info = entries[0]
+    if not info:
+        raise RuntimeError("Cannot resolve audio URL")
 
     best = pick_best_format(info)
     resolved_url = str(best.get("url") or "").strip()
@@ -398,9 +399,9 @@ def audio_proxy() -> Response:
 
     headers = {
         "Cache-Control": "no-store",
+        "Connection": "close",
         "X-Accel-Buffering": "no",
     }
-
     for name in ("Content-Range", "Content-Length", "Accept-Ranges", "ETag", "Last-Modified"):
         if upstream.headers.get(name):
             headers[name] = upstream.headers[name]
