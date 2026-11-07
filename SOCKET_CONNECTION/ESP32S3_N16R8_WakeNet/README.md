@@ -2,11 +2,11 @@
 
 Phiên bản đặc biệt dành cho board **ESP32-S3 N16R8** (16MB Flash, 8MB PSRAM OPI) tích hợp sẵn công nghệ nhận diện từ khóa đánh thức ngoại tuyến trực tiếp trên chip (**Espressif ESP-SR WakeNet9**).
 
-- **Environment PlatformIO**: `esp32s3-n16r8`
+- **Environment PlatformIO**: `esp32s3-n16r8-wakenet`
 - **Target**: `ESP32S3_N16R8_WakeNet`
 - **Flash Size**: 16 MB, Flash Mode `QIO`
 - **PSRAM**: 8 MB OPI (`qio_opi`)
-- **Bảng phân vùng**: `partitions_vbot_ota_16mb.csv`
+- **Bảng phân vùng**: `partitions_vbot_ota_16mb_wakenet.csv`
 - **Tập hợp từ khóa mặc định tích hợp sẵn**: `Hi Lily`, `Alexa`, `Sophia`, `Jarvis`
 - **Khả năng mở rộng**: Cho phép tải lên tối đa **5 từ khóa tùy chỉnh** (`.bin`) qua WebUI mà không cần nạp lại firmware.
 

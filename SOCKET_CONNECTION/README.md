@@ -22,14 +22,16 @@ Client ESP32 cho `Streaming.py` khi server đặt `connection_protocol = "socket
 | `esp32s3` | ESP32-S3 | 8 MB | Không | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
 | `esp32s3-n8r2` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
 | `esp32s3-n8r8` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
-| `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`)* |
+| `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` |
+| `esp32s3-n16r8-wakenet` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
 
 ## Tính năng
 
-- **Nhận diện từ khóa đánh thức WakeNet9 On-Device (ESP32-S3 N16R8)**: Xử lý nhận diện giọng nói đánh thức hoàn toàn Offline trên chip (~0ms), không tốn băng thông Wi-Fi và không phụ thuộc máy chủ khi ở trạng thái chờ.
-- **Tab WebUI riêng `Cấu Hình Hotword WakeUP`**: Tích hợp sẵn 4 từ khóa chuẩn (*Hi Lily, Alexa, Sophia, Jarvis*) và cho phép tải lên tối đa **5 từ khóa tùy chỉnh** (`.bin`) trực tiếp qua WebUI.
+- **Nhận diện từ khóa đánh thức WakeNet9 On-Device (`esp32s3-n16r8-wakenet`)**: Xử lý nhận diện giọng nói đánh thức hoàn toàn Offline trên chip (~0ms), không tốn băng thông Wi-Fi và không phụ thuộc máy chủ khi ở trạng thái chờ.
+- **Tab WebUI riêng `Cấu Hình Hotword WakeUP` (dành riêng cho bản WakeNet)**: Tích hợp sẵn 4 từ khóa chuẩn (*Hi Lily, Alexa, Sophia, Jarvis*) và cho phép tải lên tối đa **5 từ khóa tùy chỉnh** (`.bin`) trực tiếp qua WebUI.
 - **Kho 18 mẫu Hotword WakeNet9 có sẵn**: Tải về miễn phí tại thư mục [ESP32S3_WakeNet_Hotword_Sample](ESP32S3_WakeNet_Hotword_Sample).
 - **Cơ chế bảo vệ Hotword an toàn**: 4 Hotword mặc định được lưu trên phân vùng Flash và khóa cố định; người dùng chỉ có thể xóa các Hotword do chính mình tải lên.
+- **Tùy chọn bản chuẩn (`esp32s3-n16r8`)**: Dành cho người dùng không cần WakeNet On-Device, tối ưu dung lượng phân vùng LittleFS lên trọn vẹn 8MB cho WebUI và các file tài nguyên âm thanh.
 
 - WiFiManager captive portal, tự reconnect WiFi và mở lại AP cấu hình khi mất WiFi.
 - WebUI chạy bằng ESPAsyncWebServer, cấu hình GPIO, WebSocket server, working mode, âm lượng, gain mic, log serial, LED WS2812, I2S mic INMP441, I2S DAC/MAX98357.
