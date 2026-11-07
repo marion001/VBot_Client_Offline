@@ -12,7 +12,7 @@
 | `esp32s3` | ESP32-S3 | 8 MB | Không | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
 | `esp32s3-n8r2` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
 | `esp32s3-n8r8` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
-| `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` |
+| `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`)* |
 
 ## GPIO mặc định theo dòng chip
 
@@ -42,13 +42,24 @@ ESP32:
 <offset LittleFS trong bảng>  littlefs.bin
 ```
 
-ESP32-S3:
+ESP32-S3 (Thông thường):
 
 ```text
 0x0000   bootloader.bin
 0x8000   partitions.bin
 0x10000  firmware.bin
 <offset LittleFS trong bảng>  littlefs.bin
+```
+
+ESP32-S3 N16R8 WakeNet (16MB Flash, On-Device Hotword):
+
+```text
+0x0000    bootloader.bin
+0x8000    partitions.bin
+0xe000    boot_app0.bin
+0x10000   firmware.bin
+0x810000  littlefs.bin
+0xc00000  srmodels.bin
 ```
 
 Bộ firmware của dự án gồm đúng bốn file ở trên. Vùng `otadata` tại `0xE000` được để trống khi nạp lần đầu; bootloader sẽ khởi động ứng dụng tại phân vùng `ota_0`. Không trộn file giữa các environment hoặc giữa ESP32 và ESP32-S3.
