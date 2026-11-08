@@ -426,6 +426,79 @@ coredump, data, coredump,0xFF0000, 0x10000,
 
 
 
+
+---
+ENV: esp32-wakenet
+VBOT_BUILD_TARGET="ESP32_WakeNet"
+chip: esp32
+flash_mode: qio (Flash 16MB, PSRAM 4MB)
+Partitions file: partitions_vbot_ota_16mb_wakenet.csv
+Entries:
+0x1000,bootloader.bin
+0x8000,partitions.bin
+0xe000,boot_app0.bin
+0x10000,firmware.bin
+0x810000,littlefs.bin
+0xc00000,srmodels.bin
+
+Partition table (partitions_vbot_ota_16mb_wakenet.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x400000,
+app1,     app,  ota_1,   0x410000, 0x400000,
+littlefs, data, spiffs,  0x810000, 0x3F0000,
+model,    data, ,        0xC00000, 0x3F0000,
+coredump, data, coredump,0xFF0000, 0x10000,
+
+---
+ENV: esp32s3-n8r2-wakenet
+VBOT_BUILD_TARGET="ESP32S3_N8R2_WakeNet"
+chip: esp32s3
+flash_mode: qio (Flash 8MB, PSRAM 2MB QSPI)
+Partitions file: partitions_vbot_ota_8mb_wakenet.csv
+Entries:
+0x0000,bootloader.bin
+0x8000,partitions.bin
+0xe000,boot_app0.bin
+0x10000,firmware.bin
+0x490000,littlefs.bin
+0x670000,srmodels.bin
+
+Partition table (partitions_vbot_ota_8mb_wakenet.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x240000,
+app1,     app,  ota_1,   0x250000, 0x240000,
+littlefs, data, spiffs,  0x490000, 0x1E0000,
+model,    data, ,        0x670000, 0x180000,
+coredump, data, coredump,0x7F0000, 0x10000,
+
+---
+ENV: esp32s3-n8r8-wakenet
+VBOT_BUILD_TARGET="ESP32S3_N8R8_WakeNet"
+chip: esp32s3
+flash_mode: qio (Flash 8MB, PSRAM 8MB OPI)
+Partitions file: partitions_vbot_ota_8mb_wakenet.csv
+Entries:
+0x0000,bootloader.bin
+0x8000,partitions.bin
+0xe000,boot_app0.bin
+0x10000,firmware.bin
+0x490000,littlefs.bin
+0x670000,srmodels.bin
+
+Partition table (partitions_vbot_ota_8mb_wakenet.csv):
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x240000,
+app1,     app,  ota_1,   0x250000, 0x240000,
+littlefs, data, spiffs,  0x490000, 0x1E0000,
+model,    data, ,        0x670000, 0x180000,
+coredump, data, coredump,0x7F0000, 0x10000,
+
 --- Ghi chú:
 
 - Kiểm tra `flash_mode` và `flash frequency` cần thiết của bo mạch trong `platformio.ini` hoặc tài liệu của bo mạch và thiết lập chúng trong Flash Download Tool cho phù hợp.
