@@ -1,4 +1,4 @@
 {
-  "build_date": "12/09/2026",
-  "description": "Phiên bản hỗ trợ WakeNet9 On-Device Hotword, quản lý từ khóa tùy chỉnh và tối ưu bộ đệm âm thanh"
+  "build_date": "08/11/2026",
+  "description": "Hỗ trợ WakeNet9 On-Device Hotword, quản lý từ khóa tùy chỉnh và kho mẫu ESP_WakeNet_Hotword_Sample"
 }

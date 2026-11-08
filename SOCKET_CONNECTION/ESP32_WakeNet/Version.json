@@ -1,4 +1,4 @@
 {
-  "build_date": "12/09/2026",
-  "description": "Phiên bản ESP32 tiêu chuẩn hỗ trợ WakeNet9 On-Device Hotword với PSRAM và Flash 16MB"
+  "build_date": "08/11/2026",
+  "description": "Phiên bản ESP32 hỗ trợ WakeNet9 On-Device Hotword với PSRAM và Flash 16MB"
 }

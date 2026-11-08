@@ -9,9 +9,12 @@
 | `esp32-wrover` | ESP32-WROVER | 4 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x350000` |
 | `esp32-psram-8mb` | ESP32 | 8 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x610000` |
 | `esp32-psram-16mb` | ESP32 | 16 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x810000` |
+| `esp32-wakenet` | ESP32 | 16 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
 | `esp32s3` | ESP32-S3 | 8 MB | Không | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
 | `esp32s3-n8r2` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r2-wakenet` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
 | `esp32s3-n8r8` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r8-wakenet` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
 | `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` |
 | `esp32s3-n16r8-wakenet` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
 
@@ -62,6 +65,17 @@ ESP32-S3 N16R8 WakeNet (16MB Flash, On-Device Hotword):
 0x810000  littlefs.bin
 0xc00000  srmodels.bin
 ```
+
+ESP32 WakeNet (16MB Flash + PSRAM, On-Device Hotword):
+
+`	ext
+0x1000    bootloader.bin
+0x8000    partitions.bin
+0xe000    boot_app0.bin
+0x10000   firmware.bin
+0x810000  littlefs.bin
+0xc00000  srmodels.bin
+`
 
 Bộ firmware của dự án gồm đúng bốn file ở trên. Vùng `otadata` tại `0xE000` được để trống khi nạp lần đầu; bootloader sẽ khởi động ứng dụng tại phân vùng `ota_0`. Không trộn file giữa các environment hoặc giữa ESP32 và ESP32-S3.
 
