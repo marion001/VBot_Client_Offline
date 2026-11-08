@@ -65,4 +65,4 @@ esptool.py -p COM6 -b 921600 --before default_reset --after hard_reset --chip es
 - Truy cập tab **Cấu Hình Hotword WakeUP** trên WebUI của ESP32.
 - Chọn chế độ: **WakeNet On-Device (ESP32-S3)**.
 - Chọn các từ khóa có sẵn hoặc tải lên file `.bin` từ kho mẫu:  
-  [ESP32S3_WakeNet_Hotword_Sample](https://github.com/marion001/VBot_Client_Offline/tree/main/SOCKET_CONNECTION/ESP32S3_WakeNet_Hotword_Sample)
+  [ESP_WakeNet_Hotword_Sample](https://github.com/marion001/VBot_Client_Offline/tree/main/SOCKET_CONNECTION/ESP_WakeNet_Hotword_Sample)

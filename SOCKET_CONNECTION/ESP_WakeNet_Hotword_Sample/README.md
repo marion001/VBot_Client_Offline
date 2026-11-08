@@ -1,13 +1,13 @@
-# Thư Viện Mẫu WakeUp Hotword WakeNet9 Cho ESP32-S3
+# Thư Viện Mẫu WakeUp Hotword WakeNet9 Cho ESP32 & ESP32-S3
 
-Thư mục này chứa toàn bộ các tệp nhị phân mô hình nhận diện từ khóa đánh thức **WakeNet9 (On-Device Wake Word Engine)** chính thức từ Espressif, đã được đóng gói sẵn thành định dạng `.bin` độc lập để nạp trực tiếp qua WebUI của ESP32-S3 VBot Client.
+Thư mục này chứa toàn bộ các tệp nhị phân mô hình nhận diện từ khóa đánh thức **WakeNet9 (On-Device Wake Word Engine)** chính thức từ Espressif, đã được đóng gói sẵn thành định dạng `.bin` độc lập để nạp trực tiếp qua WebUI của ESP32 / ESP32-S3 VBot Client.
 
 ---
 
-## 1. Giới thiệu WakeNet9 trên ESP32-S3
+## 1. Giới thiệu WakeNet9 trên ESP32 / ESP32-S3
 
-- **WakeNet9** là kiến trúc mạng nơ-ron nhận diện giọng nói đánh thức tiên tiến nhất của Espressif, được tối ưu hóa cho tập lệnh tăng tốc phần cứng vector của ESP32-S3.
-- **Hoạt động Offline 100%**: Xử lý trực tiếp trên phần cứng ESP32-S3 với độ trễ phản hồi tức thì (~0ms).
+- **WakeNet9** là kiến trúc mạng nơ-ron nhận diện giọng nói đánh thức tiên tiến của Espressif, tương thích và dùng chung trực tiếp cho cả ESP32 (Xtensa LX6) và ESP32-S3 (Xtensa LX7).
+- **Hoạt động Offline 100%**: Xử lý trực tiếp trên phần cứng ESP32 / ESP32-S3 với độ trễ phản hồi tức thì (~0ms).
 - **Tiết kiệm tài nguyên mạng**: Ở trạng thái chờ đánh thức, ESP32 không cần gửi stream âm thanh liên tục qua Wi-Fi về máy chủ, giúp giảm tải băng thông và máy chủ VBot.
 
 ---
