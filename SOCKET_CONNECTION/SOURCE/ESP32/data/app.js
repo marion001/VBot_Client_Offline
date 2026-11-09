@@ -24,12 +24,17 @@ const inputModes=[
   ['button','Nút nhấn thường'],
   ['rotary','Nút nhấn dạng xoay (Rotary Encoder)']
 ];
+const buttonActiveLevels=[
+  ['low','Chạm Mức Thấp (GPIO chạm GND)'],
+  ['high','Chạm Mức Cao (GPIO chạm 3.3V)']
+];
 const wakeActions=[
   ['restart','Khởi động lại ESP'],
   ['clean_all','Đặt lại dữ liệu cấu hình Config và WiFi'],
   ['reset_wifi','Đặt lại cấu hình WiFi'],
   ['reset_nvs','Đặt lại cấu hình Config'],
-  ['stop_audio','Dừng phát âm thanh']
+  ['stop_audio','Dừng phát âm thanh'],
+  ['toggle_mic','Bật / Tắt Mic']
 ];
 const ledEffects=['LED_SPEAK','LED_THINK','LED_LOADING','LED_MUTE','LED_ERROR','LED_SOCKET_ERROR','LED_STARTUP','LED_PAUSE','LED_VOLUME','LED_OFF'];
 
@@ -48,7 +53,7 @@ function tableBlock(t,rows,extra='table-striped table-hover'){return `<table cla
 function input(n,l,v,type='text',extra='',placeholder=''){const b=n==='path'?'border-danger':'border-success';const ph=placeholder?`placeholder="${esc(placeholder)}"`:'';return `<tr><td>${esc(l)}</td><td><input class="form-control ${b}" name="${n}" type="${type}" value="${esc(v)}" ${ph} ${extra}></td></tr>`;}
 function note(t){return `<tr><td></td><td><small class="text-danger">${esc(t)}</small></td></tr>`;}
 function check(n,l,v){return `<tr><td>${esc(l)}</td><td><div class="form-check form-switch"><input class="form-check-input" name="${n}" type="checkbox" value="1" ${v?'checked':''}></div></td></tr>`;}
-function select(n,l,opts,val){return `<tr><td>${esc(l)}</td><td><select class="form-select border-success" name="${n}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''}>${esc(o[1])}</option>`).join('')}</select></td></tr>`;}
+function select(n,l,opts,val){return `<tr><td>${esc(l)}</td><td><select class="form-select border-success" name="${n}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''} ${o[2]?'disabled':''}>${esc(o[1])}</option>`).join('')}</select></td></tr>`;}
 function color(n,l,v){return `<tr><td>${esc(l)}</td><td><div class="color-row"><input class="form-control form-control-color border-success" name="${n}_picker" type="color" value="${esc(v)}" data-sync="${n}"><input class="form-control border-success" name="${n}" type="text" value="${esc(v)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}"></div></td></tr>`;}
 function fmtUptime(ms){let s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return `${d?d+' ngày ':''}${h} giờ ${m} phút ${s} giây`;}
 function fmtBytes(b){return `${b} bytes (${(b/1024).toFixed(1)} KB / ${(b/1048576).toFixed(2)} MB)`;}
@@ -118,13 +123,18 @@ function renderConfig(){
     check('sfbapi','Nếu URL stream lỗi thì dùng API máy chủ đang kết nối',c.server.fallback_stream_api_to_server),
     select('mode','Chế độ làm việc',modes,c.client.working_mode)
   ]));
+  const hasPsram = Boolean(c.audio.psram_active ?? state.status?.psram_active ?? c.audio.wakenet_supported);
   const wnSupported = Boolean(c.audio.wakenet_supported);
+  const wnOptionText = hasPsram ? 'WakeNet On-Device PSRAM (ESP32 / S3)' : 'WakeNet On-Device PSRAM (ESP32 / S3) [Không có PSRAM]';
   const hotwordModes = [
     ['server', 'Sử Dụng Hotword Ở Máy Chủ VBot'],
-    ['wakenet', wnSupported ? 'WakeNet On-Device (ESP32 / S3)' : 'WakeNet On-Device [Không hỗ trợ]'],
+    ['wakenet', wnOptionText, !hasPsram],
     ['none', 'Không Sử Dụng']
   ];
-  const currentHotwordMode = c.audio.hotword_mode || (c.audio.wakenet_enabled ? 'wakenet' : (c.audio.hotword_stream_enabled ? 'server' : 'none'));
+  let currentHotwordMode = c.audio.hotword_mode || (c.audio.wakenet_enabled ? 'wakenet' : (c.audio.hotword_stream_enabled ? 'server' : 'none'));
+  if (!hasPsram && currentHotwordMode === 'wakenet') {
+    currentHotwordMode = c.audio.hotword_stream_enabled ? 'server' : 'none';
+  }
   let wakenetModels = [];
   if (c.audio.wakenet_models && c.audio.wakenet_models.length > 0) {
     wakenetModels = c.audio.wakenet_models.map(m => [String(m.id), m.name]);
@@ -291,10 +301,12 @@ function renderConfig(){
     check('btnen','Kích Hoạt',c.button.active),
     select('inputmode','Chế độ sử dụng nút nhấn',inputModes,c.button.input_mode||'button'),
     select('wla','Hành động nhấn giữ WakeUP / Rotary SW',wakeActions,c.button.wakeup_long_action),
+    input('bsdelay','Thời gian trễ ổn định khi khởi động ms',c.button.startup_delay_ms??3000,'number','min="0" max="10000"','3000'),
     input('bdbp','Thời gian khi nhấn (debounce) ms',c.button.press_debounce_ms,'number','min="10" max="1000"','50'),
     input('bdbr','Thời gian khi thả (debounce) ms',c.button.release_debounce_ms,'number','min="10" max="1000"','50'),
     input('bhold','Thời gian nhấn giữ nút (debounce) ms',c.button.hold_ms,'number','min="300" max="10000"','1500'),
     section('Cấu Hình Sử Dụng Nút Nhấn Thường'),
+    select('btnlevel','Mức kích hoạt nút nhấn',buttonActiveLevels,c.button.active_level||'low'),
     input('bmic','Nút nhấn Mic GPIO',c.button.mic,'number','',String(gpioDefaults.bmic)),
     input('bup','Nút nhấn Volume+ GPIO',c.button.volume_up,'number','',String(gpioDefaults.bup)),
     input('bdn','Nút nhấn Volume- GPIO',c.button.volume_down,'number','',String(gpioDefaults.bdn)),
@@ -408,7 +420,7 @@ function updateHotwordModeUi(){
 
 function updateInputModeUi(){
   const rotary=document.querySelector('[name=inputmode]')?.value==='rotary';
-  ['bmic','bup','bdn','bwake'].forEach(n=>document.querySelector(`[name=${n}]`)?.closest('tr')?.classList.toggle('mode-hidden',rotary));
+  ['btnlevel','bmic','bup','bdn','bwake'].forEach(n=>document.querySelector(`[name=${n}]`)?.closest('tr')?.classList.toggle('mode-hidden',rotary));
   ['rclk','rdt','rsw','rstep'].forEach(n=>document.querySelector(`[name=${n}]`)?.closest('tr')?.classList.toggle('mode-hidden',!rotary));
   document.querySelectorAll('#cfgGpio th[colspan]').forEach(th=>{
     const t=th.textContent||'';
@@ -429,7 +441,11 @@ function validateGpioUi(){
   pins.push(['dbclk','DAC BCLK',get('dbclk'),'out'],['dlrc','DAC LRC',get('dlrc'),'out'],['ddout','DAC DIN',get('ddout'),'out']);
   if(enabled('btnen')){
     if(rotary)pins.push(['rclk','Rotary CLK',get('rclk'),'pullup'],['rdt','Rotary DT',get('rdt'),'pullup'],['rsw','Rotary SW',get('rsw'),'pullup']);
-    else pins.push(['bmic','Button Mic',get('bmic'),'pullup'],['bup','Volume+',get('bup'),'pullup'],['bdn','Volume-',get('bdn'),'pullup'],['bwake','WakeUp',get('bwake'),'pullup']);
+    else {
+      const activeHigh=document.querySelector('[name=btnlevel]')?.value==='high';
+      const kind=activeHigh?'pulldown':'pullup';
+      pins.push(['bmic','Button Mic',get('bmic'),kind],['bup','Volume+',get('bup'),kind],['bdn','Volume-',get('bdn'),kind],['bwake','WakeUp',get('bwake'),kind]);
+    }
   }
   document.querySelectorAll('#cfgGpio input[type=number]').forEach(el=>el.setCustomValidity(''));
   const errors=[];
@@ -440,7 +456,7 @@ function validateGpioUi(){
   pins.forEach(([field,label,pin,kind])=>{
     let reason='';
     if(!validPin(pin))reason='không hợp lệ với chip';
-    else if((kind==='out'||kind==='pullup')&&!canOut(pin))reason=`không hỗ trợ ${kind==='pullup'?'INPUT_PULLUP':'output'}`;
+    else if((kind==='out'||kind==='pullup'||kind==='pulldown')&&!canOut(pin))reason=`không hỗ trợ ${kind==='pulldown'?'INPUT_PULLDOWN':(kind==='pullup'?'INPUT_PULLUP':'output')}`;
     else if(straps.includes(pin))reason='là chân boot strap';
     else if(field==='pled'&&!fastLed.includes(pin))reason='không được FastLED hỗ trợ trong firmware';
     if(reason){errors.push(`${label} GPIO${pin}: ${reason}`);document.querySelector(`[name=${field}]`)?.setCustomValidity(`${label}: ${reason}`);}
@@ -508,8 +524,8 @@ function bindForms(){
     const updateTtsCount=()=>{const bytes=new TextEncoder().encode(ttsInput.value).length;const invalid=bytes>240;ttsCount.textContent=`${bytes} / 240 byte UTF-8`;ttsCount.classList.toggle('text-danger',invalid);ttsCount.classList.toggle('text-muted',!invalid);ttsInput.setCustomValidity(invalid?'Nội dung TTS vượt quá 240 byte UTF-8':'');};
     ttsInput.addEventListener('input',updateTtsCount);updateTtsCount();
   }
-  const gpioFields=['startupmode','leden','btnen','inputmode','pled','mbclk','mws','mdin','dbclk','dlrc','ddout','bmic','bup','bdn','bwake','rclk','rdt','rsw'];
-  gpioFields.forEach(n=>{const el=document.querySelector(`[name=${n}]`);if(el)el.addEventListener('input',()=>{updateInputModeUi();validateGpioUi();});});
+  const gpioFields=['startupmode','leden','btnen','inputmode','btnlevel','pled','mbclk','mws','mdin','dbclk','dlrc','ddout','bmic','bup','bdn','bwake','rclk','rdt','rsw'];
+  gpioFields.forEach(n=>{const el=document.querySelector(`[name=${n}]`);if(el){el.addEventListener('input',()=>{updateInputModeUi();validateGpioUi();});el.addEventListener('change',()=>{updateInputModeUi();validateGpioUi();});}});
   updateInputModeUi();validateGpioUi();
   const hwSelect=document.querySelector('[name=hotword_mode]');
   if(hwSelect)hwSelect.addEventListener('change',updateHotwordModeUi);

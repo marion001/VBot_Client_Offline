@@ -1,4 +1,4 @@
 {
-  "build_date": "08/11/2026",
+  "build_date": "09/11/2026",
   "description": "Tối ưu bộ nhớ heap ~96KB, giảm DMA buffer, cập nhật WebUI và sửa lỗi giải mã MP3"
 }

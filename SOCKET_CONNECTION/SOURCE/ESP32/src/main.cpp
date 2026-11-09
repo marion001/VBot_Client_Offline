@@ -42,7 +42,7 @@
 
 #define VBOT_I2S_COMM_FORMAT I2S_COMM_FORMAT_STAND_I2S
 
-static const char *VBOT_CLIENT_VERSION = "08/11/2026";
+static const char *VBOT_CLIENT_VERSION = "09/11/2026";
 static constexpr uint16_t DEFAULT_VBOT_API_PORT = 5002;
 #ifndef VBOT_BUILD_TARGET
 #define VBOT_BUILD_TARGET "ESP32"
@@ -102,6 +102,7 @@ struct AppConfig {
   bool ledEnabled = true;
   bool buttonsEnabled = true;
   char inputMode[12] = "button";
+  char buttonActiveLevel[8] = "low";
   uint8_t ledBrightnessPct = 80;
   uint16_t ledCount = 12;
   char ledThinkColor[8] = "#0000FF";
@@ -212,6 +213,7 @@ struct AppConfig {
   uint16_t buttonPressDebounceMs = 50;
   uint16_t buttonReleaseDebounceMs = 50;
   uint16_t buttonHoldMs = 2000;
+  uint16_t buttonStartupDelayMs = 3000;
   char wakeLongAction[20] = "stop_audio";
 };
 
@@ -1082,7 +1084,8 @@ static bool vbotServerStartupEnabled() {
 static String validateHardwareGpioPins(
   int pinLed, int pinBtnMic, int pinBtnVolUp, int pinBtnVolDown, int pinBtnWake,
   int pinRotaryClk, int pinRotaryDt, int pinRotarySw,
-  int micBclk, int micWs, int micDin, int dacBclk, int dacLrc, int dacDout
+  int micBclk, int micWs, int micDin, int dacBclk, int dacLrc, int dacDout,
+  bool buttonActiveHigh = false
 );
 
 static void loadConfig() {
@@ -1103,6 +1106,7 @@ static void loadConfig() {
   cfg.ledEnabled = prefs.getBool("leden", cfg.ledEnabled);
   cfg.buttonsEnabled = prefs.getBool("btnen", cfg.buttonsEnabled);
   copyPrefString("inputmode", cfg.inputMode, sizeof(cfg.inputMode), cfg.inputMode);
+  copyPrefString("btnlevel", cfg.buttonActiveLevel, sizeof(cfg.buttonActiveLevel), cfg.buttonActiveLevel);
   cfg.ledBrightnessPct = prefs.getUChar("ledbr", cfg.ledBrightnessPct);
   cfg.ledCount = prefs.getUShort("ledcnt", cfg.ledCount);
   copyPrefString("lthink", cfg.ledThinkColor, sizeof(cfg.ledThinkColor), cfg.ledThinkColor);
@@ -1153,6 +1157,7 @@ static void loadConfig() {
   cfg.buttonPressDebounceMs = prefs.getUShort("bdbp", cfg.buttonPressDebounceMs);
   cfg.buttonReleaseDebounceMs = prefs.getUShort("bdbr", cfg.buttonReleaseDebounceMs);
   cfg.buttonHoldMs = prefs.getUShort("bhold", cfg.buttonHoldMs);
+  cfg.buttonStartupDelayMs = prefs.getUShort("bsdelay", cfg.buttonStartupDelayMs);
   cfg.volume = constrain(cfg.volume, 0, 100);
   cfg.ledBrightnessPct = constrain(cfg.ledBrightnessPct, 0, 100);
   cfg.ledCount = constrain(cfg.ledCount, (uint16_t)1, (uint16_t)300);
@@ -1161,12 +1166,14 @@ static void loadConfig() {
   cfg.buttonPressDebounceMs = constrain(cfg.buttonPressDebounceMs, (uint16_t)10, (uint16_t)1000);
   cfg.buttonReleaseDebounceMs = constrain(cfg.buttonReleaseDebounceMs, (uint16_t)10, (uint16_t)1000);
   cfg.buttonHoldMs = constrain(cfg.buttonHoldMs, (uint16_t)300, (uint16_t)10000);
+  cfg.buttonStartupDelayMs = constrain(cfg.buttonStartupDelayMs, (uint16_t)0, (uint16_t)10000);
   cfg.rotaryVolumeStep = constrain(cfg.rotaryVolumeStep, (uint8_t)1, (uint8_t)20);
   if (strcmp(cfg.inputMode, "rotary") != 0) strlcpy(cfg.inputMode, "button", sizeof(cfg.inputMode));
+  if (strcmp(cfg.buttonActiveLevel, "high") != 0) strlcpy(cfg.buttonActiveLevel, "low", sizeof(cfg.buttonActiveLevel));
   if (strcmp(cfg.startupMode, "standalone") != 0) strlcpy(cfg.startupMode, "vbot_server", sizeof(cfg.startupMode));
   if (cfg.micChannel[0] != 'R' && cfg.micChannel[0] != 'r') strlcpy(cfg.micChannel, "L", sizeof(cfg.micChannel));
   else strlcpy(cfg.micChannel, "R", sizeof(cfg.micChannel));
-  const char *wakeActions[] = {"restart", "clean_all", "reset_wifi", "reset_nvs", "stop_audio"};
+  const char *wakeActions[] = {"restart", "clean_all", "reset_wifi", "reset_nvs", "stop_audio", "toggle_mic"};
   bool validWakeAction = false;
   for (const char *action : wakeActions) {
     if (!strcmp(cfg.wakeLongAction, action)) validWakeAction = true;
@@ -1192,6 +1199,7 @@ static void saveConfig(const AppConfig &saved = cfg) {
   prefs.putBool("leden", cfg.ledEnabled);
   prefs.putBool("btnen", cfg.buttonsEnabled);
   prefs.putString("inputmode", cfg.inputMode);
+  prefs.putString("btnlevel", cfg.buttonActiveLevel);
   prefs.putUChar("ledbr", cfg.ledBrightnessPct);
   prefs.putUShort("ledcnt", cfg.ledCount);
   prefs.putString("lthink", cfg.ledThinkColor);
@@ -1233,6 +1241,7 @@ static void saveConfig(const AppConfig &saved = cfg) {
   prefs.putUShort("bdbp", cfg.buttonPressDebounceMs);
   prefs.putUShort("bdbr", cfg.buttonReleaseDebounceMs);
   prefs.putUShort("bhold", cfg.buttonHoldMs);
+  prefs.putUShort("bsdelay", cfg.buttonStartupDelayMs);
   unlockNvs();
 }
 
@@ -1383,6 +1392,7 @@ static void fillConfigJson(JsonObject doc) {
   doc["audio"]["wakenet_enabled"] = cfg.wakenetEnabled;
   doc["audio"]["wakenet_model"] = cfg.wakenetModel;
   doc["audio"]["wakenet_supported"] = vbot_wakenet_is_supported();
+  doc["audio"]["psram_active"] = psramFound();
   doc["audio"]["wakenet_model_name"] = vbot_wakenet_get_model_name((WakeNetModelId)cfg.wakenetModel);
   doc["audio"]["hotword_mode"] = cfg.wakenetEnabled ? "wakenet" : (cfg.hotwordStreamEnabled ? "server" : "none");
   {
@@ -1443,6 +1453,7 @@ static void fillConfigJson(JsonObject doc) {
   doc["led"]["mute_color"] = cfg.ledMuteColor;
   doc["button"]["active"] = cfg.buttonsEnabled;
   doc["button"]["input_mode"] = cfg.inputMode;
+  doc["button"]["active_level"] = cfg.buttonActiveLevel;
   doc["button"]["mic"] = cfg.pinBtnMic;
   doc["button"]["volume_up"] = cfg.pinBtnVolUp;
   doc["button"]["volume_down"] = cfg.pinBtnVolDown;
@@ -1451,6 +1462,7 @@ static void fillConfigJson(JsonObject doc) {
   doc["button"]["press_debounce_ms"] = cfg.buttonPressDebounceMs;
   doc["button"]["release_debounce_ms"] = cfg.buttonReleaseDebounceMs;
   doc["button"]["hold_ms"] = cfg.buttonHoldMs;
+  doc["button"]["startup_delay_ms"] = cfg.buttonStartupDelayMs;
   doc["rotary"]["clk"] = cfg.pinRotaryClk;
   doc["rotary"]["dt"] = cfg.pinRotaryDt;
   doc["rotary"]["sw"] = cfg.pinRotarySw;
@@ -1487,7 +1499,7 @@ static bool applyConfigJson(JsonDocument &doc) {
   if (doc["audio"]["hotword_mode"].is<const char *>()) {
     const char *m = doc["audio"]["hotword_mode"];
     if (strcmp(m, "wakenet") == 0) {
-      cfg.wakenetEnabled = true;
+      cfg.wakenetEnabled = psramFound() && vbot_wakenet_is_supported();
       cfg.hotwordStreamEnabled = false;
     } else if (strcmp(m, "server") == 0) {
       cfg.wakenetEnabled = false;
@@ -1498,7 +1510,7 @@ static bool applyConfigJson(JsonDocument &doc) {
     }
   } else {
     if (doc["audio"]["hotword_stream_enabled"].is<bool>()) cfg.hotwordStreamEnabled = doc["audio"]["hotword_stream_enabled"];
-    if (doc["audio"]["wakenet_enabled"].is<bool>()) cfg.wakenetEnabled = doc["audio"]["wakenet_enabled"];
+    if (doc["audio"]["wakenet_enabled"].is<bool>()) cfg.wakenetEnabled = doc["audio"]["wakenet_enabled"] && psramFound() && vbot_wakenet_is_supported();
   }
   if (doc["audio"]["wakenet_model"].is<int>()) cfg.wakenetModel = constrain((int)doc["audio"]["wakenet_model"], 0, WAKENET_MODEL_COUNT - 1);
   if (doc["audio"]["mic_vad_enabled"].is<bool>()) cfg.micVadEnabled = doc["audio"]["mic_vad_enabled"];
@@ -1525,6 +1537,10 @@ static bool applyConfigJson(JsonDocument &doc) {
     const char *mode = doc["button"]["input_mode"];
     strlcpy(cfg.inputMode, mode && !strcmp(mode, "rotary") ? "rotary" : "button", sizeof(cfg.inputMode));
   }
+  if (doc["button"]["active_level"].is<const char *>()) {
+    const char *lvl = doc["button"]["active_level"];
+    strlcpy(cfg.buttonActiveLevel, lvl && !strcmp(lvl, "high") ? "high" : "low", sizeof(cfg.buttonActiveLevel));
+  }
   if (doc["button"]["mic"].is<int>()) cfg.pinBtnMic = doc["button"]["mic"];
   if (doc["button"]["volume_up"].is<int>()) cfg.pinBtnVolUp = doc["button"]["volume_up"];
   if (doc["button"]["volume_down"].is<int>()) cfg.pinBtnVolDown = doc["button"]["volume_down"];
@@ -1533,6 +1549,7 @@ static bool applyConfigJson(JsonDocument &doc) {
   if (doc["button"]["press_debounce_ms"].is<int>()) cfg.buttonPressDebounceMs = constrain((int)doc["button"]["press_debounce_ms"], 10, 1000);
   if (doc["button"]["release_debounce_ms"].is<int>()) cfg.buttonReleaseDebounceMs = constrain((int)doc["button"]["release_debounce_ms"], 10, 1000);
   if (doc["button"]["hold_ms"].is<int>()) cfg.buttonHoldMs = constrain((int)doc["button"]["hold_ms"], 300, 10000);
+  if (doc["button"]["startup_delay_ms"].is<int>()) cfg.buttonStartupDelayMs = constrain((int)doc["button"]["startup_delay_ms"], 0, 10000);
   if (doc["rotary"]["clk"].is<int>()) cfg.pinRotaryClk = doc["rotary"]["clk"];
   if (doc["rotary"]["dt"].is<int>()) cfg.pinRotaryDt = doc["rotary"]["dt"];
   if (doc["rotary"]["sw"].is<int>()) cfg.pinRotarySw = doc["rotary"]["sw"];
@@ -1559,7 +1576,8 @@ static bool applyConfigJson(JsonDocument &doc) {
     strcmp(cfg.startupMode, "standalone") != 0 ? cfg.micBclk : -1,
     strcmp(cfg.startupMode, "standalone") != 0 ? cfg.micWs : -1,
     strcmp(cfg.startupMode, "standalone") != 0 ? cfg.micDin : -1,
-    cfg.dacBclk, cfg.dacLrc, cfg.dacDout
+    cfg.dacBclk, cfg.dacLrc, cfg.dacDout,
+    strcmp(cfg.buttonActiveLevel, "high") == 0
   );
   if (gpioConflicts.length()) {
     LOGF("Không khôi phục Config vì GPIO không hợp lệ:\n%s", gpioConflicts.c_str());
@@ -1842,18 +1860,22 @@ static void ledTask(void *) {
   }
 }
 
+static uint32_t buttonReadyAtMs = 0;
+
 static void initButtons() {
   if (!cfg.buttonsEnabled) return;
+  buttonReadyAtMs = millis() + cfg.buttonStartupDelayMs;
   if (inputModeRotary()) {
-    pinMode(cfg.pinRotaryClk, INPUT_PULLUP);
-    pinMode(cfg.pinRotaryDt, INPUT_PULLUP);
-    pinMode(cfg.pinRotarySw, INPUT_PULLUP);
+    if (cfg.pinRotaryClk >= 0) pinMode(cfg.pinRotaryClk, INPUT_PULLUP);
+    if (cfg.pinRotaryDt >= 0) pinMode(cfg.pinRotaryDt, INPUT_PULLUP);
+    if (cfg.pinRotarySw >= 0) pinMode(cfg.pinRotarySw, INPUT_PULLUP);
     return;
   }
-  pinMode(cfg.pinBtnMic, INPUT_PULLUP);
-  pinMode(cfg.pinBtnVolUp, INPUT_PULLUP);
-  pinMode(cfg.pinBtnVolDown, INPUT_PULLUP);
-  pinMode(cfg.pinBtnWake, INPUT_PULLUP);
+  uint8_t mode = (strcmp(cfg.buttonActiveLevel, "high") == 0) ? INPUT_PULLDOWN : INPUT_PULLUP;
+  if (cfg.pinBtnMic >= 0) pinMode(cfg.pinBtnMic, mode);
+  if (cfg.pinBtnVolUp >= 0) pinMode(cfg.pinBtnVolUp, mode);
+  if (cfg.pinBtnVolDown >= 0) pinMode(cfg.pinBtnVolDown, mode);
+  if (cfg.pinBtnWake >= 0) pinMode(cfg.pinBtnWake, mode);
 }
 
 static void uninstallPcmTx() {
@@ -3294,7 +3316,8 @@ static bool gpioCanInput(int pin) {
 static String validateHardwareGpioPins(
   int pinLed, int pinBtnMic, int pinBtnVolUp, int pinBtnVolDown, int pinBtnWake,
   int pinRotaryClk, int pinRotaryDt, int pinRotarySw,
-  int micBclk, int micWs, int micDin, int dacBclk, int dacLrc, int dacDout
+  int micBclk, int micWs, int micDin, int dacBclk, int dacLrc, int dacDout,
+  bool buttonActiveHigh
 ) {
   struct PinItem { const char *name; int pin; };
   const PinItem pins[] = {
@@ -3374,7 +3397,8 @@ static String validateHardwareGpioPins(
   };
   for (size_t i = 0; i < sizeof(pullupPins) / sizeof(pullupPins[0]); i++) {
     if (pullupPins[i].pin >= 0 && !gpioCanInputPullup(pullupPins[i].pin)) {
-      appendGpioError(conflicts, pullupPins[i].name, pullupPins[i].pin, "Không hỗ trợ INPUT_PULLUP");
+      appendGpioError(conflicts, pullupPins[i].name, pullupPins[i].pin,
+                      (buttonActiveHigh && i < 4) ? "Không hỗ trợ INPUT_PULLDOWN" : "Không hỗ trợ INPUT_PULLUP");
     }
   }
   for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); i++) {
@@ -3548,6 +3572,8 @@ static String buildWebUiStateJson(const char *&failureReason) {
   doc["status"]["free_sketch_space"] = ESP.getFreeSketchSpace();
   doc["status"]["littlefs_total"] = LittleFS.totalBytes();
   doc["status"]["littlefs_used"] = LittleFS.usedBytes();
+  doc["status"]["psram_active"] = psramFound();
+  doc["status"]["psram_capacity_mb"] = psramFound() ? (float)ESP.getPsramSize() / (1024.0f * 1024.0f) : 0;
   JsonObject tasks = doc["status"]["tasks"].to<JsonObject>();
   addTaskStatus(tasks, "mic", micTaskHandle, MIC_TASK_STACK);
   addTaskStatus(tasks, "websocket", websocketTaskHandle, WEBSOCKET_TASK_STACK);
@@ -3694,7 +3720,7 @@ static void sendWebUiState(AsyncWebServerRequest *request) {
   static uint32_t lastBuildMs = 0;
   static bool builtOnce = false;
   const uint32_t now = millis();
-  if (builtOnce && now - lastBuildMs < 1500) {
+  if (builtOnce && now - lastBuildMs < 500) {
     sendWebUiUnavailable(request, "rate_limited", 429);
     return;
   }
@@ -4131,6 +4157,7 @@ static void initWeb() {
     doc["audio"]["wakenet_enabled"] = cfg.wakenetEnabled;
     doc["audio"]["wakenet_model"] = cfg.wakenetModel;
     doc["audio"]["wakenet_supported"] = vbot_wakenet_is_supported();
+    doc["audio"]["psram_active"] = psramFound();
     doc["audio"]["wakenet_model_name"] = vbot_wakenet_get_model_name((WakeNetModelId)cfg.wakenetModel);
     doc["audio"]["hotword_mode"] = cfg.wakenetEnabled ? "wakenet" : (cfg.hotwordStreamEnabled ? "server" : "none");
     {
@@ -4193,10 +4220,12 @@ static void initWeb() {
     doc["gpio"]["rotary_sw"] = cfg.pinRotarySw;
     doc["button"]["active"] = cfg.buttonsEnabled;
     doc["button"]["input_mode"] = cfg.inputMode;
+    doc["button"]["active_level"] = cfg.buttonActiveLevel;
     doc["button"]["wakeup_long_action"] = cfg.wakeLongAction;
     doc["button"]["press_debounce_ms"] = cfg.buttonPressDebounceMs;
     doc["button"]["release_debounce_ms"] = cfg.buttonReleaseDebounceMs;
     doc["button"]["hold_ms"] = cfg.buttonHoldMs;
+    doc["button"]["startup_delay_ms"] = cfg.buttonStartupDelayMs;
     doc["rotary"]["clk"] = cfg.pinRotaryClk;
     doc["rotary"]["dt"] = cfg.pinRotaryDt;
     doc["rotary"]["sw"] = cfg.pinRotarySw;
@@ -4232,6 +4261,8 @@ static void initWeb() {
     bool newVbotServerMode = newStartupMode != "standalone";
     String newInputMode = argStr(request, "inputmode", cfg.inputMode);
     bool newRotaryMode = newInputMode == "rotary";
+    String newButtonActiveLevel = argStr(request, "btnlevel", cfg.buttonActiveLevel);
+    bool newButtonActiveHigh = newButtonActiveLevel == "high";
     int newPinRotaryClk = argInt(request, "rclk", cfg.pinRotaryClk);
     int newPinRotaryDt = argInt(request, "rdt", cfg.pinRotaryDt);
     int newPinRotarySw = argInt(request, "rsw", cfg.pinRotarySw);
@@ -4255,7 +4286,8 @@ static void initWeb() {
       newVbotServerMode ? newMicBclk : -1,
       newVbotServerMode ? newMicWs : -1,
       newVbotServerMode ? newMicDin : -1,
-      newDacBclk, newDacLrc, newDacDout
+      newDacBclk, newDacLrc, newDacDout,
+      newButtonActiveHigh
     );
     if (gpioConflicts.length()) {
       unlockCfg();
@@ -4286,6 +4318,7 @@ static void initWeb() {
     cfg.ledEnabled = newLedEnabled;
     cfg.buttonsEnabled = newButtonsEnabled;
     strlcpy(cfg.inputMode, newRotaryMode ? "rotary" : "button", sizeof(cfg.inputMode));
+    strlcpy(cfg.buttonActiveLevel, newButtonActiveHigh ? "high" : "low", sizeof(cfg.buttonActiveLevel));
     normalizeHexColor(cfg.ledThinkColor, sizeof(cfg.ledThinkColor), argStr(request, "lthink", cfg.ledThinkColor).c_str(), "#0066FF");
     normalizeHexColor(cfg.ledMuteColor, sizeof(cfg.ledMuteColor), argStr(request, "lmute", cfg.ledMuteColor).c_str(), "#FF8C00");
     cfg.pinLed = newPinLed;
@@ -4300,6 +4333,7 @@ static void initWeb() {
     cfg.buttonPressDebounceMs = constrain(argInt(request, "bdbp", cfg.buttonPressDebounceMs), 10, 1000);
     cfg.buttonReleaseDebounceMs = constrain(argInt(request, "bdbr", cfg.buttonReleaseDebounceMs), 10, 1000);
     cfg.buttonHoldMs = constrain(argInt(request, "bhold", cfg.buttonHoldMs), 300, 10000);
+    cfg.buttonStartupDelayMs = constrain(argInt(request, "bsdelay", cfg.buttonStartupDelayMs), 0, 10000);
     cfg.micBclk = newMicBclk;
     cfg.micWs = newMicWs;
     cfg.micDin = newMicDin;
@@ -4317,7 +4351,7 @@ static void initWeb() {
     if (request->hasParam("hotword_mode", true)) {
       String mode = request->getParam("hotword_mode", true)->value();
       if (mode == "wakenet") {
-        cfg.wakenetEnabled = true;
+        cfg.wakenetEnabled = psramFound() && vbot_wakenet_is_supported();
         cfg.hotwordStreamEnabled = false;
       } else if (mode == "server") {
         cfg.wakenetEnabled = false;
@@ -4328,7 +4362,7 @@ static void initWeb() {
       }
     } else {
       cfg.hotwordStreamEnabled = request->hasParam("hword", true);
-      cfg.wakenetEnabled = request->hasParam("wn_en", true);
+      cfg.wakenetEnabled = request->hasParam("wn_en", true) && psramFound() && vbot_wakenet_is_supported();
     }
     if (request->hasParam("wn_model", true)) {
       cfg.wakenetModel = constrain(request->getParam("wn_model", true)->value().toInt(), 0, WAKENET_MODEL_COUNT - 1);
@@ -4432,9 +4466,10 @@ static void applyVolumeDelta(int delta) {
   showVolumeOverlay(volume);
 }
 
-static void handleButton(ButtonRuntime &state, int pin, void (*shortAction)(), void (*longAction)()) {
+static void handleButton(ButtonRuntime &state, int pin, void (*shortAction)(), void (*longAction)(), bool activeHigh = false) {
+  if (pin < 0) return;
   uint32_t now = millis();
-  bool raw = digitalRead(pin) == LOW;
+  bool raw = (digitalRead(pin) == (activeHigh ? HIGH : LOW));
   if (raw != state.rawPressed) {
     state.rawPressed = raw;
     state.lastRawChangeMs = now;
@@ -4553,6 +4588,11 @@ static void wakeLongPress() {
     else UART_LOG("Không restart vì reset NVS từ nút WakeUP thất bại.");
     return;
   }
+  if (!strcmp(cfg.wakeLongAction, "toggle_mic")) {
+    LOG("Phát hiện nhấn giữ nút WakeUP / Rotary SW: Bật/Tắt Mic");
+    micShortPress();
+    return;
+  }
   bool wasRecording = recording;
   pendingAutoContinue = false;
   recording = false;
@@ -4613,17 +4653,24 @@ static void handleRotary(RotaryRuntime &state) {
 static void buttonTask(void *) {
   ButtonRuntime micButton, upButton, downButton, wakeButton, rotarySwButton;
   RotaryRuntime rotary;
+  while (millis() < buttonReadyAtMs) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+  if (cfg.buttonStartupDelayMs > 0) {
+    LOGF("Nút nhấn đã ổn định và sẵn sàng hoạt động (trễ khởi động %u ms)", cfg.buttonStartupDelayMs);
+  }
   for (;;) {
-    if (cfg.buttonsEnabled) {
+    if (cfg.buttonsEnabled && millis() >= buttonReadyAtMs) {
       if (inputModeRotary()) {
         handleRotary(rotary);
         handleButton(rotarySwButton, cfg.pinRotarySw, wakeShortPress, wakeLongPress);
       } else {
         rotary.initialized = false;
-        handleButton(micButton, cfg.pinBtnMic, micShortPress, micLongPress);
-        handleButton(upButton, cfg.pinBtnVolUp, volUpShortPress, volUpLongPress);
-        handleButton(downButton, cfg.pinBtnVolDown, volDownShortPress, volDownLongPress);
-        handleButton(wakeButton, cfg.pinBtnWake, wakeShortPress, wakeLongPress);
+        bool activeHigh = (strcmp(cfg.buttonActiveLevel, "high") == 0);
+        handleButton(micButton, cfg.pinBtnMic, micShortPress, micLongPress, activeHigh);
+        handleButton(upButton, cfg.pinBtnVolUp, volUpShortPress, volUpLongPress, activeHigh);
+        handleButton(downButton, cfg.pinBtnVolDown, volDownShortPress, volDownLongPress, activeHigh);
+        handleButton(wakeButton, cfg.pinBtnWake, wakeShortPress, wakeLongPress, activeHigh);
       }
     }
     vTaskDelay(pdMS_TO_TICKS(inputModeRotary() ? 2 : 10));
@@ -5190,7 +5237,8 @@ void setup() {
     vbotServerStartupEnabled() ? cfg.micBclk : -1,
     vbotServerStartupEnabled() ? cfg.micWs : -1,
     vbotServerStartupEnabled() ? cfg.micDin : -1,
-    cfg.dacBclk, cfg.dacLrc, cfg.dacDout
+    cfg.dacBclk, cfg.dacLrc, cfg.dacDout,
+    strcmp(cfg.buttonActiveLevel, "high") == 0
   );
   hardwareGpioValid = hardwareGpioErrors.length() == 0;
   if (!hardwareGpioValid) {
