@@ -42,7 +42,7 @@
 
 #define VBOT_I2S_COMM_FORMAT I2S_COMM_FORMAT_STAND_I2S
 
-static const char *VBOT_CLIENT_VERSION = "09/11/2026";
+static const char *VBOT_CLIENT_VERSION = "10/11/2026";
 static constexpr uint16_t DEFAULT_VBOT_API_PORT = 5002;
 #ifndef VBOT_BUILD_TARGET
 #define VBOT_BUILD_TARGET "ESP32"
@@ -60,7 +60,7 @@ static constexpr uint8_t WS_SEND_QUEUE_LEN = 4;
 static constexpr uint8_t DAC_QUEUE_LEN = 6;
 static constexpr size_t PCM_POOL_BUFFER_SIZE = 2048;
 static constexpr size_t MP3_STREAM_BUFFER_SIZE = 4 * 1024;
-static constexpr size_t MP3_STREAM_BUFFER_SIZE_PSRAM = 64 * 1024;
+static constexpr size_t MP3_STREAM_BUFFER_SIZE_PSRAM = 4 * 1024;
 static constexpr size_t VAD_PREROLL_FRAMES = 4;
 static constexpr uint32_t VAD_HANGOVER_MS = 850;
 static constexpr int I2S_DMA_BUFFER_COUNT = 4;
