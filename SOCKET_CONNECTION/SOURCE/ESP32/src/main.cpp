@@ -75,10 +75,10 @@ static constexpr uint32_t DAC_TASK_STACK = 5120;
 // FastLED trên ESP32-S3 cần nhiều stack hơn ESP32 thường. Stack 2048 có thể làm
 // core chạy LED rơi vào panic/double exception trước khi setup() hoàn tất, sau
 // đó TG1WDT reset toàn hệ thống mà chưa kịp in Guru Meditation/backtrace.
-static constexpr uint32_t LED_TASK_STACK = 2560;
-static constexpr uint32_t BUTTON_TASK_STACK = 2048;
-static constexpr uint32_t WIFI_TASK_STACK = 3072;
-static constexpr uint32_t UPDATE_TASK_STACK = 4096;
+static constexpr uint32_t LED_TASK_STACK = 3072;
+static constexpr uint32_t BUTTON_TASK_STACK = 4096;
+static constexpr uint32_t WIFI_TASK_STACK = 5120;
+static constexpr uint32_t UPDATE_TASK_STACK = 8192;
 static constexpr uint32_t MIC_DEBUG_INTERVAL_MS = 3000;
 static constexpr uint32_t VOLUME_LED_DURATION_MS = 1000;
 static constexpr uint32_t VOLUME_ZERO_LED_DURATION_MS = 500;
@@ -504,6 +504,7 @@ volatile uint32_t lastPcmPlaybackMs = 0;
 static constexpr uint32_t PCM_LED_HOLD_MS = 1200;
 volatile uint32_t testLedUntilMs = 0;
 volatile bool wakeSkipRequest = false;
+volatile bool stopRecordingRequested = false;
 bool pendingPcmBinary = false;
 JsonDocument pendingPcmMeta;
 bool pcmRawReceiveLogged = false;
@@ -2041,7 +2042,7 @@ static bool startMp3Source(const char *source, bool localFile, bool feedbackOnFa
   // Chỉ gỡ driver DAC im lặng. Source MP3 vừa mở phải còn nguyên cho begin().
   uninstallPcmTx();
   //LOGF("Đã mở source MP3: size=%u, free=%u, min=%u", (unsigned)mp3File->getSize(), (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMinFreeHeap());
-  mp3Out = new (std::nothrow) AudioOutputI2S(0, AudioOutputI2S::EXTERNAL_I2S, 4);
+  mp3Out = new (std::nothrow) AudioOutputI2S(0, AudioOutputI2S::EXTERNAL_I2S, psramFound() ? 8 : 6);
   if (!mp3Out) {
     LOGF("Không đủ RAM để khởi tạo AudioOutputI2S: %s", source);
     stopMp3();
@@ -2832,10 +2833,10 @@ static void dacTask(void *) {
 
 //Gửi dữ liệu cấu hình ban đầu của client tới máy chủ VBot sau khi kết nối WebSocket được thiết lập, bao gồm cả session ID duy nhất cho phiên làm việc này và các tuỳ chọn cấu hình khác để máy chủ biết cách xử lý âm thanh và phản hồi phù hợp
 static void sendClientConfig(bool createNewSession = true) {
+  String out;
   lockCfg();
   String sessionPrefix = sessionPrefixFromClientName();
   strlcpy(cfg.sessionId, sessionPrefix.c_str(), sizeof(cfg.sessionId));
-  unlockCfg();
   if (createNewSession || activeSessionId.isEmpty()) {
     activeSessionId = sessionPrefix + "_" + String((uint32_t)ESP.getEfuseMac(), HEX) + "_" + String((uint32_t)esp_random(), HEX);
   }
@@ -2844,8 +2845,8 @@ static void sendClientConfig(bool createNewSession = true) {
   doc["client_name"] = cfg.clientName;
   doc["working_mode"] = cfg.workingMode;
   doc["conversation_mode"] = cfg.conversationMode;
-  String out;
   serializeJson(doc, out);
+  unlockCfg();
   LOGF("Gửi cấu hình tới máy chủ VBot: %s", out.c_str());
   ws.sendTXT(out);
 }
@@ -3023,6 +3024,7 @@ static void wsEvent(WStype_t type, uint8_t *payload, size_t length) {
       recordingDeadlineMs = 0;
       waitingToWake = true;
       pendingAutoContinue = false;
+      stopRecordingRequested = false;
       restoreTemporaryMic();
       if (!wsForceReconnectAtMs) wsForceReconnectAtMs = millis() + WS_RECONNECT_INTERVAL_MS;
       LOGF("WebSocket chưa kết nối; thử lại sau %u giây", (unsigned)(WS_RECONNECT_INTERVAL_MS / 1000));
@@ -3079,6 +3081,10 @@ static void websocketTask(void *) {
     if (clientConfigSyncRequested && wsReady) {
       clientConfigSyncRequested = false;
       sendClientConfig(false);
+    }
+    if (stopRecordingRequested && wsReady) {
+      stopRecordingRequested = false;
+      ws.sendTXT("stop");
     }
     if (wakeSkipRequest && wsReady) {
       wakeSkipRequest = false;
@@ -3843,20 +3849,20 @@ static void initWeb() {
       if (final) LOGF("Tải lên bản sao lưu khôi phục cấu hình: %s bytes=%u", filename.c_str(), (unsigned)(index + len));
     }
   );
+  struct HotwordUploadContext {
+    File file;
+    bool failed = false;
+    String err;
+    size_t totalBytes = 0;
+  };
   web.on(
     "/upload_hotword",
     HTTP_POST,
     [](AsyncWebServerRequest *request) {
-      struct HotwordUploadContext {
-        File file;
-        bool failed = false;
-        String err;
-        size_t totalBytes = 0;
-      };
       HotwordUploadContext *ctx = static_cast<HotwordUploadContext *>(request->_tempObject);
       request->_tempObject = nullptr;
       if (!ctx) {
-        request->send(400, CONTENT_JSON, "{\"success\":false,\"message\":\"Không nhận được tệp tải lên\"}");
+        sendJsonResult(request, 400, false, "Không nhận được tệp tải lên");
         return;
       }
       if (ctx->file) {
@@ -3866,7 +3872,7 @@ static void initWeb() {
         String msg = ctx->err.length() ? ctx->err : "Tải lên tệp thất bại";
         delete ctx;
         LittleFS.remove("/models/upload_temp.bin");
-        request->send(400, CONTENT_JSON, String("{\"success\":false,\"message\":\"") + msg + "\"}");
+        sendJsonResult(request, 400, false, msg.c_str());
         return;
       }
       delete ctx;
@@ -3883,19 +3889,13 @@ static void initWeb() {
       LittleFS.remove("/models/upload_temp.bin");
 
       if (!ok) {
-        request->send(400, CONTENT_JSON, String("{\"success\":false,\"message\":\"") + errOut + "\"}");
+        sendJsonResult(request, 400, false, errOut.c_str());
         return;
       }
 
-      request->send(200, CONTENT_JSON, "{\"success\":true,\"message\":\"Đã tải lên và nạp hotword tùy chỉnh thành công!\"}");
+      sendJsonResult(request, 200, true, "Đã tải lên và nạp hotword tùy chỉnh thành công!");
     },
     [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-      struct HotwordUploadContext {
-        File file;
-        bool failed = false;
-        String err;
-        size_t totalBytes = 0;
-      };
       if (index == 0) {
         HotwordUploadContext *ctx = new HotwordUploadContext();
         LittleFS.mkdir("/models");
@@ -3905,6 +3905,15 @@ static void initWeb() {
           ctx->err = "Không thể tạo tệp tạm trên LittleFS";
         }
         request->_tempObject = ctx;
+        request->onDisconnect([request]() {
+          HotwordUploadContext *orphan = static_cast<HotwordUploadContext *>(request->_tempObject);
+          if (orphan) {
+            request->_tempObject = nullptr;
+            if (orphan->file) orphan->file.close();
+            delete orphan;
+            LittleFS.remove("/models/upload_temp.bin");
+          }
+        });
       }
       HotwordUploadContext *ctx = static_cast<HotwordUploadContext *>(request->_tempObject);
       if (ctx && !ctx->failed) {
@@ -3925,25 +3934,27 @@ static void initWeb() {
   web.on("/delete_hotword", HTTP_POST, [](AsyncWebServerRequest *request) {
     const AsyncWebParameter *pSlot = request->hasParam("slot", true) ? request->getParam("slot", true) : (request->hasParam("slot") ? request->getParam("slot") : nullptr);
     if (!pSlot) {
-      request->send(400, CONTENT_JSON, "{\"success\":false,\"message\":\"Thiếu tham số slot\"}");
+      sendJsonResult(request, 400, false, "Thiếu tham số slot");
       return;
     }
     int slot = pSlot->value().toInt();
     if (slot < 0 || slot >= WAKENET_MAX_CUSTOM_MODELS) {
-      request->send(400, CONTENT_JSON, "{\"success\":false,\"message\":\"Slot không hợp lệ (0-4). Các hotword mặc định không được phép xóa!\"}");
+      sendJsonResult(request, 400, false, "Slot không hợp lệ (0-4). Các hotword mặc định không được phép xóa!");
       return;
     }
     String errOut;
     bool ok = vbot_wakenet_delete_custom_model((uint8_t)slot, errOut);
     if (!ok) {
-      request->send(400, CONTENT_JSON, String("{\"success\":false,\"message\":\"") + errOut + "\"}");
+      sendJsonResult(request, 400, false, errOut.c_str());
       return;
     }
 
     lockCfg();
     if (cfg.wakenetModel == (uint8_t)(WAKENET_DEFAULT_MODEL_COUNT + slot)) {
       cfg.wakenetModel = (uint8_t)WAKENET_MODEL_HILILI_TTS;
+      lockNvs();
       prefs.putUChar("wn_model", cfg.wakenetModel);
+      unlockNvs();
     }
     unlockCfg();
 
@@ -4494,6 +4505,17 @@ static void handleButton(ButtonRuntime &state, int pin, void (*shortAction)(), v
   }
 }
 
+// Hủy phiên ghi âm từ buttonTask (Core 0) và ủy quyền gửi "stop" sang websocketTask (Core 1).
+static void cancelRecordingForButton(bool clearMicQueue = false) {
+  bool wasRecording = recording;
+  pendingAutoContinue = false;
+  recording = false;
+  recordingDeadlineMs = 0;
+  waitingToWake = true;
+  if (wasRecording && wsReady) stopRecordingRequested = true;
+  if (clearMicQueue && micQueue) xQueueReset(micQueue);
+}
+
 static void micShortPress() {
   lockCfg();
   cfg.micEnabled = !cfg.micEnabled;
@@ -4501,13 +4523,7 @@ static void micShortPress() {
   unlockCfg();
   temporaryMicEnabled = false;
   if (!enabled) {
-    bool wasRecording = recording;
-    pendingAutoContinue = false;
-    recording = false;
-    recordingDeadlineMs = 0;
-    waitingToWake = true;
-    if (wasRecording && wsReady) ws.sendTXT("stop");
-    if (micQueue) xQueueReset(micQueue);
+    cancelRecordingForButton(true);
   }
   lockNvs();
   prefs.putBool("micen", enabled);
@@ -4524,12 +4540,7 @@ static void micShortPress() {
 
 static void micLongPress() {
   if (!audioIdle() || !waitingToWake || recording) {
-    bool wasRecording = recording;
-    pendingAutoContinue = false;
-    recording = false;
-    recordingDeadlineMs = 0;
-    waitingToWake = true;
-    if (wasRecording && wsReady) ws.sendTXT("stop");
+    cancelRecordingForButton(false);
     restoreTemporaryMic();
     stopAudioPlaybackWithFeedback();
     mqttStateDirty = true;
@@ -4593,12 +4604,7 @@ static void wakeLongPress() {
     micShortPress();
     return;
   }
-  bool wasRecording = recording;
-  pendingAutoContinue = false;
-  recording = false;
-  recordingDeadlineMs = 0;
-  waitingToWake = true;
-  if (wasRecording && wsReady) ws.sendTXT("stop");
+  cancelRecordingForButton(false);
   restoreTemporaryMic();
   stopAudioPlaybackWithFeedback();
   mqttStateDirty = true;
