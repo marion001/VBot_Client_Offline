@@ -42,7 +42,7 @@
 
 #define VBOT_I2S_COMM_FORMAT I2S_COMM_FORMAT_STAND_I2S
 
-static const char *VBOT_CLIENT_VERSION = "10/11/2026";
+static const char *VBOT_CLIENT_VERSION = "12/11/2026";
 static constexpr uint16_t DEFAULT_VBOT_API_PORT = 5002;
 #ifndef VBOT_BUILD_TARGET
 #define VBOT_BUILD_TARGET "ESP32"
@@ -66,7 +66,7 @@ static constexpr uint32_t VAD_HANGOVER_MS = 850;
 static constexpr int I2S_DMA_BUFFER_COUNT = 4;
 static constexpr int I2S_DMA_BUFFER_LENGTH = 256;
 #if VBOT_WAKENET_SUPPORTED
-static constexpr uint32_t MIC_TASK_STACK = 8192;
+static constexpr uint32_t MIC_TASK_STACK = 10240;
 #else
 static constexpr uint32_t MIC_TASK_STACK = 4096;
 #endif
@@ -107,6 +107,7 @@ struct AppConfig {
   uint16_t ledCount = 12;
   char ledThinkColor[8] = "#0000FF";
   char ledMuteColor[8] = "#FF8C00";
+  char ledErrorColor[8] = "#FF2814";
   int pinLed =
 #if defined(ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S3)
     48;
@@ -202,6 +203,14 @@ struct AppConfig {
   bool startupSoundEnabled = true;
   bool serialLogs = true;
   bool mdnsEnabled = true;
+  bool nsEnabled = false;
+  bool agcEnabled = false;
+  int agcGain = 12;
+  uint8_t ledSpeakEffect = 0; // 0: Mặc định, 1: VU Meter, 2: Audio Pulse, 3: Audio Fire
+  uint8_t ledThinkEffect = 0; // 0: Mặc định (Sáng toàn bộ LED), 1: Spinning Comet, 2: Breathe
+  uint8_t ledMuteEffect = 0;  // 0: Mặc định (Sáng toàn bộ LED), 1: Breathe, 2: Spinning Comet
+  uint8_t ledErrorEffect = 0; // 0: Thở dịu nhẹ (Breathe), 1: Mặc định (Sáng toàn bộ LED), 2: Chớp tắt cảnh báo (Strobe/Blink), 3: Sao chổi xoay tròn (Spinning Comet)
+  bool dfsEnabled = false;    // Dynamic Frequency Scaling (Mặc định tắt để âm thanh I2S tuyệt đối ổn định)
   bool mqttEnabled = false;
   char mqttHost[64] = "";
   uint16_t mqttPort = 1883;
@@ -214,7 +223,14 @@ struct AppConfig {
   uint16_t buttonReleaseDebounceMs = 50;
   uint16_t buttonHoldMs = 2000;
   uint16_t buttonStartupDelayMs = 3000;
-  char wakeLongAction[20] = "stop_audio";
+  char wakeLongAction[24] = "stop_audio";
+  char wakeDoubleAction[24] = "none";
+  char micLongAction[24] = "none";
+  char micDoubleAction[24] = "none";
+  char volUpLongAction[24] = "none";
+  char volUpDoubleAction[24] = "none";
+  char volDownLongAction[24] = "none";
+  char volDownDoubleAction[24] = "none";
 };
 
 enum LedEffect {
@@ -228,6 +244,32 @@ enum LedEffect {
   LED_PAUSE,
   LED_VOLUME,
   LED_OFF
+};
+
+enum ManualLedEffect : uint8_t {
+  MANUAL_LED_SOLID,
+  MANUAL_LED_BREATHE,
+  MANUAL_LED_COLOR_LOOP,
+  MANUAL_LED_PULSE,
+  MANUAL_LED_RAINBOW,
+  MANUAL_LED_COLOR_WIPE,
+  MANUAL_LED_CHASE,
+  MANUAL_LED_THEATER_CHASE,
+  MANUAL_LED_TWINKLE,
+  MANUAL_LED_SPARKLE,
+  MANUAL_LED_SCANNER,
+  MANUAL_LED_FIRE,
+  MANUAL_LED_CANDLE,
+  MANUAL_LED_STROBE
+};
+
+struct ManualLedState {
+  bool on = false;
+  uint8_t red = 255;
+  uint8_t green = 180;
+  uint8_t blue = 100;
+  uint8_t brightness = 255;
+  ManualLedEffect effect = MANUAL_LED_SOLID;
 };
 
 enum AudioCommandType {
@@ -260,8 +302,11 @@ struct ButtonRuntime {
   bool rawPressed = false;
   bool stablePressed = false;
   bool longFired = false;
+  uint8_t clickCount = 0;
   uint32_t lastRawChangeMs = 0;
   uint32_t pressStartMs = 0;
+  uint32_t lastRepeatMs = 0;
+  uint32_t releaseMs = 0;
 };
 
 struct RotaryRuntime {
@@ -429,6 +474,47 @@ VBotWebSocketsClient ws;
 AudioGeneratorMP3 *mp3 = nullptr;
 AudioFileSource *mp3File = nullptr;
 AudioFileSource *mp3RawFile = nullptr;
+static volatile uint16_t currentAudioPeak = 0;
+
+class AudioOutputVBotAEC : public AudioOutputI2S {
+private:
+  int16_t aecChunk[128];
+  size_t aecChunkCount = 0;
+public:
+  AudioOutputVBotAEC(int port = 0, int output_mode = EXTERNAL_I2S, int dma_buf_count = 8, int use_apll = APLL_DISABLE)
+    : AudioOutputI2S(port, output_mode, dma_buf_count, use_apll) {}
+  
+  virtual bool ConsumeSample(int16_t sample[2]) override {
+    int32_t s0 = abs((int32_t)sample[0]);
+    int32_t s1 = abs((int32_t)sample[1]);
+    uint16_t p = (uint16_t)(s0 > s1 ? s0 : s1);
+    if (p > currentAudioPeak) {
+      currentAudioPeak = p;
+    }
+    if (vbot_aec_is_active()) {
+      int16_t mono = (int16_t)(((int32_t)sample[0] + (int32_t)sample[1]) / 2);
+      aecChunk[aecChunkCount++] = mono;
+      if (aecChunkCount >= 128) {
+        vbot_aec_feed_ref(aecChunk, 128);
+        aecChunkCount = 0;
+      }
+    }
+    return AudioOutputI2S::ConsumeSample(sample);
+  }
+
+  virtual void flush() override {
+    if (aecChunkCount > 0 && vbot_aec_is_active()) {
+      vbot_aec_feed_ref(aecChunk, aecChunkCount);
+      aecChunkCount = 0;
+    }
+    AudioOutputI2S::flush();
+  }
+
+  virtual bool stop() override {
+    aecChunkCount = 0;
+    return AudioOutputI2S::stop();
+  }
+};
 AudioOutputI2S *mp3Out = nullptr;
 static uint8_t *mp3PsramStreamBuffer = nullptr;
 static uint8_t *mp3PreallocBuffer = nullptr;
@@ -439,6 +525,11 @@ struct RestoreUploadContext {
   size_t length;
   bool tooLarge;
   char data[8193];
+};
+struct LedApiBody {
+  size_t length = 0;
+  bool tooLarge = false;
+  char data[513] = {0};
 };
 String currentAudioUrl;
 String currentMqttMediaTitle;
@@ -479,6 +570,8 @@ static MicFrame micDropFrame;
 static MicFrame wsSendFrame;
 
 volatile LedEffect ledEffect = LED_STARTUP;
+ManualLedState manualLedState;
+portMUX_TYPE manualLedMux = portMUX_INITIALIZER_UNLOCKED;
 volatile bool ledRefreshRequested = false;
 volatile bool hardwareGpioValid = true;
 String hardwareGpioErrors;
@@ -526,6 +619,8 @@ volatile bool volumeSavePending = false;
 volatile uint32_t volumeSaveAtMs = 0;
 volatile uint8_t volumeSaveValue = 0;
 volatile bool volumeSaveFeedbackPending = false;
+volatile bool volumeFeedbackPending = false;
+volatile uint32_t volumeFeedbackAtMs = 0;
 volatile bool ledBrightnessSavePending = false;
 volatile uint32_t ledBrightnessSaveAtMs = 0;
 volatile uint8_t ledBrightnessSaveValue = 0;
@@ -752,6 +847,14 @@ static void sendCorsJsonResult(AsyncWebServerRequest *request, int status, bool 
   serializeJson(doc, body);
   AsyncWebServerResponse *response = request->beginResponse(status, CONTENT_JSON, body);
   response->addHeader("Access-Control-Allow-Origin", "*");
+  request->send(response);
+}
+
+static void sendCorsJsonBody(AsyncWebServerRequest *request, int status, const String &body) {
+  AsyncWebServerResponse *response = request->beginResponse(status, CONTENT_JSON, body);
+  response->addHeader("Access-Control-Allow-Origin", "*");
+  response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  response->addHeader("Access-Control-Allow-Headers", "Content-Type");
   request->send(response);
 }
 
@@ -1112,6 +1215,7 @@ static void loadConfig() {
   cfg.ledCount = prefs.getUShort("ledcnt", cfg.ledCount);
   copyPrefString("lthink", cfg.ledThinkColor, sizeof(cfg.ledThinkColor), cfg.ledThinkColor);
   copyPrefString("lmute", cfg.ledMuteColor, sizeof(cfg.ledMuteColor), cfg.ledMuteColor);
+  copyPrefString("lerrclr", cfg.ledErrorColor, sizeof(cfg.ledErrorColor), cfg.ledErrorColor);
   cfg.pinLed = prefs.getInt("pled", cfg.pinLed);
   cfg.pinBtnMic = prefs.getInt("bmic", cfg.pinBtnMic);
   cfg.pinBtnVolUp = prefs.getInt("bup", cfg.pinBtnVolUp);
@@ -1137,6 +1241,14 @@ static void loadConfig() {
   cfg.startupSoundEnabled = prefs.getBool("bootsnd", cfg.startupSoundEnabled);
   cfg.serialLogs = prefs.getBool("logs", cfg.serialLogs);
   cfg.mdnsEnabled = prefs.getBool("mdns", cfg.mdnsEnabled);
+  cfg.nsEnabled = prefs.getBool("nsen", cfg.nsEnabled);
+  cfg.agcEnabled = prefs.getBool("agcen", cfg.agcEnabled);
+  cfg.agcGain = prefs.getInt("agcgain", cfg.agcGain);
+  cfg.ledSpeakEffect = prefs.getUChar("lspef", cfg.ledSpeakEffect);
+  cfg.ledThinkEffect = prefs.getUChar("lthkef", cfg.ledThinkEffect);
+  cfg.ledMuteEffect = prefs.getUChar("lmuteef", cfg.ledMuteEffect);
+  cfg.ledErrorEffect = prefs.getUChar("lerref", cfg.ledErrorEffect);
+  cfg.dfsEnabled = prefs.getBool("dfsen", cfg.dfsEnabled);
   cfg.mqttEnabled = prefs.getBool("mqen", cfg.mqttEnabled);
   copyPrefString("mqhost", cfg.mqttHost, sizeof(cfg.mqttHost), cfg.mqttHost);
   cfg.mqttPort = prefs.getUShort("mqport", cfg.mqttPort);
@@ -1153,6 +1265,13 @@ static void loadConfig() {
     );
   }
   copyPrefString("wla", cfg.wakeLongAction, sizeof(cfg.wakeLongAction), cfg.wakeLongAction);
+  copyPrefString("wda", cfg.wakeDoubleAction, sizeof(cfg.wakeDoubleAction), cfg.wakeDoubleAction);
+  copyPrefString("mla", cfg.micLongAction, sizeof(cfg.micLongAction), cfg.micLongAction);
+  copyPrefString("mda", cfg.micDoubleAction, sizeof(cfg.micDoubleAction), cfg.micDoubleAction);
+  copyPrefString("vupla", cfg.volUpLongAction, sizeof(cfg.volUpLongAction), cfg.volUpLongAction);
+  copyPrefString("vupda", cfg.volUpDoubleAction, sizeof(cfg.volUpDoubleAction), cfg.volUpDoubleAction);
+  copyPrefString("vdnla", cfg.volDownLongAction, sizeof(cfg.volDownLongAction), cfg.volDownLongAction);
+  copyPrefString("vdnda", cfg.volDownDoubleAction, sizeof(cfg.volDownDoubleAction), cfg.volDownDoubleAction);
   cfg.micGain = prefs.isKey("micgain") ? prefs.getFloat("micgain", cfg.micGain) : cfg.micGain;
   cfg.pcmVolumeBoost = prefs.isKey("pcmboost") ? prefs.getFloat("pcmboost", cfg.pcmVolumeBoost) : cfg.pcmVolumeBoost;
   cfg.buttonPressDebounceMs = prefs.getUShort("bdbp", cfg.buttonPressDebounceMs);
@@ -1174,12 +1293,22 @@ static void loadConfig() {
   if (strcmp(cfg.startupMode, "standalone") != 0) strlcpy(cfg.startupMode, "vbot_server", sizeof(cfg.startupMode));
   if (cfg.micChannel[0] != 'R' && cfg.micChannel[0] != 'r') strlcpy(cfg.micChannel, "L", sizeof(cfg.micChannel));
   else strlcpy(cfg.micChannel, "R", sizeof(cfg.micChannel));
-  const char *wakeActions[] = {"restart", "clean_all", "reset_wifi", "reset_nvs", "stop_audio", "toggle_mic"};
-  bool validWakeAction = false;
-  for (const char *action : wakeActions) {
-    if (!strcmp(cfg.wakeLongAction, action)) validWakeAction = true;
-  }
-  if (!validWakeAction) strlcpy(cfg.wakeLongAction, "stop_audio", sizeof(cfg.wakeLongAction));
+  const char *wakeActions[] = {"none", "restart", "clean_all", "reset_wifi", "reset_nvs", "stop_audio", "toggle_mic"};
+  auto validateBtnAction = [&](char *target, const char *defaultVal) {
+    bool valid = false;
+    for (const char *action : wakeActions) {
+      if (!strcmp(target, action)) valid = true;
+    }
+    if (!valid) strlcpy(target, defaultVal, 24);
+  };
+  validateBtnAction(cfg.wakeLongAction, "stop_audio");
+  validateBtnAction(cfg.wakeDoubleAction, "none");
+  validateBtnAction(cfg.micLongAction, "none");
+  validateBtnAction(cfg.micDoubleAction, "none");
+  validateBtnAction(cfg.volUpLongAction, "none");
+  validateBtnAction(cfg.volUpDoubleAction, "none");
+  validateBtnAction(cfg.volDownLongAction, "none");
+  validateBtnAction(cfg.volDownDoubleAction, "none");
 }
 
 static void saveConfig(const AppConfig &saved = cfg) {
@@ -1205,6 +1334,7 @@ static void saveConfig(const AppConfig &saved = cfg) {
   prefs.putUShort("ledcnt", cfg.ledCount);
   prefs.putString("lthink", cfg.ledThinkColor);
   prefs.putString("lmute", cfg.ledMuteColor);
+  prefs.putString("lerrclr", cfg.ledErrorColor);
   prefs.putInt("pled", cfg.pinLed);
   prefs.putInt("bmic", cfg.pinBtnMic);
   prefs.putInt("bup", cfg.pinBtnVolUp);
@@ -1230,6 +1360,14 @@ static void saveConfig(const AppConfig &saved = cfg) {
   prefs.putBool("bootsnd", cfg.startupSoundEnabled);
   prefs.putBool("logs", cfg.serialLogs);
   prefs.putBool("mdns", cfg.mdnsEnabled);
+  prefs.putBool("nsen", cfg.nsEnabled);
+  prefs.putBool("agcen", cfg.agcEnabled);
+  prefs.putInt("agcgain", cfg.agcGain);
+  prefs.putUChar("lspef", cfg.ledSpeakEffect);
+  prefs.putUChar("lthkef", cfg.ledThinkEffect);
+  prefs.putUChar("lmuteef", cfg.ledMuteEffect);
+  prefs.putUChar("lerref", cfg.ledErrorEffect);
+  prefs.putBool("dfsen", cfg.dfsEnabled);
   prefs.putBool("mqen", cfg.mqttEnabled);
   prefs.putString("mqhost", cfg.mqttHost);
   prefs.putUShort("mqport", cfg.mqttPort);
@@ -1237,6 +1375,13 @@ static void saveConfig(const AppConfig &saved = cfg) {
   prefs.putString("mqpass", cfg.mqttPassword);
   prefs.putString("mqclient", cfg.mqttClientName);
   prefs.putString("wla", cfg.wakeLongAction);
+  prefs.putString("wda", cfg.wakeDoubleAction);
+  prefs.putString("mla", cfg.micLongAction);
+  prefs.putString("mda", cfg.micDoubleAction);
+  prefs.putString("vupla", cfg.volUpLongAction);
+  prefs.putString("vupda", cfg.volUpDoubleAction);
+  prefs.putString("vdnla", cfg.volDownLongAction);
+  prefs.putString("vdnda", cfg.volDownDoubleAction);
   prefs.putFloat("micgain", cfg.micGain);
   prefs.putFloat("pcmboost", cfg.pcmVolumeBoost);
   prefs.putUShort("bdbp", cfg.buttonPressDebounceMs);
@@ -1393,6 +1538,8 @@ static void fillConfigJson(JsonObject doc) {
   doc["audio"]["wakenet_enabled"] = cfg.wakenetEnabled;
   doc["audio"]["wakenet_model"] = cfg.wakenetModel;
   doc["audio"]["wakenet_supported"] = vbot_wakenet_is_supported();
+  doc["audio"]["aec_supported"] = vbot_aec_is_active();
+  doc["audio"]["barge_in_supported"] = vbot_wakenet_is_supported();
   doc["audio"]["psram_active"] = psramFound();
   doc["audio"]["wakenet_model_name"] = vbot_wakenet_get_model_name((WakeNetModelId)cfg.wakenetModel);
   doc["audio"]["hotword_mode"] = cfg.wakenetEnabled ? "wakenet" : (cfg.hotwordStreamEnabled ? "server" : "none");
@@ -1438,7 +1585,11 @@ static void fillConfigJson(JsonObject doc) {
   doc["audio"]["startup_sound_enabled"] = cfg.startupSoundEnabled;
   doc["audio"]["mic_gain"] = cfg.micGain;
   doc["audio"]["pcm_volume_boost"] = cfg.pcmVolumeBoost;
+  doc["audio"]["ns_enabled"] = cfg.nsEnabled;
+  doc["audio"]["agc_enabled"] = cfg.agcEnabled;
+  doc["audio"]["agc_gain"] = cfg.agcGain;
   doc["logs"]["serial"] = cfg.serialLogs;
+  doc["system"]["dfs_enabled"] = cfg.dfsEnabled;
   doc["network"]["mdns_enabled"] = cfg.mdnsEnabled;
   doc["mqtt"]["active"] = cfg.mqttEnabled;
   doc["mqtt"]["host"] = cfg.mqttHost;
@@ -1452,6 +1603,11 @@ static void fillConfigJson(JsonObject doc) {
   doc["led"]["brightness_percent"] = cfg.ledBrightnessPct;
   doc["led"]["think_color"] = cfg.ledThinkColor;
   doc["led"]["mute_color"] = cfg.ledMuteColor;
+  doc["led"]["error_color"] = cfg.ledErrorColor;
+  doc["led"]["speak_effect"] = cfg.ledSpeakEffect;
+  doc["led"]["think_effect"] = cfg.ledThinkEffect;
+  doc["led"]["mute_effect"] = cfg.ledMuteEffect;
+  doc["led"]["error_effect"] = cfg.ledErrorEffect;
   doc["button"]["active"] = cfg.buttonsEnabled;
   doc["button"]["input_mode"] = cfg.inputMode;
   doc["button"]["active_level"] = cfg.buttonActiveLevel;
@@ -1460,6 +1616,13 @@ static void fillConfigJson(JsonObject doc) {
   doc["button"]["volume_down"] = cfg.pinBtnVolDown;
   doc["button"]["wakeup"] = cfg.pinBtnWake;
   doc["button"]["wakeup_long_action"] = cfg.wakeLongAction;
+  doc["button"]["wakeup_double_action"] = cfg.wakeDoubleAction;
+  doc["button"]["mic_long_action"] = cfg.micLongAction;
+  doc["button"]["mic_double_action"] = cfg.micDoubleAction;
+  doc["button"]["vol_up_long_action"] = cfg.volUpLongAction;
+  doc["button"]["vol_up_double_action"] = cfg.volUpDoubleAction;
+  doc["button"]["vol_down_long_action"] = cfg.volDownLongAction;
+  doc["button"]["vol_down_double_action"] = cfg.volDownDoubleAction;
   doc["button"]["press_debounce_ms"] = cfg.buttonPressDebounceMs;
   doc["button"]["release_debounce_ms"] = cfg.buttonReleaseDebounceMs;
   doc["button"]["hold_ms"] = cfg.buttonHoldMs;
@@ -1533,6 +1696,8 @@ static bool applyConfigJson(JsonDocument &doc) {
   if (doc["led"]["brightness_percent"].is<int>()) cfg.ledBrightnessPct = constrain((int)doc["led"]["brightness_percent"], 0, 100);
   if (doc["led"]["think_color"].is<const char *>()) strlcpy(cfg.ledThinkColor, doc["led"]["think_color"], sizeof(cfg.ledThinkColor));
   if (doc["led"]["mute_color"].is<const char *>()) strlcpy(cfg.ledMuteColor, doc["led"]["mute_color"], sizeof(cfg.ledMuteColor));
+  if (doc["led"]["error_color"].is<const char *>()) strlcpy(cfg.ledErrorColor, doc["led"]["error_color"], sizeof(cfg.ledErrorColor));
+  if (doc["led"]["error_effect"].is<int>()) cfg.ledErrorEffect = constrain((int)doc["led"]["error_effect"], 0, 3);
   if (doc["button"]["active"].is<bool>()) cfg.buttonsEnabled = doc["button"]["active"];
   if (doc["button"]["input_mode"].is<const char *>()) {
     const char *mode = doc["button"]["input_mode"];
@@ -1547,6 +1712,13 @@ static bool applyConfigJson(JsonDocument &doc) {
   if (doc["button"]["volume_down"].is<int>()) cfg.pinBtnVolDown = doc["button"]["volume_down"];
   if (doc["button"]["wakeup"].is<int>()) cfg.pinBtnWake = doc["button"]["wakeup"];
   if (doc["button"]["wakeup_long_action"].is<const char *>()) strlcpy(cfg.wakeLongAction, doc["button"]["wakeup_long_action"], sizeof(cfg.wakeLongAction));
+  if (doc["button"]["wakeup_double_action"].is<const char *>()) strlcpy(cfg.wakeDoubleAction, doc["button"]["wakeup_double_action"], sizeof(cfg.wakeDoubleAction));
+  if (doc["button"]["mic_long_action"].is<const char *>()) strlcpy(cfg.micLongAction, doc["button"]["mic_long_action"], sizeof(cfg.micLongAction));
+  if (doc["button"]["mic_double_action"].is<const char *>()) strlcpy(cfg.micDoubleAction, doc["button"]["mic_double_action"], sizeof(cfg.micDoubleAction));
+  if (doc["button"]["vol_up_long_action"].is<const char *>()) strlcpy(cfg.volUpLongAction, doc["button"]["vol_up_long_action"], sizeof(cfg.volUpLongAction));
+  if (doc["button"]["vol_up_double_action"].is<const char *>()) strlcpy(cfg.volUpDoubleAction, doc["button"]["vol_up_double_action"], sizeof(cfg.volUpDoubleAction));
+  if (doc["button"]["vol_down_long_action"].is<const char *>()) strlcpy(cfg.volDownLongAction, doc["button"]["vol_down_long_action"], sizeof(cfg.volDownLongAction));
+  if (doc["button"]["vol_down_double_action"].is<const char *>()) strlcpy(cfg.volDownDoubleAction, doc["button"]["vol_down_double_action"], sizeof(cfg.volDownDoubleAction));
   if (doc["button"]["press_debounce_ms"].is<int>()) cfg.buttonPressDebounceMs = constrain((int)doc["button"]["press_debounce_ms"], 10, 1000);
   if (doc["button"]["release_debounce_ms"].is<int>()) cfg.buttonReleaseDebounceMs = constrain((int)doc["button"]["release_debounce_ms"], 10, 1000);
   if (doc["button"]["hold_ms"].is<int>()) cfg.buttonHoldMs = constrain((int)doc["button"]["hold_ms"], 300, 10000);
@@ -1675,6 +1847,203 @@ static void normalizeHexColor(char *dst, size_t len, const char *input, const ch
   strlcpy(dst, tmp, len);
 }
 
+static const char *manualLedEffectName(ManualLedEffect effect) {
+  switch (effect) {
+    case MANUAL_LED_BREATHE: return "breathe";
+    case MANUAL_LED_COLOR_LOOP: return "color_loop";
+    case MANUAL_LED_PULSE: return "pulse";
+    case MANUAL_LED_RAINBOW: return "rainbow";
+    case MANUAL_LED_COLOR_WIPE: return "color_wipe";
+    case MANUAL_LED_CHASE: return "chase";
+    case MANUAL_LED_THEATER_CHASE: return "theater_chase";
+    case MANUAL_LED_TWINKLE: return "twinkle";
+    case MANUAL_LED_SPARKLE: return "sparkle";
+    case MANUAL_LED_SCANNER: return "scanner";
+    case MANUAL_LED_FIRE: return "fire";
+    case MANUAL_LED_CANDLE: return "candle";
+    case MANUAL_LED_STROBE: return "strobe";
+    default: return "solid";
+  }
+}
+
+static const char *manualLedEffectLabel(ManualLedEffect effect) {
+  switch (effect) {
+    case MANUAL_LED_BREATHE: return "Breathe";
+    case MANUAL_LED_COLOR_LOOP: return "Color Loop";
+    case MANUAL_LED_PULSE: return "Pulse";
+    case MANUAL_LED_RAINBOW: return "Rainbow";
+    case MANUAL_LED_COLOR_WIPE: return "Color Wipe";
+    case MANUAL_LED_CHASE: return "Chase";
+    case MANUAL_LED_THEATER_CHASE: return "Theater Chase";
+    case MANUAL_LED_TWINKLE: return "Twinkle";
+    case MANUAL_LED_SPARKLE: return "Sparkle";
+    case MANUAL_LED_SCANNER: return "Scanner";
+    case MANUAL_LED_FIRE: return "Fire";
+    case MANUAL_LED_CANDLE: return "Candle";
+    case MANUAL_LED_STROBE: return "Strobe";
+    default: return "Solid";
+  }
+}
+
+static bool manualLedEffectFromString(String name, ManualLedEffect &effect) {
+  name.trim();
+  name.toLowerCase();
+  name.replace(" ", "_");
+  if (name == "solid") effect = MANUAL_LED_SOLID;
+  else if (name == "breathe") effect = MANUAL_LED_BREATHE;
+  else if (name == "color_loop") effect = MANUAL_LED_COLOR_LOOP;
+  else if (name == "pulse") effect = MANUAL_LED_PULSE;
+  else if (name == "rainbow") effect = MANUAL_LED_RAINBOW;
+  else if (name == "color_wipe") effect = MANUAL_LED_COLOR_WIPE;
+  else if (name == "chase" || name == "running" || name == "meteor") effect = MANUAL_LED_CHASE;
+  else if (name == "theater_chase") effect = MANUAL_LED_THEATER_CHASE;
+  else if (name == "twinkle") effect = MANUAL_LED_TWINKLE;
+  else if (name == "sparkle") effect = MANUAL_LED_SPARKLE;
+  else if (name == "scanner" || name == "cylon" || name == "knight_rider") effect = MANUAL_LED_SCANNER;
+  else if (name == "fire") effect = MANUAL_LED_FIRE;
+  else if (name == "candle") effect = MANUAL_LED_CANDLE;
+  else if (name == "strobe" || name == "blink" || name == "flash") effect = MANUAL_LED_STROBE;
+  else return false;
+  return true;
+}
+
+static ManualLedState manualLedSnapshot() {
+  ManualLedState snapshot;
+  portENTER_CRITICAL(&manualLedMux);
+  snapshot = manualLedState;
+  portEXIT_CRITICAL(&manualLedMux);
+  return snapshot;
+}
+
+static String buildManualLedStateJson() {
+  ManualLedState state = manualLedSnapshot();
+  AppConfig cfgSnapshot;
+  lockCfg();
+  cfgSnapshot = cfg;
+  unlockCfg();
+  JsonDocument doc;
+  doc["on"] = state.on;
+  doc["rgb_color"][0] = state.red;
+  doc["rgb_color"][1] = state.green;
+  doc["rgb_color"][2] = state.blue;
+  doc["brightness"] = state.brightness;
+  doc["effect"] = manualLedEffectName(state.effect);
+  doc["effects"]["solid"] = manualLedEffectLabel(MANUAL_LED_SOLID);
+  doc["effects"]["breathe"] = manualLedEffectLabel(MANUAL_LED_BREATHE);
+  doc["effects"]["pulse"] = manualLedEffectLabel(MANUAL_LED_PULSE);
+  doc["effects"]["color_loop"] = manualLedEffectLabel(MANUAL_LED_COLOR_LOOP);
+  doc["effects"]["rainbow"] = manualLedEffectLabel(MANUAL_LED_RAINBOW);
+  doc["effects"]["color_wipe"] = manualLedEffectLabel(MANUAL_LED_COLOR_WIPE);
+  doc["effects"]["chase"] = manualLedEffectLabel(MANUAL_LED_CHASE);
+  doc["effects"]["theater_chase"] = manualLedEffectLabel(MANUAL_LED_THEATER_CHASE);
+  doc["effects"]["twinkle"] = manualLedEffectLabel(MANUAL_LED_TWINKLE);
+  doc["effects"]["sparkle"] = manualLedEffectLabel(MANUAL_LED_SPARKLE);
+  doc["effects"]["scanner"] = manualLedEffectLabel(MANUAL_LED_SCANNER);
+  doc["effects"]["fire"] = manualLedEffectLabel(MANUAL_LED_FIRE);
+  doc["effects"]["candle"] = manualLedEffectLabel(MANUAL_LED_CANDLE);
+  doc["effects"]["strobe"] = manualLedEffectLabel(MANUAL_LED_STROBE);
+  doc["supported"] = cfgSnapshot.ledEnabled && hardwareGpioValid && leds != nullptr;
+  String out;
+  serializeJson(doc, out);
+  return out;
+}
+
+static bool applyManualLedCommand(JsonObjectConst command, String &error) {
+  lockCfg();
+  bool ledEnabled = cfg.ledEnabled;
+  unlockCfg();
+  if (!hardwareGpioValid || !ledEnabled || !leds) {
+    error = "LED không được kích hoạt hoặc GPIO chưa sẵn sàng";
+    return false;
+  }
+  String action = command["action"] | "set";
+  action.trim();
+  action.toLowerCase();
+  if (action != "set" && action != "turn_on" && action != "turn_off") {
+    error = "action chỉ nhận set, turn_on hoặc turn_off";
+    return false;
+  }
+
+  ManualLedState next = manualLedSnapshot();
+  if (action == "turn_on") next.on = true;
+  else if (action == "turn_off") next.on = false;
+  else if (!command["on"].isNull()) {
+    if (!command["on"].is<bool>()) {
+      error = "on phải là true hoặc false";
+      return false;
+    }
+    next.on = command["on"].as<bool>();
+  }
+
+  if (!command["rgb_color"].isNull()) {
+    if (!command["rgb_color"].is<JsonArrayConst>()) {
+      error = "rgb_color phải là mảng [R,G,B]";
+      return false;
+    }
+    JsonArrayConst color = command["rgb_color"].as<JsonArrayConst>();
+    if (color.size() != 3) {
+      error = "rgb_color phải có đúng ba kênh";
+      return false;
+    }
+    uint8_t channels[3];
+    for (uint8_t i = 0; i < 3; ++i) {
+      if (!color[i].is<int>()) {
+        error = "Mỗi kênh rgb_color phải là số nguyên từ 0 đến 255";
+        return false;
+      }
+      int value = color[i].as<int>();
+      if (value < 0 || value > 255) {
+        error = "Mỗi kênh rgb_color phải nằm trong khoảng 0 đến 255";
+        return false;
+      }
+      channels[i] = (uint8_t)value;
+    }
+    next.red = channels[0];
+    next.green = channels[1];
+    next.blue = channels[2];
+    if (command["effect"].isNull()) {
+      if (next.effect == MANUAL_LED_COLOR_LOOP || next.effect == MANUAL_LED_RAINBOW) {
+        next.effect = MANUAL_LED_SOLID;
+      }
+    }
+  }
+
+  if (!command["brightness"].isNull()) {
+    if (!command["brightness"].is<int>()) {
+      error = "brightness phải là số nguyên từ 0 đến 255";
+      return false;
+    }
+    int value = command["brightness"].as<int>();
+    if (value < 0 || value > 255) {
+      error = "brightness phải nằm trong khoảng 0 đến 255";
+      return false;
+    }
+    next.brightness = (uint8_t)value;
+  }
+
+  if (!command["effect"].isNull()) {
+    if (!command["effect"].is<const char *>()) {
+      error = "effect phải là chuỗi";
+      return false;
+    }
+    String effectName = command["effect"].as<String>();
+    if (!manualLedEffectFromString(effectName, next.effect)) {
+      error = "effect chỉ nhận solid, breathe, pulse, color_loop, rainbow, color_wipe, chase, theater_chase, twinkle, sparkle, scanner, fire, candle hoặc strobe";
+      return false;
+    }
+  }
+
+  portENTER_CRITICAL(&manualLedMux);
+  manualLedState = next;
+  portEXIT_CRITICAL(&manualLedMux);
+  ledRefreshRequested = true;
+  mqttStateDirty = true;
+  LOGF("[LED Effects Control] action=%s on=%s RGB(%u,%u,%u) brightness=%u effect=%s",
+       action.c_str(), next.on ? "true" : "false", next.red, next.green, next.blue,
+       next.brightness, manualLedEffectName(next.effect));
+  return true;
+}
+
 static bool gpioSupportsFastLed(int pin) {
   switch (pin) {
     case 0: case 2: case 4: case 5:
@@ -1766,7 +2135,15 @@ static void showSocketErrorBreath(uint16_t step) {
   uint8_t minBrightness = max((uint8_t)1, (uint8_t)(maxBrightness / 6));
   uint8_t brightness = beatsin8(10, minBrightness, maxBrightness, 0, 0);
   FastLED.setBrightness(brightness);
-  fill_solid(leds, cfg.ledCount, CRGB(255, 40, 20));
+  fill_solid(leds, cfg.ledCount, parseHexColor(cfg.ledErrorColor, CRGB(255, 40, 20)));
+  FastLED.show();
+}
+
+static void showSocketErrorBlink(uint16_t step) {
+  if (!leds) return;
+  FastLED.setBrightness(ledBrightness());
+  CRGB color = parseHexColor(cfg.ledErrorColor, CRGB(255, 40, 20));
+  fill_solid(leds, cfg.ledCount, ((step / 15) % 2 == 0) ? color : CRGB::Black);
   FastLED.show();
 }
 
@@ -1810,6 +2187,218 @@ static void showVolumeOverlay(uint8_t volume) {
   volumeLedActive = true;
 }
 
+static void showManualLed(const ManualLedState &state, uint16_t step) {
+  if (!leds) return;
+  const uint16_t count = cfg.ledCount;
+  const CRGB baseColor(state.red, state.green, state.blue);
+  uint16_t scaledBrightness = ((uint16_t)ledBrightness() * state.brightness + 127) / 255;
+  if (state.effect == MANUAL_LED_BREATHE || state.effect == MANUAL_LED_PULSE) {
+    const uint8_t pulse = state.effect == MANUAL_LED_PULSE
+      ? beatsin8(30, 8, 255, 0, 0)
+      : beatsin8(12, 16, 255, 0, 0);
+    scaledBrightness = (scaledBrightness * pulse + 127) / 255;
+  }
+  FastLED.setBrightness((uint8_t)scaledBrightness);
+  switch (state.effect) {
+    case MANUAL_LED_COLOR_LOOP:
+      fill_solid(leds, count, CHSV((uint8_t)(step * 2), 240, 255));
+      break;
+    case MANUAL_LED_RAINBOW:
+      fill_rainbow(leds, count, (uint8_t)(step * 2), count > 1 ? (255 / count) : 32);
+      break;
+    case MANUAL_LED_COLOR_WIPE: {
+      if (count <= 1) {
+        leds[0] = (step % 20 < 10) ? baseColor : CRGB::Black;
+      } else {
+        uint16_t wipeStep = (step / 2) % (count * 2);
+        if (wipeStep < count) {
+          for (uint16_t i = 0; i <= wipeStep; ++i) leds[i] = baseColor;
+          for (uint16_t i = wipeStep + 1; i < count; ++i) leds[i] = CRGB::Black;
+        } else {
+          uint16_t clearIdx = wipeStep - count;
+          for (uint16_t i = 0; i <= clearIdx; ++i) leds[i] = CRGB::Black;
+          for (uint16_t i = clearIdx + 1; i < count; ++i) leds[i] = baseColor;
+        }
+      }
+      break;
+    }
+    case MANUAL_LED_CHASE: {
+      if (count <= 1) {
+        leds[0] = baseColor;
+        leds[0].nscale8_video(beatsin8(25, 30, 255));
+      } else {
+        fadeToBlackBy(leds, count, 60);
+        leds[step % count] = baseColor;
+      }
+      break;
+    }
+    case MANUAL_LED_THEATER_CHASE: {
+      fill_solid(leds, count, CRGB::Black);
+      const uint16_t offset = step % 3;
+      for (uint16_t i = offset; i < count; i += 3) leds[i] = baseColor;
+      break;
+    }
+    case MANUAL_LED_TWINKLE: {
+      fill_solid(leds, count, CRGB::Black);
+      uint16_t sparkles = max((uint16_t)1, (uint16_t)(count / 5));
+      for (uint16_t i = 0; i < sparkles; ++i) {
+        uint16_t idx = random16(count);
+        leds[idx] = baseColor;
+        leds[idx].nscale8_video(random8(90, 255));
+      }
+      break;
+    }
+    case MANUAL_LED_SPARKLE: {
+      fill_solid(leds, count, baseColor);
+      if (random8(10) < 4) {
+        leds[random16(count)] = CRGB::White;
+      }
+      break;
+    }
+    case MANUAL_LED_SCANNER: {
+      if (count <= 1) {
+        leds[0] = baseColor;
+        leds[0].nscale8_video(beatsin8(25, 20, 255));
+      } else {
+        fadeToBlackBy(leds, count, 70);
+        uint16_t pos = beatsin16(25, 0, count - 1);
+        leds[pos] = baseColor;
+      }
+      break;
+    }
+    case MANUAL_LED_FIRE:
+      for (uint16_t i = 0; i < count; ++i) {
+        leds[i] = baseColor;
+        leds[i].nscale8_video(random8(60, 255));
+      }
+      break;
+    case MANUAL_LED_CANDLE:
+      for (uint16_t i = 0; i < count; ++i) {
+        uint8_t flicker = random8(0, 50);
+        CRGB c = baseColor;
+        c.nscale8_video(255 - flicker);
+        leds[i] = c;
+      }
+      break;
+    case MANUAL_LED_STROBE:
+      fill_solid(leds, count, (step % 6 < 3) ? baseColor : CRGB::Black);
+      break;
+    default:
+      fill_solid(leds, count, baseColor);
+      break;
+  }
+  FastLED.show();
+}
+
+static void showVuMeter(uint16_t step) {
+  if (!leds || cfg.ledCount == 0) return;
+  uint16_t count = cfg.ledCount;
+  
+  static float smoothPeak = 0.0f;
+  static float peakHold = 0.0f;
+  static uint32_t peakHoldMs = 0;
+  
+  uint16_t p = currentAudioPeak;
+  currentAudioPeak = 0;
+  
+  if ((float)p > smoothPeak) {
+    smoothPeak = smoothPeak * 0.35f + (float)p * 0.65f;
+  } else {
+    smoothPeak = smoothPeak * 0.80f;
+  }
+  
+  uint32_t now = millis();
+  if (smoothPeak > peakHold) {
+    peakHold = smoothPeak;
+    peakHoldMs = now + 250;
+  } else if (now > peakHoldMs) {
+    peakHold = peakHold * 0.90f;
+  }
+  
+  int lit = map((long)smoothPeak, 200, 14000, 0, (long)count);
+  lit = constrain(lit, 0, (int)count);
+  
+  int peakIdx = map((long)peakHold, 200, 14000, 0, (long)(count - 1));
+  peakIdx = constrain(peakIdx, 0, (int)(count - 1));
+
+  uint8_t baseHue = (step * 3) & 0xFF; // Tự động đổi màu cầu vồng đa sắc chuyển động liên tục
+  for (uint16_t i = 0; i < count; i++) {
+    if (i < (uint16_t)lit) {
+      uint8_t hue = baseHue + (i * 256 / count);
+      leds[i] = CHSV(hue, 255, 255);
+    } else {
+      leds[i] = CRGB::Black;
+    }
+  }
+  if (peakIdx >= 0 && peakIdx < count && lit > 0) {
+    leds[peakIdx] = CHSV((baseHue + 128) & 0xFF, 180, 255);
+  }
+  FastLED.show();
+}
+
+static void showAudioReactivePulse(uint16_t step) {
+  if (!leds || cfg.ledCount == 0) return;
+  uint16_t count = cfg.ledCount;
+  
+  static float smoothPeak = 0.0f;
+  uint16_t p = currentAudioPeak;
+  currentAudioPeak = 0;
+  
+  if ((float)p > smoothPeak) {
+    smoothPeak = smoothPeak * 0.4f + (float)p * 0.6f;
+  } else {
+    smoothPeak = smoothPeak * 0.85f;
+  }
+  
+  uint8_t brightness = map((long)smoothPeak, 300, 22000, 25, 255);
+  uint8_t baseHue = (step * 2) & 0xFF;
+  for (uint16_t i = 0; i < count; i++) {
+    uint8_t h = baseHue + (i * 256 / count);
+    leds[i] = CHSV(h, 240, brightness);
+  }
+  FastLED.show();
+}
+
+static void showAudioReactiveFire(uint16_t step) {
+  if (!leds || cfg.ledCount == 0) return;
+  uint16_t count = cfg.ledCount;
+  
+  static float smoothPeak = 0.0f;
+  uint16_t p = currentAudioPeak;
+  currentAudioPeak = 0;
+  if ((float)p > smoothPeak) smoothPeak = (float)p;
+  else smoothPeak = smoothPeak * 0.85f;
+  
+  uint8_t boost = map((long)smoothPeak, 400, 24000, 0, 100);
+
+  for (uint16_t i = 0; i < count; i++) {
+    uint8_t heat = qadd8(random8(50, 150), boost);
+    leds[i] = HeatColor(heat);
+  }
+  FastLED.show();
+}
+
+static void showSpinningComet(uint16_t step, CRGB color) {
+  if (!leds || cfg.ledCount == 0) return;
+  uint16_t count = cfg.ledCount;
+  uint16_t head = step % count;
+  fadeToBlackBy(leds, count, 60);
+  leds[head] = color;
+  uint16_t prev = (head + count - 1) % count;
+  leds[prev] += CRGB(color.r / 3, color.g / 3, color.b / 3);
+  FastLED.show();
+}
+
+static void showBreatheEffect(uint16_t step, CRGB color) {
+  if (!leds || cfg.ledCount == 0) return;
+  uint16_t count = cfg.ledCount;
+  uint8_t b = beatsin8(25, 20, 255);
+  CRGB c = color;
+  c.nscale8_video(b);
+  fill_solid(leds, count, c);
+  FastLED.show();
+}
+
 static void ledTask(void *) {
   uint16_t step = 0;
   LedEffect lastStaticEffect = (LedEffect)255;
@@ -1835,20 +2424,50 @@ static void ledTask(void *) {
       lastStaticEffect = (LedEffect)255;
     }
     LedEffect effect = ledEffect;
-    bool animated = effect == LED_SPEAK || effect == LED_LOADING || effect == LED_MUTE ||
-                    effect == LED_ERROR || effect == LED_SOCKET_ERROR || effect == LED_VOLUME ||
-                    effect == LED_STARTUP;
+    ManualLedState manual = manualLedSnapshot();
+    if (manual.on && (effect == LED_OFF || effect == LED_MUTE)) {
+      showManualLed(manual, step);
+      lastStaticEffect = (LedEffect)255;
+      ++step;
+      vTaskDelay(pdMS_TO_TICKS(manual.effect == MANUAL_LED_SOLID ? 50 : 20));
+      continue;
+    }
+    bool animated = effect == LED_SPEAK || effect == LED_LOADING ||
+                    (effect == LED_MUTE && cfg.ledMuteEffect != 0) ||
+                    effect == LED_ERROR ||
+                    (effect == LED_SOCKET_ERROR && cfg.ledErrorEffect != 1) ||
+                    effect == LED_VOLUME ||
+                    effect == LED_STARTUP ||
+                    (effect == LED_THINK && cfg.ledThinkEffect != 0);
     if (!animated && effect == lastStaticEffect) {
       vTaskDelay(pdMS_TO_TICKS(50));
       continue;
     }
     switch (effect) {
-      case LED_SPEAK: showRainbow(step, 4); break;
-      case LED_THINK: showSolid(parseHexColor(cfg.ledThinkColor, CRGB::Blue)); break;
-      case LED_LOADING: showRainbow(step, 10); break;
-      case LED_MUTE: showMuteBreath(step); break;
+      case LED_SPEAK:
+        if (cfg.ledSpeakEffect == 1) showVuMeter(step);
+        else if (cfg.ledSpeakEffect == 2) showAudioReactivePulse(step);
+        else if (cfg.ledSpeakEffect == 3) showAudioReactiveFire(step);
+        else showRainbow(step, 4);
+        break;
+      case LED_THINK:
+        if (cfg.ledThinkEffect == 1) showSpinningComet(step, parseHexColor(cfg.ledThinkColor, CRGB::Blue));
+        else if (cfg.ledThinkEffect == 2) showBreatheEffect(step, parseHexColor(cfg.ledThinkColor, CRGB::Blue));
+        else showSolid(parseHexColor(cfg.ledThinkColor, CRGB::Blue));
+        break;
+      case LED_LOADING: showSpinningComet(step, CRGB::Cyan); break;
+      case LED_MUTE:
+        if (cfg.ledMuteEffect == 1) showMuteBreath(step);
+        else if (cfg.ledMuteEffect == 2) showSpinningComet(step, parseHexColor(cfg.ledMuteColor, CRGB(255, 140, 0)));
+        else showSolid(parseHexColor(cfg.ledMuteColor, CRGB(255, 140, 0)));
+        break;
       case LED_ERROR: showSolid((step % 50) < 25 ? CRGB::Red : CRGB::Black); break;
-      case LED_SOCKET_ERROR: showSocketErrorBreath(step); break;
+      case LED_SOCKET_ERROR:
+        if (cfg.ledErrorEffect == 1) showSolid(parseHexColor(cfg.ledErrorColor, CRGB(255, 40, 20)));
+        else if (cfg.ledErrorEffect == 2) showSocketErrorBlink(step);
+        else if (cfg.ledErrorEffect == 3) showSpinningComet(step, parseHexColor(cfg.ledErrorColor, CRGB(255, 40, 20)));
+        else showSocketErrorBreath(step);
+        break;
       case LED_STARTUP: showStartupEffect(step); break;
       case LED_PAUSE: showSolid(CRGB(255, 80, 0)); break;
       case LED_VOLUME: showVolumeLevel(cfg.volume); break;
@@ -1933,6 +2552,7 @@ static void installSilentDac() {
 }
 
 static void stopMp3(bool keepSilentDac) {
+  vbot_aec_set_playback_active(false);
   if (mp3Out) {
     mp3Out->SetGain(0.0f);
   }
@@ -2034,15 +2654,16 @@ static bool startMp3Source(const char *source, bool localFile, bool feedbackOnFa
     resumeMicAfterAudio();
     return false;
   }
+  uint32_t targetWarmupMs = localFile ? 30 : DAC_MP3_WARMUP_MS;
   uint32_t warmupElapsed = millis() - dacWarmupStarted;
-  if (warmupElapsed < DAC_MP3_WARMUP_MS) {
-    vTaskDelay(pdMS_TO_TICKS(DAC_MP3_WARMUP_MS - warmupElapsed));
+  if (warmupElapsed < targetWarmupMs) {
+    vTaskDelay(pdMS_TO_TICKS(targetWarmupMs - warmupElapsed));
   }
   // AudioOutputI2S sẽ cài và sở hữu driver I2S trong thời gian giải mã.
   // Chỉ gỡ driver DAC im lặng. Source MP3 vừa mở phải còn nguyên cho begin().
   uninstallPcmTx();
   //LOGF("Đã mở source MP3: size=%u, free=%u, min=%u", (unsigned)mp3File->getSize(), (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMinFreeHeap());
-  mp3Out = new (std::nothrow) AudioOutputI2S(0, AudioOutputI2S::EXTERNAL_I2S, psramFound() ? 8 : 6);
+  mp3Out = new (std::nothrow) AudioOutputVBotAEC(0, AudioOutputI2S::EXTERNAL_I2S, psramFound() ? 8 : 6);
   if (!mp3Out) {
     LOGF("Không đủ RAM để khởi tạo AudioOutputI2S: %s", source);
     stopMp3();
@@ -2082,7 +2703,8 @@ static bool startMp3Source(const char *source, bool localFile, bool feedbackOnFa
   // trước khi gọi mp3->loop(), nếu không frame MP3 đầu tiên có thể bị phát
   // trong lúc ampli đang thoát shutdown.
   int16_t silentSample[2] = {0, 0};
-  uint32_t outputWarmupDeadline = millis() + DAC_MP3_WARMUP_MS;
+  uint32_t targetOutputWarmupMs = localFile ? 20 : DAC_MP3_WARMUP_MS;
+  uint32_t outputWarmupDeadline = millis() + targetOutputWarmupMs;
   while (!deadlineReached(outputWarmupDeadline)) {
     if (!mp3Out->ConsumeSample(silentSample)) vTaskDelay(pdMS_TO_TICKS(1));
   }
@@ -2168,6 +2790,7 @@ static void initMic() {
 }
 
 static void suspendMicForAudio() {
+  if (cfg.wakenetEnabled) return; // Cho phép mic tiếp tục chạy để nhận diện từ khóa và ngắt lời (Barge-in)
   if (!micRxInstalled) return;
   micSuspendedForAudio = true;
   lockMicI2s();
@@ -2253,12 +2876,14 @@ static bool readMicFrame(MicFrame &frame, int32_t *outAvg = nullptr, int32_t *ou
 }
 
 static bool audioIdle();
+static bool stopAudioPlayback(bool clearSuspendedAudio);
 
 static void micTask(void *) {
   bool wasCapturing = false;
   for (;;) {
     bool shouldCapture = !otaUpdateActive && wsReady && (!mqttNetworkBusy || recording) &&
-                         micActive() && audioIdle() && (recording || ((cfg.hotwordStreamEnabled || cfg.wakenetEnabled) && waitingToWake));
+                         micActive() && (audioIdle() || cfg.wakenetEnabled) &&
+                         (recording || ((cfg.hotwordStreamEnabled || cfg.wakenetEnabled) && (waitingToWake || !audioIdle())));
     if (!shouldCapture) {
       if (wasCapturing) {
         wasCapturing = false;
@@ -2286,16 +2911,31 @@ static void micTask(void *) {
       continue;
     }
 
-    if (!recording && waitingToWake && cfg.wakenetEnabled) {
+    int16_t cleanFrame[FRAME_SAMPLES];
+    vbot_audio_dsp_process((const int16_t*)micWorkFrame.data, cleanFrame, FRAME_SAMPLES, cfg.nsEnabled, cfg.agcEnabled);
+
+    if (!recording && (waitingToWake || !audioIdle()) && cfg.wakenetEnabled) {
       if (vbot_wakenet_is_running()) {
-        if (vbot_wakenet_feed((const int16_t*)micWorkFrame.data, FRAME_SAMPLES)) {
+        if (vbot_wakenet_feed(cleanFrame, FRAME_SAMPLES)) {
           LOG("[WakeNet] Phát hiện từ khóa đánh thức!");
+          if (!audioIdle()) {
+            LOG("[Barge-In] Ngắt lời thành công khi loa đang phát! Dừng phát audio ngay lập tức.");
+            stopAudioPlayback(true);
+          }
           wakeSkipRequest = true;
         }
-        if (!cfg.hotwordStreamEnabled) {
+        if (!cfg.hotwordStreamEnabled && audioIdle()) {
           continue;
         }
       }
+    }
+
+    // Cập nhật khung âm thanh sạch (đã qua AEC, NS, AGC) để gửi lên máy chủ STT
+    memcpy(micWorkFrame.data, cleanFrame, FRAME_BYTES);
+
+    // Nếu đang phát âm thanh và chưa vào phiên ghi âm, không gửi âm thanh môi trường lên server
+    if (!audioIdle() && !recording) {
+      continue;
     }
 
     // Khi đang trong phiên thu âm câu lệnh (recording == true) hoặc tắt VAD,
@@ -2573,6 +3213,12 @@ static bool beginWifiResetSequence(bool resetConfigToo) {
 
 static void runPendingResetSequences() {
   uint32_t now = millis();
+  if (volumeFeedbackPending && deadlineReached(volumeFeedbackAtMs, now)) {
+    volumeFeedbackPending = false;
+    if (cfg.volume > 0 && waitingToWake && !recording && audioIdle() && localTutTutAvailable) {
+      playMp3FilePath("/sound/tut_tut.mp3", false, LED_SPEAK, false);
+    }
+  }
   if (volumeSavePending && deadlineReached(volumeSaveAtMs, now)) {
     uint8_t value = volumeSaveValue;
     bool playFeedback = volumeSaveFeedbackPending;
@@ -2583,7 +3229,7 @@ static void runPendingResetSequences() {
     unlockNvs();
     LOGF("Đã lưu âm lượng vào NVS: %u", value);
     if (playFeedback && value > 0 && waitingToWake && !recording && audioIdle() && localTutTutAvailable) {
-      playMp3FilePath("/sound/tut_tut.mp3");
+      playMp3FilePath("/sound/tut_tut.mp3", false, LED_SPEAK, false);
     }
   }
   if (ledBrightnessSavePending && deadlineReached(ledBrightnessSaveAtMs, now)) {
@@ -2682,9 +3328,16 @@ static void amplifyPcm16(uint8_t *data, size_t len, uint8_t volume) {
   int32_t gainFixed = (int32_t)(floatGain * 256.0f + 0.5f);
   int16_t *samples = (int16_t *)data;
   size_t count = len / sizeof(int16_t);
+  uint16_t localPeak = 0;
   for (size_t i = 0; i < count; i++) {
     int64_t v = (int64_t)samples[i] * gainFixed;
-    samples[i] = clamp16((int32_t)((v + 128) >> 8));
+    int16_t s = clamp16((int32_t)((v + 128) >> 8));
+    samples[i] = s;
+    int32_t a = abs((int32_t)s);
+    if (a > localPeak) localPeak = (uint16_t)a;
+  }
+  if (localPeak > currentAudioPeak) {
+    currentAudioPeak = localPeak;
   }
 }
 
@@ -2759,6 +3412,9 @@ static void dacTask(void *) {
           size_t written = 0;
           //Áp dụng volume chung cho PCM realtime
           amplifyPcm16((uint8_t *)cmd.pcm, cmd.pcmLen, cfg.volume);
+          if (vbot_aec_is_active()) {
+            vbot_aec_feed_ref((const int16_t*)cmd.pcm, cmd.pcmLen / sizeof(int16_t));
+          }
           esp_err_t writeResult = i2s_write(
             PCM_I2S_PORT, cmd.pcm, cmd.pcmLen, &written, pdMS_TO_TICKS(500));
           if (writeResult != ESP_OK || written != cmd.pcmLen) {
@@ -2770,7 +3426,7 @@ static void dacTask(void *) {
             setLedEffect(LED_ERROR);
           } else {
             lastPcmPlaybackMs = millis();
-            if (!recording) setLedEffect(LED_SPEAK);
+            if (cmd.speakLed && !recording && !volumeLedActive) setLedEffect(cmd.playLedEffect);
           }
         }
         if (cmd.pcmPoolSlot >= 0 && pcmFreeQueue) {
@@ -2785,6 +3441,7 @@ static void dacTask(void *) {
       //Dừng âm thanh đang phát, bao gồm MP3 và PCM
       else if (cmd.type == AUDIO_CMD_STOP) {
         pcmPlaybackActive = false;
+        vbot_aec_set_playback_active(false);
         pendingAutoContinue = false;
         stopMp3();
         lockMediaState();
@@ -2815,6 +3472,7 @@ static void dacTask(void *) {
     //auto stop PCM playback nếu đã lâu không nhận được chunk mới
     if (pcmPlaybackActive && uxQueueMessagesWaiting(audioQueue) == 0 && millis() - lastPcmPlaybackMs >= 300) {
       pcmPlaybackActive = false;
+      vbot_aec_set_playback_active(false);
       if (micQueue) xQueueReset(micQueue);
       mqttStateDirty = true;
     }
@@ -2930,7 +3588,11 @@ static void handleJsonMessage(uint8_t *payload, size_t length) {
     const char *audioUrl = validAudioUrl(tts) ? tts : status;
     bool hasAudio = validAudioUrl(audioUrl);
     if (hasAudio) {
-      setLedEffect(LED_SPEAK);
+      if (validAudioUrl(tts)) {
+        setLedEffect(LED_SPEAK);
+      } else {
+        setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+      }
       playMp3Url(audioUrl);
     } else {
       if (!pcmPlaybackRecentlyActive() && uxQueueMessagesWaiting(audioQueue) == 0) {
@@ -3568,6 +4230,12 @@ static String buildWebUiStateJson(const char *&failureReason) {
   doc["status"]["chip_model"] = ESP.getChipModel();
   doc["status"]["chip_revision"] = ESP.getChipRevision();
   doc["status"]["chip_cores"] = ESP.getChipCores();
+  doc["status"]["cpu_freq_mhz"] = getCpuFrequencyMhz();
+#if defined(ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+  doc["status"]["cpu_temp_c"] = round(temperatureRead() * 10.0f) / 10.0f;
+#else
+  doc["status"]["cpu_temp_c"] = 0;
+#endif
   doc["status"]["chip_target"] = buildTarget();
   doc["status"]["update_family"] = updateFamily();
   doc["status"]["uptime_ms"] = millis();
@@ -3970,6 +4638,67 @@ static void initWeb() {
     serializeJson(doc, out);
     request->send(200, CONTENT_JSON, out);
   });
+  web.on("/api/led", HTTP_GET, [](AsyncWebServerRequest *request) {
+    sendCorsJsonBody(request, 200, buildManualLedStateJson());
+  });
+  web.on("/api/led", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+    sendCorsJsonBody(request, 204, String());
+  });
+  web.on(
+    "/api/led",
+    HTTP_POST,
+    [](AsyncWebServerRequest *request) {
+      LedApiBody *body = static_cast<LedApiBody *>(request->_tempObject);
+      request->_tempObject = nullptr;
+      if (!body) {
+        sendCorsJsonResult(request, 400, false, "Thiếu JSON body");
+        return;
+      }
+      if (body->tooLarge) {
+        delete body;
+        sendCorsJsonResult(request, 413, false, "JSON LED vượt quá 512 byte");
+        return;
+      }
+      JsonDocument command;
+      DeserializationError parseError = deserializeJson(command, body->data, body->length);
+      delete body;
+      if (parseError || !command.is<JsonObject>()) {
+        sendCorsJsonResult(request, 400, false, "JSON LED không hợp lệ hoặc không phải object");
+        return;
+      }
+      String error;
+      if (!applyManualLedCommand(command.as<JsonObjectConst>(), error)) {
+        sendCorsJsonResult(request, 409, false, error.c_str());
+        return;
+      }
+      sendCorsJsonBody(request, 200, buildManualLedStateJson());
+    },
+    nullptr,
+    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+      if (index == 0) {
+        LedApiBody *created = new (std::nothrow) LedApiBody();
+        request->_tempObject = created;
+        if (created) {
+          request->onDisconnect([request]() {
+            LedApiBody *orphan = static_cast<LedApiBody *>(request->_tempObject);
+            if (orphan) {
+              request->_tempObject = nullptr;
+              delete orphan;
+            }
+          });
+        }
+      }
+      LedApiBody *body = static_cast<LedApiBody *>(request->_tempObject);
+      if (!body) return;
+      if (total > sizeof(body->data) - 1 || index + len > sizeof(body->data) - 1) {
+        body->tooLarge = true;
+        return;
+      }
+      memcpy(body->data + index, data, len);
+      body->length = index + len;
+      body->data[body->length] = '\0';
+    }
+  );
   web.on("/test_led", HTTP_POST, [](AsyncWebServerRequest *request) {
     if (!hardwareGpioValid || !cfg.ledEnabled || !leds) {
       request->send(409, CONTENT_JSON, "{\"success\":false,\"message\":\"LED không sẵn sàng hoặc GPIO đang ở chế độ an toàn\"}");
@@ -4168,6 +4897,8 @@ static void initWeb() {
     doc["audio"]["wakenet_enabled"] = cfg.wakenetEnabled;
     doc["audio"]["wakenet_model"] = cfg.wakenetModel;
     doc["audio"]["wakenet_supported"] = vbot_wakenet_is_supported();
+  doc["audio"]["aec_supported"] = vbot_aec_is_active();
+  doc["audio"]["barge_in_supported"] = vbot_wakenet_is_supported();
     doc["audio"]["psram_active"] = psramFound();
     doc["audio"]["wakenet_model_name"] = vbot_wakenet_get_model_name((WakeNetModelId)cfg.wakenetModel);
     doc["audio"]["hotword_mode"] = cfg.wakenetEnabled ? "wakenet" : (cfg.hotwordStreamEnabled ? "server" : "none");
@@ -4222,6 +4953,8 @@ static void initWeb() {
     doc["led"]["brightness_percent"] = cfg.ledBrightnessPct;
     doc["led"]["think_color"] = cfg.ledThinkColor;
     doc["led"]["mute_color"] = cfg.ledMuteColor;
+    doc["led"]["error_color"] = cfg.ledErrorColor;
+    doc["led"]["error_effect"] = cfg.ledErrorEffect;
     doc["gpio"]["button_mic"] = cfg.pinBtnMic;
     doc["gpio"]["button_volume_up"] = cfg.pinBtnVolUp;
     doc["gpio"]["button_volume_down"] = cfg.pinBtnVolDown;
@@ -4233,6 +4966,13 @@ static void initWeb() {
     doc["button"]["input_mode"] = cfg.inputMode;
     doc["button"]["active_level"] = cfg.buttonActiveLevel;
     doc["button"]["wakeup_long_action"] = cfg.wakeLongAction;
+    doc["button"]["wakeup_double_action"] = cfg.wakeDoubleAction;
+    doc["button"]["mic_long_action"] = cfg.micLongAction;
+    doc["button"]["mic_double_action"] = cfg.micDoubleAction;
+    doc["button"]["vol_up_long_action"] = cfg.volUpLongAction;
+    doc["button"]["vol_up_double_action"] = cfg.volUpDoubleAction;
+    doc["button"]["vol_down_long_action"] = cfg.volDownLongAction;
+    doc["button"]["vol_down_double_action"] = cfg.volDownDoubleAction;
     doc["button"]["press_debounce_ms"] = cfg.buttonPressDebounceMs;
     doc["button"]["release_debounce_ms"] = cfg.buttonReleaseDebounceMs;
     doc["button"]["hold_ms"] = cfg.buttonHoldMs;
@@ -4332,6 +5072,7 @@ static void initWeb() {
     strlcpy(cfg.buttonActiveLevel, newButtonActiveHigh ? "high" : "low", sizeof(cfg.buttonActiveLevel));
     normalizeHexColor(cfg.ledThinkColor, sizeof(cfg.ledThinkColor), argStr(request, "lthink", cfg.ledThinkColor).c_str(), "#0066FF");
     normalizeHexColor(cfg.ledMuteColor, sizeof(cfg.ledMuteColor), argStr(request, "lmute", cfg.ledMuteColor).c_str(), "#FF8C00");
+    normalizeHexColor(cfg.ledErrorColor, sizeof(cfg.ledErrorColor), argStr(request, "lerrclr", cfg.ledErrorColor).c_str(), "#FF2814");
     cfg.pinLed = newPinLed;
     cfg.pinBtnMic = newPinBtnMic;
     cfg.pinBtnVolUp = newPinBtnVolUp;
@@ -4354,6 +5095,27 @@ static void initWeb() {
     }
     if (request->hasParam("wla", true)) {
       strlcpy(cfg.wakeLongAction, request->getParam("wla", true)->value().c_str(), sizeof(cfg.wakeLongAction));
+    }
+    if (request->hasParam("wda", true)) {
+      strlcpy(cfg.wakeDoubleAction, request->getParam("wda", true)->value().c_str(), sizeof(cfg.wakeDoubleAction));
+    }
+    if (request->hasParam("mla", true)) {
+      strlcpy(cfg.micLongAction, request->getParam("mla", true)->value().c_str(), sizeof(cfg.micLongAction));
+    }
+    if (request->hasParam("mda", true)) {
+      strlcpy(cfg.micDoubleAction, request->getParam("mda", true)->value().c_str(), sizeof(cfg.micDoubleAction));
+    }
+    if (request->hasParam("vupla", true)) {
+      strlcpy(cfg.volUpLongAction, request->getParam("vupla", true)->value().c_str(), sizeof(cfg.volUpLongAction));
+    }
+    if (request->hasParam("vupda", true)) {
+      strlcpy(cfg.volUpDoubleAction, request->getParam("vupda", true)->value().c_str(), sizeof(cfg.volUpDoubleAction));
+    }
+    if (request->hasParam("vdnla", true)) {
+      strlcpy(cfg.volDownLongAction, request->getParam("vdnla", true)->value().c_str(), sizeof(cfg.volDownLongAction));
+    }
+    if (request->hasParam("vdnda", true)) {
+      strlcpy(cfg.volDownDoubleAction, request->getParam("vdnda", true)->value().c_str(), sizeof(cfg.volDownDoubleAction));
     }
     cfg.dacBclk = newDacBclk;
     cfg.dacLrc = newDacLrc;
@@ -4383,6 +5145,24 @@ static void initWeb() {
     cfg.startupSoundEnabled = request->hasParam("bootsnd", true);
     cfg.serialLogs = request->hasParam("logs", true);
     cfg.mdnsEnabled = request->hasParam("mdns", true);
+    cfg.nsEnabled = request->hasParam("nsen", true);
+    cfg.agcEnabled = request->hasParam("agcen", true);
+    if (request->hasParam("agcgain", true)) {
+      cfg.agcGain = constrain(request->getParam("agcgain", true)->value().toInt(), 0, 30);
+    }
+    if (request->hasParam("lspef", true)) {
+      cfg.ledSpeakEffect = constrain(request->getParam("lspef", true)->value().toInt(), 0, 3);
+    }
+    if (request->hasParam("lthkef", true)) {
+      cfg.ledThinkEffect = constrain(request->getParam("lthkef", true)->value().toInt(), 0, 2);
+    }
+    if (request->hasParam("lmuteef", true)) {
+      cfg.ledMuteEffect = constrain(request->getParam("lmuteef", true)->value().toInt(), 0, 2);
+    }
+    if (request->hasParam("lerref", true)) {
+      cfg.ledErrorEffect = constrain(request->getParam("lerref", true)->value().toInt(), 0, 3);
+    }
+    cfg.dfsEnabled = request->hasParam("dfsen", true);
     cfg.mqttEnabled = request->hasParam("mqen", true);
     strlcpy(cfg.mqttHost, argStr(request, "mqhost", cfg.mqttHost).c_str(), sizeof(cfg.mqttHost));
     cfg.mqttPort = constrain(argInt(request, "mqport", cfg.mqttPort), 1, 65535);
@@ -4460,6 +5240,10 @@ static void applyVolumeDelta(int delta) {
   int next = constrain((int)cfg.volume + delta, 0, 100);
   if (next == cfg.volume) {
     unlockCfg();
+    if (cfg.volume > 0 && waitingToWake && !recording && localTutTutAvailable) {
+      volumeFeedbackAtMs = millis() + 80;
+      volumeFeedbackPending = true;
+    }
     return;
   }
   cfg.volume = (uint8_t)next;
@@ -4468,41 +5252,15 @@ static void applyVolumeDelta(int delta) {
   volumeSaveValue = volume;
   volumeSaveAtMs = millis() + VOLUME_SAVE_DELAY_MS;
   volumeSavePending = true;
-  volumeSaveFeedbackPending = true;
+  volumeSaveFeedbackPending = false;
+  volumeFeedbackAtMs = millis() + 140;
+  volumeFeedbackPending = true;
   mqttStateDirty = true;
   AudioCommand cmd = {};
   cmd.type = AUDIO_CMD_SET_VOLUME;
   queueAudioCommand(cmd);
   LOGF("Âm lượng: %u", cfg.volume);
   showVolumeOverlay(volume);
-}
-
-static void handleButton(ButtonRuntime &state, int pin, void (*shortAction)(), void (*longAction)(), bool activeHigh = false) {
-  if (pin < 0) return;
-  uint32_t now = millis();
-  bool raw = (digitalRead(pin) == (activeHigh ? HIGH : LOW));
-  if (raw != state.rawPressed) {
-    state.rawPressed = raw;
-    state.lastRawChangeMs = now;
-  }
-
-  if (raw != state.stablePressed) {
-    uint16_t debounce = raw ? cfg.buttonPressDebounceMs : cfg.buttonReleaseDebounceMs;
-    if (now - state.lastRawChangeMs >= debounce) {
-      state.stablePressed = raw;
-      if (raw) {
-        state.pressStartMs = now;
-        state.longFired = false;
-      } else if (!state.longFired && shortAction) {
-        shortAction();
-      }
-    }
-  }
-
-  if (state.stablePressed && !state.longFired && now - state.pressStartMs >= cfg.buttonHoldMs) {
-    state.longFired = true;
-    if (longAction) longAction();
-  }
 }
 
 // Hủy phiên ghi âm từ buttonTask (Core 0) và ủy quyền gửi "stop" sang websocketTask (Core 1).
@@ -4561,10 +5319,11 @@ static void micLongPress() {
   playMp3Url(conversationMode ? conversationModeOnFeedbackUrl().c_str() : conversationModeOffFeedbackUrl().c_str());
 }
 
-static void volUpShortPress() { applyVolumeDelta(10); }
-static void volUpLongPress() { applyVolumeDelta(100); }
-static void volDownShortPress() { applyVolumeDelta(-10); }
-static void volDownLongPress() { applyVolumeDelta(-100); }
+static void volUpShortPress() { applyVolumeDelta(5); }
+static void volUpLongPress() { applyVolumeDelta(20); }
+static void volDownShortPress() { applyVolumeDelta(-5); }
+static void volDownLongPress() { applyVolumeDelta(-20); }
+
 static void wakeShortPress() {
   if (!vbotServerStartupEnabled()) return;
   //LOG("Nhấn nút WakeUP / Rotary SW: yêu cầu đánh thức thủ công");
@@ -4573,43 +5332,192 @@ static void wakeShortPress() {
   stopAudioPlayback(true);
   wakeSkipRequest = true;
 }
-static void wakeLongPress() {
-  if (otaUpdateActive || fsMaintenanceActive) {
-    UART_LOG("Bỏ qua nhấn giữ WakeUP vì OTA/LittleFS đang được cập nhật, không reset hoặc restart.");
-    return;
+
+static bool executeConfiguredButtonAction(const char *actionName, const char *buttonDesc) {
+  if (!actionName || !actionName[0] || !strcmp(actionName, "none")) return false;
+
+  if (!strcmp(actionName, "stop_audio")) {
+    cancelRecordingForButton(false);
+    restoreTemporaryMic();
+    stopAudioPlaybackWithFeedback();
+    mqttStateDirty = true;
+    setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+    LOGF("%s: Dừng phát âm thanh", buttonDesc ? buttonDesc : "Nút nhấn");
+    return true;
   }
-  if (!strcmp(cfg.wakeLongAction, "restart")) {
-    LOG("Phát hiện nhấn giữ nút WakeUP. Khởi động lại ESP");
-    scheduleRestart(300, "Nhấn giữ nút WakeUP");
-    return;
-  }
-  if (!strcmp(cfg.wakeLongAction, "clean_all")) {
-    LOG("Phát hiện nhấn giữ nút WakeUP: Reset bộ nhớ NVS và WiFi");
-    beginWifiResetSequence(true);
-    return;
-  }
-  if (!strcmp(cfg.wakeLongAction, "reset_wifi")) {
-    LOG("Phát hiện nhấn giữ nút WakeUP: Reset WiFi");
-    beginWifiResetSequence(false);
-    return;
-  }
-  if (!strcmp(cfg.wakeLongAction, "reset_nvs")) {
-    LOG("Phát hiện nhấn giữ nút WakeUP: Reset bộ nhớ NVS");
-    if (resetNvsOnly()) scheduleRestart(300, "Nhấn giữ WakeUP: reset NVS");
-    else UART_LOG("Không restart vì reset NVS từ nút WakeUP thất bại.");
-    return;
-  }
-  if (!strcmp(cfg.wakeLongAction, "toggle_mic")) {
-    LOG("Phát hiện nhấn giữ nút WakeUP / Rotary SW: Bật/Tắt Mic");
+  if (!strcmp(actionName, "toggle_mic")) {
+    LOGF("%s: Bật/Tắt Mic", buttonDesc ? buttonDesc : "Nút nhấn");
     micShortPress();
-    return;
+    return true;
   }
+  if (otaUpdateActive || fsMaintenanceActive) {
+    UART_LOGF("Bỏ qua hành động %s vì OTA/LittleFS đang được cập nhật.", buttonDesc ? buttonDesc : "nút nhấn");
+    return true;
+  }
+  if (!strcmp(actionName, "restart")) {
+    LOGF("%s: Khởi động lại ESP", buttonDesc ? buttonDesc : "Nút nhấn");
+    scheduleRestart(300, buttonDesc ? buttonDesc : "Lệnh nút nhấn");
+    return true;
+  }
+  if (!strcmp(actionName, "clean_all")) {
+    LOGF("%s: Đặt lại dữ liệu cấu hình Config và WiFi", buttonDesc ? buttonDesc : "Nút nhấn");
+    beginWifiResetSequence(true);
+    return true;
+  }
+  if (!strcmp(actionName, "reset_wifi")) {
+    LOGF("%s: Đặt lại WiFi", buttonDesc ? buttonDesc : "Nút nhấn");
+    beginWifiResetSequence(false);
+    return true;
+  }
+  if (!strcmp(actionName, "reset_nvs")) {
+    LOGF("%s: Đặt lại cấu hình Config (NVS)", buttonDesc ? buttonDesc : "Nút nhấn");
+    if (resetNvsOnly()) scheduleRestart(300, "Reset NVS từ nút nhấn");
+    else UART_LOG("Không restart vì reset NVS thất bại.");
+    return true;
+  }
+  return false;
+}
+
+static void wakeLongPress() {
+  if (executeConfiguredButtonAction(cfg.wakeLongAction, "Nhấn giữ WakeUP / Rotary SW")) return;
   cancelRecordingForButton(false);
   restoreTemporaryMic();
   stopAudioPlaybackWithFeedback();
   mqttStateDirty = true;
   setLedEffect(micActive() ? LED_OFF : LED_MUTE);
   LOG("Phát hiện nhấn giữ nút WakeUP: dừng âm thanh đang phát");
+}
+
+static void handleVolumeButton(ButtonRuntime &state, int pin, int delta, const char *longActionName, const char *doubleActionName, const char *btnDesc, bool activeHigh = false) {
+  if (pin < 0) return;
+  uint32_t now = millis();
+  bool raw = (digitalRead(pin) == (activeHigh ? HIGH : LOW));
+  if (raw != state.rawPressed) {
+    state.rawPressed = raw;
+    state.lastRawChangeMs = now;
+  }
+
+  bool hasDoubleAction = (doubleActionName && doubleActionName[0] && strcmp(doubleActionName, "none") != 0);
+  bool hasLongAction = (longActionName && longActionName[0] && strcmp(longActionName, "none") != 0);
+
+  if (raw != state.stablePressed) {
+    uint16_t debounce = raw ? (cfg.buttonPressDebounceMs > 30 ? 30 : cfg.buttonPressDebounceMs)
+                            : (cfg.buttonReleaseDebounceMs > 30 ? 30 : cfg.buttonReleaseDebounceMs);
+    if (now - state.lastRawChangeMs >= debounce) {
+      state.stablePressed = raw;
+      if (raw) {
+        state.pressStartMs = now;
+        state.lastRepeatMs = now;
+        state.longFired = false;
+        if (!hasDoubleAction) {
+          applyVolumeDelta(delta);
+        }
+      } else {
+        if (!state.longFired) {
+          if (hasDoubleAction) {
+            state.clickCount++;
+            state.releaseMs = now;
+            if (state.clickCount >= 2) {
+              state.clickCount = 0;
+              state.releaseMs = 0;
+              executeConfiguredButtonAction(doubleActionName, btnDesc);
+            }
+          }
+        } else {
+          state.clickCount = 0;
+          state.releaseMs = 0;
+        }
+      }
+    }
+  }
+
+  if (hasDoubleAction && state.clickCount == 1 && !state.stablePressed) {
+    if (now - state.releaseMs >= 280) {
+      state.clickCount = 0;
+      state.releaseMs = 0;
+      applyVolumeDelta(delta);
+    }
+  }
+
+  if (state.stablePressed && !state.longFired) {
+    if (hasLongAction) {
+      if (now - state.pressStartMs >= cfg.buttonHoldMs) {
+        state.longFired = true;
+        state.clickCount = 0;
+        state.releaseMs = 0;
+        executeConfiguredButtonAction(longActionName, btnDesc);
+      }
+    } else {
+      if (now - state.pressStartMs >= 350) {
+        if (now - state.lastRepeatMs >= 120) {
+          state.lastRepeatMs = now;
+          state.longFired = true;
+          applyVolumeDelta(delta);
+        }
+      }
+    }
+  }
+}
+
+static void handleButton(ButtonRuntime &state, int pin, void (*shortAction)(), const char *longActionName, void (*fallbackLongAction)(), const char *doubleActionName, const char *btnDesc, bool activeHigh = false) {
+  if (pin < 0) return;
+  uint32_t now = millis();
+  bool raw = (digitalRead(pin) == (activeHigh ? HIGH : LOW));
+  if (raw != state.rawPressed) {
+    state.rawPressed = raw;
+    state.lastRawChangeMs = now;
+  }
+
+  bool hasDoubleAction = (doubleActionName && doubleActionName[0] && strcmp(doubleActionName, "none") != 0);
+
+  if (raw != state.stablePressed) {
+    uint16_t debounce = raw ? cfg.buttonPressDebounceMs : cfg.buttonReleaseDebounceMs;
+    if (now - state.lastRawChangeMs >= debounce) {
+      state.stablePressed = raw;
+      if (raw) {
+        state.pressStartMs = now;
+        state.longFired = false;
+      } else {
+        if (!state.longFired) {
+          if (hasDoubleAction) {
+            state.clickCount++;
+            state.releaseMs = now;
+            if (state.clickCount >= 2) {
+              state.clickCount = 0;
+              state.releaseMs = 0;
+              executeConfiguredButtonAction(doubleActionName, btnDesc);
+            }
+          } else {
+            state.clickCount = 0;
+            state.releaseMs = 0;
+            if (shortAction) shortAction();
+          }
+        } else {
+          state.clickCount = 0;
+          state.releaseMs = 0;
+        }
+      }
+    }
+  }
+
+  if (hasDoubleAction && state.clickCount == 1 && !state.stablePressed) {
+    if (now - state.releaseMs >= 280) {
+      state.clickCount = 0;
+      state.releaseMs = 0;
+      if (shortAction) shortAction();
+    }
+  }
+
+  if (state.stablePressed && !state.longFired && now - state.pressStartMs >= cfg.buttonHoldMs) {
+    state.longFired = true;
+    state.clickCount = 0;
+    state.releaseMs = 0;
+    if (longActionName && longActionName[0] && strcmp(longActionName, "none") != 0) {
+      executeConfiguredButtonAction(longActionName, btnDesc);
+    } else if (fallbackLongAction) {
+      fallbackLongAction();
+    }
+  }
 }
 
 static uint8_t readRotaryState() {
@@ -4669,14 +5577,14 @@ static void buttonTask(void *) {
     if (cfg.buttonsEnabled && millis() >= buttonReadyAtMs) {
       if (inputModeRotary()) {
         handleRotary(rotary);
-        handleButton(rotarySwButton, cfg.pinRotarySw, wakeShortPress, wakeLongPress);
+        handleButton(rotarySwButton, cfg.pinRotarySw, wakeShortPress, cfg.wakeLongAction, wakeLongPress, cfg.wakeDoubleAction, "WakeUP / Rotary SW");
       } else {
         rotary.initialized = false;
         bool activeHigh = (strcmp(cfg.buttonActiveLevel, "high") == 0);
-        handleButton(micButton, cfg.pinBtnMic, micShortPress, micLongPress, activeHigh);
-        handleButton(upButton, cfg.pinBtnVolUp, volUpShortPress, volUpLongPress, activeHigh);
-        handleButton(downButton, cfg.pinBtnVolDown, volDownShortPress, volDownLongPress, activeHigh);
-        handleButton(wakeButton, cfg.pinBtnWake, wakeShortPress, wakeLongPress, activeHigh);
+        handleButton(micButton, cfg.pinBtnMic, micShortPress, cfg.micLongAction, micLongPress, cfg.micDoubleAction, "Nút Mic", activeHigh);
+        handleVolumeButton(upButton, cfg.pinBtnVolUp, 5, cfg.volUpLongAction, cfg.volUpDoubleAction, "Nút Volume+", activeHigh);
+        handleVolumeButton(downButton, cfg.pinBtnVolDown, -5, cfg.volDownLongAction, cfg.volDownDoubleAction, "Nút Volume-", activeHigh);
+        handleButton(wakeButton, cfg.pinBtnWake, wakeShortPress, cfg.wakeLongAction, wakeLongPress, cfg.wakeDoubleAction, "Nút WakeUP", activeHigh);
       }
     }
     vTaskDelay(pdMS_TO_TICKS(inputModeRotary() ? 2 : 10));
@@ -4788,6 +5696,7 @@ static void publishMqttState(bool force = false) {
   mqttPublish("switch/hotword_stream/state", cfg.hotwordStreamEnabled ? "ON" : "OFF");
   mqttPublish("switch/mic_vad/state", cfg.micVadEnabled ? "ON" : "OFF");
   mqttPublish("switch/led_active/state", cfg.ledEnabled ? "ON" : "OFF");
+  mqttPublish("light/led/state", buildManualLedStateJson());
   mqttPublish("sensor/version/state", VBOT_CLIENT_VERSION);
   mqttPublish("sensor/application_name/state", "VBot ESP32 Client");
   mqttPublish("sensor/package_name/state", VBOT_BUILD_TARGET);
@@ -4900,7 +5809,15 @@ static void mqttMessageCallback(char *topicRaw, uint8_t *payloadRaw, unsigned in
   for (unsigned int i = 0; i < length; ++i) payload += (char)payloadRaw[i];
   payload.trim();
   bool forceSync = topicValue.endsWith("/script/state_sync/set");
-  if (topicValue.endsWith("/number/volume/set")) {
+  if (topicValue.endsWith("/script/led_control/set")) {
+    JsonDocument command;
+    DeserializationError parseError = deserializeJson(command, payload);
+    String error;
+    if (parseError || !command.is<JsonObject>() || !applyManualLedCommand(command.as<JsonObjectConst>(), error)) {
+      logInvalidMqttPayload(topicValue, parseError ? String(parseError.c_str()) : (error.length() ? error : payload));
+      return;
+    }
+  } else if (topicValue.endsWith("/number/volume/set")) {
     float value;
     if (!parseMqttNumber(payload, value)) {
       logInvalidMqttPayload(topicValue, payload);
@@ -5088,6 +6005,13 @@ static uint32_t mqttRuntimeStateHash() {
   mix(cfg.hotwordStreamEnabled);
   mix(cfg.micVadEnabled);
   mix(cfg.ledEnabled);
+  ManualLedState manual = manualLedSnapshot();
+  mix(manual.on);
+  mix(manual.red);
+  mix(manual.green);
+  mix(manual.blue);
+  mix(manual.brightness);
+  mix(manual.effect);
   mix(WiFi.isConnected());
   mix(WiFi.isConnected() ? (uint32_t)WiFi.localIP() : 0);
   mix(wsReady);
@@ -5163,6 +6087,7 @@ static void maintainMqtt() {
     LOGF("MQTT đã kết nối broker %s:%u, bắt đầu đồng bộ trạng thái.", cfg.mqttHost, cfg.mqttPort);
     mqttSubscribePaced("number/volume/set");
     mqttSubscribePaced("number/led_brightness/set");
+    mqttSubscribePaced("script/led_control/set");
     mqttSubscribePaced("switch/+/set");
     mqttSubscribePaced("script/media_control/set");
     mqttSubscribePaced("script/vbot_tts/set");
@@ -5369,11 +6294,47 @@ void setup() {
   LOGF("Khởi động hoàn tất: free heap=%u byte, largest block=%u byte", (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
 }
 
+static void maintainDfs() {
+#if defined(ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+  if (!cfg.dfsEnabled) {
+    if (getCpuFrequencyMhz() != 240) {
+      setCpuFrequencyMhz(240);
+    }
+    return;
+  }
+  static uint32_t lastDfsMs = 0;
+  static uint32_t lastBusyMs = 0;
+  uint32_t now = millis();
+  if (now - lastDfsMs < 1000) return;
+  lastDfsMs = now;
+
+  // Nếu đang phát âm thanh, đang ghi âm, đang nhận diện WakeNet, hoặc microphone hoạt động -> chạy 240MHz
+  bool isBusy = (!audioIdle() || recording || !waitingToWake || cfg.wakenetEnabled);
+  if (isBusy) {
+    lastBusyMs = now;
+    if (getCpuFrequencyMhz() != 240) {
+      setCpuFrequencyMhz(240);
+      LOGF("[DFS] Chuyển xung nhịp CPU: 240 MHz (Trạng thái: Hoạt động / WakeNet / Âm thanh)");
+    }
+    return;
+  }
+
+  // Chỉ hạ xung xuống 160MHz khi thiết bị hoàn toàn rảnh rỗi trong ít nhất 15 giây liên tục
+  if (now - lastBusyMs > 15000) {
+    if (getCpuFrequencyMhz() != 160) {
+      setCpuFrequencyMhz(160);
+      LOGF("[DFS] Chuyển xung nhịp CPU: 160 MHz (Trạng thái: Nghỉ ngơi làm mát chip)");
+    }
+  }
+#endif
+}
+
 void loop() {
   ElegantOTA.loop();
   maintainMdns();
   maintainMqtt();
   runPendingResetSequences();
+  maintainDfs();
   if (restartAtMs && deadlineReached(restartAtMs)) {
     if (otaUpdateActive || fsMaintenanceActive) {
       if (!restartBlockedLogged) {

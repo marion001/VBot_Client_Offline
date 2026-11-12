@@ -79,3 +79,39 @@ bool vbot_wakenet_feed(const int16_t *samples, size_t sample_count);
 
 // Kiểm tra trạng thái đang chạy
 bool vbot_wakenet_is_running();
+
+// ============================================================================
+// AEC (Acoustic Echo Cancellation) & Barge-in cho ESP32-S3
+// ============================================================================
+// Khởi tạo thuật toán AEC
+bool vbot_aec_init();
+
+// Giải phóng tài nguyên AEC
+void vbot_aec_deinit();
+
+// Kiểm tra xem AEC có đang hoạt động không
+bool vbot_aec_is_active();
+
+// Đánh dấu trạng thái đang phát âm thanh ra loa (để bật/tắt luồng lọc AEC)
+void vbot_aec_set_playback_active(bool active);
+bool vbot_aec_get_playback_active();
+
+// Nạp mẫu âm thanh tham chiếu từ Loa (DAC) vào bộ đệm hồi tiếp của AEC
+void vbot_aec_feed_ref(const int16_t *samples, size_t sample_count);
+
+// Xử lý lọc tiếng vọng: đưa 512 mẫu mic vào, nhận 512 mẫu sạch tiếng loa ra
+void vbot_aec_process(const int16_t *mic_in, int16_t *clean_out);
+
+// ============================================================================
+// NS (Noise Suppression) & AGC (Auto Gain Control) cho ESP32-S3
+// ============================================================================
+bool vbot_ns_init(int mode = 1); // 0: Nhẹ, 1: Trung bình, 2: Mạnh
+void vbot_ns_deinit();
+bool vbot_ns_is_active();
+
+bool vbot_agc_init(int target_gain_db = 12);
+void vbot_agc_deinit();
+bool vbot_agc_is_active();
+
+// Chuỗi xử lý âm thanh số kết hợp toàn diện: AEC -> NS -> AGC
+void vbot_audio_dsp_process(const int16_t *mic_in, int16_t *clean_out, size_t sample_count, bool enable_ns = true, bool enable_agc = true);

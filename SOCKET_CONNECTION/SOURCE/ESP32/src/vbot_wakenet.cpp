@@ -7,6 +7,18 @@
 
 #include "vbot_wakenet.h"
 
+
+
+static struct {
+  const char *key;
+  const char *displayName;
+} DEFAULT_MODEL_METADATA[WAKENET_DEFAULT_MODEL_COUNT] = {
+  {"wn9_hilili_tts", "Hi Lily (wn9_hilili_tts) [Mặc định]"},
+  {"wn9_alexa",      "Alexa (wn9_alexa)"},
+  {"wn9_sophia_tts", "Sophia (wn9_sophia_tts)"},
+  {"wn9_jarvis_tts", "Jarvis (wn9_jarvis_tts)"}
+};
+
 #if VBOT_WAKENET_SUPPORTED
 
 #include <LittleFS.h>
@@ -38,6 +50,9 @@ extern "C" {
 #include "esp_wn_iface.h"
 #include "esp_wn_models.h"
 #include "model_path.h"
+#include "esp_aec.h"
+#include "esp_ns.h"
+#include "esp_agc.h"
 }
 #define HAVE_NATIVE_ESP_SR 1
 #else
@@ -46,15 +61,7 @@ extern "C" {
 
 static const char *TAG = "VBOT_WAKENET";
 
-static struct {
-  const char *key;
-  const char *displayName;
-} DEFAULT_MODEL_METADATA[WAKENET_DEFAULT_MODEL_COUNT] = {
-  {"wn9_hilili_tts", "Hi Lily (wn9_hilili_tts) [Mặc định]"},
-  {"wn9_alexa",      "Alexa (wn9_alexa)"},
-  {"wn9_sophia_tts", "Sophia (wn9_sophia_tts)"},
-  {"wn9_jarvis_tts", "Jarvis (wn9_jarvis_tts)"}
-};
+
 
 static WakeNetCustomSlot customSlots[WAKENET_MAX_CUSTOM_MODELS];
 static uint8_t *customBuffers[WAKENET_MAX_CUSTOM_MODELS] = {nullptr};
@@ -66,6 +73,23 @@ static bool isRunning = false;
 static srmodel_list_t *srmodels = nullptr;
 static const esp_wn_iface_t *wakenetHandle = nullptr;
 static model_iface_data_t *modelData = nullptr;
+
+static aec_handle_t aecHandle = nullptr;
+static SemaphoreHandle_t aecMutex = nullptr;
+static constexpr size_t AEC_FRAME_SAMPLES = 512;
+static constexpr size_t AEC_RING_BUFFER_SIZE = 4096; // 8 frames x 512 samples (~256ms)
+static int16_t *aecRefBuffer = nullptr;
+static volatile size_t aecRefHead = 0;
+static volatile size_t aecRefTail = 0;
+static volatile size_t aecRefCount = 0;
+static volatile bool aecPlaybackActive = false;
+static bool aecInitialized = false;
+
+static void ensure_aec_mutex() {
+  if (!aecMutex) {
+    aecMutex = xSemaphoreCreateMutex();
+  }
+}
 #endif
 
 static const char *CUSTOM_JSON_PATH = "/models/custom_models.json";
@@ -357,6 +381,9 @@ bool vbot_wakenet_init(WakeNetModelId initialModel) {
       return false;
     }
     isRunning = true;
+    vbot_aec_init();
+    vbot_ns_init(1);
+    vbot_agc_init(12);
     int chunk = wakenetHandle->get_samp_chunksize(modelData);
     Serial.printf("[WakeNet] Khởi tạo thành công model: %s (%s), chunk=%d samples\n",
                   modelKey, vbot_wakenet_get_model_name(currentModelId), chunk);
@@ -371,6 +398,9 @@ bool vbot_wakenet_init(WakeNetModelId initialModel) {
 void vbot_wakenet_deinit() {
   WakeNetRecursiveLock lock;
   isRunning = false;
+  vbot_aec_deinit();
+  vbot_ns_deinit();
+  vbot_agc_deinit();
 
 #if HAVE_NATIVE_ESP_SR
   if (wakenetHandle && modelData) {
@@ -433,6 +463,278 @@ bool vbot_wakenet_feed(const int16_t *samples, size_t sample_count) {
 
   xSemaphoreGiveRecursive(wakenetMutex);
   return detected;
+}
+
+// ============================================================================
+// Triển khai AEC (Acoustic Echo Cancellation) & Barge-in
+// ============================================================================
+
+bool vbot_aec_init() {
+#if HAVE_NATIVE_ESP_SR
+  if (!psramFound()) {
+    Serial.println("[AEC] Cảnh báo: Cần PSRAM để chạy AEC.");
+    return false;
+  }
+  ensure_aec_mutex();
+  if (aecHandle) return true;
+
+  if (!aecRefBuffer) {
+    aecRefBuffer = (int16_t*)heap_caps_malloc(AEC_RING_BUFFER_SIZE * sizeof(int16_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!aecRefBuffer) {
+      Serial.println("[AEC] Không đủ bộ nhớ PSRAM cho bộ đệm tham chiếu AEC.");
+      return false;
+    }
+    memset(aecRefBuffer, 0, AEC_RING_BUFFER_SIZE * sizeof(int16_t));
+  }
+  aecRefHead = 0;
+  aecRefTail = 0;
+  aecRefCount = 0;
+  aecPlaybackActive = false;
+
+  // Khởi tạo AEC pro: frame_length = 32ms (512 samples ở 16kHz), nch = 1 mic, mode = 5 (ESP32-S3 accelerated)
+  aecHandle = aec_pro_create(32, 1, 5);
+  if (!aecHandle) {
+    Serial.println("[AEC] Khởi tạo aec_pro_create thất bại.");
+    return false;
+  }
+  aecInitialized = true;
+  Serial.println("[AEC] Khởi tạo Acoustic Echo Cancellation (AEC Mode 5 - ESP32S3) thành công!");
+  return true;
+#else
+  return false;
+#endif
+}
+
+void vbot_aec_deinit() {
+#if HAVE_NATIVE_ESP_SR
+  ensure_aec_mutex();
+  if (aecMutex) xSemaphoreTake(aecMutex, portMAX_DELAY);
+  aecInitialized = false;
+  aecPlaybackActive = false;
+  if (aecHandle) {
+    aec_destroy(aecHandle);
+    aecHandle = nullptr;
+  }
+  if (aecRefBuffer) {
+    free(aecRefBuffer);
+    aecRefBuffer = nullptr;
+  }
+  aecRefHead = 0;
+  aecRefTail = 0;
+  aecRefCount = 0;
+  if (aecMutex) xSemaphoreGive(aecMutex);
+  Serial.println("[AEC] Đã giải phóng tài nguyên AEC.");
+#endif
+}
+
+bool vbot_aec_is_active() {
+#if HAVE_NATIVE_ESP_SR
+  return aecInitialized && (aecHandle != nullptr);
+#else
+  return false;
+#endif
+}
+
+void vbot_aec_set_playback_active(bool active) {
+#if HAVE_NATIVE_ESP_SR
+  aecPlaybackActive = active;
+  if (!active && aecMutex && xSemaphoreTake(aecMutex, 0) == pdTRUE) {
+    aecRefHead = 0;
+    aecRefTail = 0;
+    aecRefCount = 0;
+    xSemaphoreGive(aecMutex);
+  }
+#endif
+}
+
+bool vbot_aec_get_playback_active() {
+#if HAVE_NATIVE_ESP_SR
+  return aecPlaybackActive;
+#else
+  return false;
+#endif
+}
+
+void vbot_aec_feed_ref(const int16_t *samples, size_t sample_count) {
+#if HAVE_NATIVE_ESP_SR
+  if (!aecInitialized || !aecRefBuffer || !samples || sample_count == 0) return;
+  if (!aecMutex) return;
+  if (xSemaphoreTake(aecMutex, 0) != pdTRUE) return;
+
+  for (size_t i = 0; i < sample_count; i++) {
+    aecRefBuffer[aecRefHead] = samples[i];
+    aecRefHead = (aecRefHead + 1) % AEC_RING_BUFFER_SIZE;
+    if (aecRefCount < AEC_RING_BUFFER_SIZE) {
+      aecRefCount++;
+    } else {
+      aecRefTail = (aecRefTail + 1) % AEC_RING_BUFFER_SIZE;
+    }
+  }
+  aecPlaybackActive = true;
+  xSemaphoreGive(aecMutex);
+#endif
+}
+
+void vbot_aec_process(const int16_t *mic_in, int16_t *clean_out) {
+  if (!mic_in || !clean_out) return;
+#if HAVE_NATIVE_ESP_SR
+  if (!aecInitialized || !aecHandle || !aecPlaybackActive) {
+    memcpy(clean_out, mic_in, AEC_FRAME_SAMPLES * sizeof(int16_t));
+    return;
+  }
+
+  int16_t refFrame[AEC_FRAME_SAMPLES];
+  bool haveRef = false;
+  if (aecMutex && xSemaphoreTake(aecMutex, 0) == pdTRUE) {
+    if (aecRefCount >= AEC_FRAME_SAMPLES) {
+      for (size_t i = 0; i < AEC_FRAME_SAMPLES; i++) {
+        refFrame[i] = aecRefBuffer[aecRefTail];
+        aecRefTail = (aecRefTail + 1) % AEC_RING_BUFFER_SIZE;
+      }
+      aecRefCount -= AEC_FRAME_SAMPLES;
+      haveRef = true;
+    } else {
+      // Hết mẫu tham chiếu trong đệm
+      aecPlaybackActive = false;
+    }
+    xSemaphoreGive(aecMutex);
+  }
+
+  if (haveRef) {
+    aec_process(aecHandle, (int16_t*)mic_in, refFrame, clean_out);
+  } else {
+    memcpy(clean_out, mic_in, AEC_FRAME_SAMPLES * sizeof(int16_t));
+  }
+#else
+  memcpy(clean_out, mic_in, 512 * sizeof(int16_t));
+#endif
+}
+
+// ============================================================================
+// Triển khai NS (Noise Suppression) & AGC (Auto Gain Control)
+// ============================================================================
+
+static ns_handle_t nsHandle = nullptr;
+static bool nsInitialized = false;
+
+static void *agcHandle = nullptr;
+static bool agcInitialized = false;
+
+// Buffer FIFO để đồng bộ khung 512 mẫu (AEC) và 160 mẫu (NS & AGC)
+static constexpr size_t DSP_CHUNK_SIZE = 160; // 10ms ở 16kHz
+static constexpr size_t DSP_PREFILL_SIZE = 160;
+static constexpr size_t DSP_TOTAL_FIFO = DSP_PREFILL_SIZE + 512; // 672 mẫu
+static int16_t dspBuffer[DSP_TOTAL_FIFO] = {0};
+static bool dspBufferPrefilled = false;
+
+bool vbot_ns_init(int mode) {
+#if HAVE_NATIVE_ESP_SR
+  if (nsHandle) return true;
+  mode = constrain(mode, 0, 2);
+  nsHandle = ns_pro_create(10, mode, 16000);
+  if (!nsHandle) {
+    Serial.println("[NS] Khởi tạo ns_pro_create thất bại.");
+    return false;
+  }
+  nsInitialized = true;
+  Serial.printf("[NS] Khởi tạo Noise Suppression (Chống ồn Mode %d) thành công!\n", mode);
+  return true;
+#else
+  return false;
+#endif
+}
+
+void vbot_ns_deinit() {
+#if HAVE_NATIVE_ESP_SR
+  if (nsHandle) {
+    ns_destroy(nsHandle);
+    nsHandle = nullptr;
+  }
+  nsInitialized = false;
+  Serial.println("[NS] Đã giải phóng tài nguyên NS.");
+#endif
+}
+
+bool vbot_ns_is_active() {
+  return nsInitialized && (nsHandle != nullptr);
+}
+
+bool vbot_agc_init(int target_gain_db) {
+#if HAVE_NATIVE_ESP_SR
+  if (agcHandle) return true;
+  target_gain_db = constrain(target_gain_db, 0, 30);
+  agcHandle = esp_agc_open(3, 16000);
+  if (!agcHandle) {
+    Serial.println("[AGC] Khởi tạo esp_agc_open thất bại.");
+    return false;
+  }
+  set_agc_config(agcHandle, target_gain_db, 1, 3);
+  agcInitialized = true;
+  Serial.printf("[AGC] Khởi tạo Auto Gain Control (Khuếch đại tự động %d dB) thành công!\n", target_gain_db);
+  return true;
+#else
+  return false;
+#endif
+}
+
+void vbot_agc_deinit() {
+#if HAVE_NATIVE_ESP_SR
+  if (agcHandle) {
+    esp_agc_close(agcHandle);
+    agcHandle = nullptr;
+  }
+  agcInitialized = false;
+  Serial.println("[AGC] Đã giải phóng tài nguyên AGC.");
+#endif
+}
+
+bool vbot_agc_is_active() {
+  return agcInitialized && (agcHandle != nullptr);
+}
+
+void vbot_audio_dsp_process(const int16_t *mic_in, int16_t *clean_out, size_t sample_count, bool enable_ns, bool enable_agc) {
+  if (!mic_in || !clean_out || sample_count == 0) return;
+
+  // Bước 1: Chạy lọc hồi tiếp âm thanh loa (AEC)
+  vbot_aec_process(mic_in, clean_out);
+
+  // Nếu không cần chạy NS lẫn AGC, trả về ngay sau AEC
+  if ((!enable_ns || !nsHandle) && (!enable_agc || !agcHandle)) {
+    return;
+  }
+
+  // Khởi tạo đệm prefill 10ms nếu chưa có
+  if (!dspBufferPrefilled) {
+    memset(dspBuffer, 0, sizeof(dspBuffer));
+    dspBufferPrefilled = true;
+  }
+
+  // Nạp 512 mẫu sau AEC vào đuôi đệm (vị trí từ 160 đến 671)
+  memcpy(&dspBuffer[DSP_PREFILL_SIZE], clean_out, sample_count * sizeof(int16_t));
+
+  // Bước 2 & 3: Chạy 4 khối 160 mẫu (640 mẫu) qua NS và AGC
+  int16_t chunk[DSP_CHUNK_SIZE];
+  for (size_t b = 0; b < 4; b++) {
+    int16_t *blockPtr = &dspBuffer[b * DSP_CHUNK_SIZE];
+
+    // Chống ồn NS
+    if (enable_ns && nsHandle) {
+      ns_process(nsHandle, blockPtr, chunk);
+      memcpy(blockPtr, chunk, DSP_CHUNK_SIZE * sizeof(int16_t));
+    }
+
+    // Tự động bù âm lượng AGC
+    if (enable_agc && agcHandle) {
+      esp_agc_process(agcHandle, blockPtr, chunk, DSP_CHUNK_SIZE, 16000);
+      memcpy(blockPtr, chunk, DSP_CHUNK_SIZE * sizeof(int16_t));
+    }
+  }
+
+  // Xuất đúng 512 mẫu sạch ra clean_out
+  memcpy(clean_out, dspBuffer, sample_count * sizeof(int16_t));
+
+  // Dịch 160 mẫu còn lại (672 - 512 = 160) về đầu đệm cho frame kế tiếp
+  memmove(dspBuffer, &dspBuffer[sample_count], DSP_PREFILL_SIZE * sizeof(int16_t));
 }
 
 bool vbot_wakenet_add_custom_model(const char *tempFilePath, const char *displayName, String &errOut) {
@@ -586,8 +888,18 @@ void vbot_wakenet_deinit() {}
 bool vbot_wakenet_set_model(WakeNetModelId) { return false; }
 WakeNetModelId vbot_wakenet_get_model() { return WAKENET_MODEL_HILILI_TTS; }
 bool vbot_wakenet_is_custom(uint8_t) { return false; }
-const char* vbot_wakenet_get_model_key(WakeNetModelId) { return "wn9_hilili_tts"; }
-const char* vbot_wakenet_get_model_name(WakeNetModelId) { return "Hi Lily (wn9_hilili_tts)"; }
+const char* vbot_wakenet_get_model_key(WakeNetModelId id) {
+  if (id < WAKENET_DEFAULT_MODEL_COUNT) {
+    return DEFAULT_MODEL_METADATA[id].key;
+  }
+  return DEFAULT_MODEL_METADATA[WAKENET_MODEL_HILILI_TTS].key;
+}
+const char* vbot_wakenet_get_model_name(WakeNetModelId id) {
+  if (id < WAKENET_DEFAULT_MODEL_COUNT) {
+    return DEFAULT_MODEL_METADATA[id].displayName;
+  }
+  return DEFAULT_MODEL_METADATA[WAKENET_MODEL_HILILI_TTS].displayName;
+}
 void vbot_wakenet_init_custom_storage() {}
 int vbot_wakenet_get_custom_count() { return 0; }
 bool vbot_wakenet_get_custom_slot(uint8_t, WakeNetCustomSlot&) { return false; }
@@ -601,5 +913,31 @@ bool vbot_wakenet_delete_custom_model(uint8_t, String &errOut) {
 }
 bool vbot_wakenet_feed(const int16_t*, size_t) { return false; }
 bool vbot_wakenet_is_running() { return false; }
+
+// ============================================================================
+// AEC / NS / AGC Stubs cho cấu hình không bật WakeNet
+// ============================================================================
+bool vbot_aec_init() { return false; }
+void vbot_aec_deinit() {}
+bool vbot_aec_is_active() { return false; }
+void vbot_aec_set_playback_active(bool) {}
+bool vbot_aec_get_playback_active() { return false; }
+void vbot_aec_feed_ref(const int16_t*, size_t) {}
+void vbot_aec_process(const int16_t *mic_in, int16_t *clean_out) {
+  if (mic_in && clean_out) {
+    memcpy(clean_out, mic_in, 512 * sizeof(int16_t));
+  }
+}
+bool vbot_ns_init(int) { return false; }
+void vbot_ns_deinit() {}
+bool vbot_ns_is_active() { return false; }
+bool vbot_agc_init(int) { return false; }
+void vbot_agc_deinit() {}
+bool vbot_agc_is_active() { return false; }
+void vbot_audio_dsp_process(const int16_t *mic_in, int16_t *clean_out, size_t sample_count, bool, bool) {
+  if (mic_in && clean_out && sample_count > 0) {
+    memcpy(clean_out, mic_in, sample_count * sizeof(int16_t));
+  }
+}
 
 #endif

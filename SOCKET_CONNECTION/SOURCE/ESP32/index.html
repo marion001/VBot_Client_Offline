@@ -1,0 +1,37 @@
+<!--
+Code By: Vũ Tuyển
+GitHub VBot: https://github.com/marion001/VBot_Offline.git
+Mail: VBot.Assistant@gmail.com
+WebUI Version Build: 12/11/2026
+-->
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/webui/app.css?v=20261112-led-control">
+  <title>VBot Client</title>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark"><a href="/">VBot Client</a></div>
+    <div class="brand-copy"><h1 id="pageTitle">VBot Client Socket</h1><span>VBot Client, Voice Assistant Control Center</span></div>
+    <a class="topbar-api" href="/VBot_Client_Info" target="_blank" rel="noopener">API</a>
+  </header>
+  <main class="page">
+    <div id="ajaxStatus" class="status alert alert-info py-2">
+      <span class="spinner"></span><span id="ajaxMessage">Đang tải WebUI...</span>
+    </div>
+    <div id="statusMount"></div>
+    <form id="configForm" method="post" action="/save"><div id="configMount"></div></form>
+    <div id="actionsMount"></div>
+    <div id="modalMessage" class="status" hidden></div>
+    <footer id="footer" class="footer">
+      <div class="copyright">© Copyright <strong><span>VBot Assistant</span></strong>. All Rights Reserved<br><p>Email: <a href="mailto:vbot.assistant@gmail.com">VBot.Assistant@gmail.com</a></p></div>
+      <div class="credits">Code by <a href="https://www.facebook.com/TWFyaW9uMDAx" target="_blank" rel="noopener noreferrer">Vũ Tuyển</a>, <a href="https://www.facebook.com/groups/1148385343358824" target="_blank" rel="noopener noreferrer">Group Facebook</a>, <a href="https://github.com/marion001/VBot_Offline" target="_blank" rel="noopener noreferrer">GitHub VBot</a>, Designed by: <a href="https://bootstrapmade.com/" target="_blank" rel="noopener noreferrer">BootstrapMade</a></div>
+    </footer>
+  </main>
+  <script src="/webui/app.js?v=20261112-led-control"></script>
+</body>
+</html>

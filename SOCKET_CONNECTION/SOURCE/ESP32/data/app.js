@@ -50,11 +50,11 @@ function showModalHtml(h){
 }
 function section(t){return `<tr><th colspan="2" class="table-light text-center text-danger">${esc(t)}</th></tr>`;}
 function tableBlock(t,rows,extra='table-striped table-hover'){return `<table class="table table-bordered ${extra} align-middle bg-white shadow-sm mb-3">${section(t)}${rows.join('')}</table>`;}
-function input(n,l,v,type='text',extra='',placeholder=''){const b=n==='path'?'border-danger':'border-success';const ph=placeholder?`placeholder="${esc(placeholder)}"`:'';return `<tr><td>${esc(l)}</td><td><input class="form-control ${b}" name="${n}" type="${type}" value="${esc(v)}" ${ph} ${extra}></td></tr>`;}
+function input(n,l,v,type='text',extra='',placeholder='',desc=''){const b=n==='path'?'border-danger':'border-success';const ph=placeholder?`placeholder="${esc(placeholder)}"`:'';const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><input class="form-control ${b}" name="${n}" type="${type}" value="${esc(v)}" ${ph} ${extra}></td></tr>`;}
 function note(t){return `<tr><td></td><td><small class="text-danger">${esc(t)}</small></td></tr>`;}
-function check(n,l,v){return `<tr><td>${esc(l)}</td><td><div class="form-check form-switch"><input class="form-check-input" name="${n}" type="checkbox" value="1" ${v?'checked':''}></div></td></tr>`;}
-function select(n,l,opts,val){return `<tr><td>${esc(l)}</td><td><select class="form-select border-success" name="${n}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''} ${o[2]?'disabled':''}>${esc(o[1])}</option>`).join('')}</select></td></tr>`;}
-function color(n,l,v){return `<tr><td>${esc(l)}</td><td><div class="color-row"><input class="form-control form-control-color border-success" name="${n}_picker" type="color" value="${esc(v)}" data-sync="${n}"><input class="form-control border-success" name="${n}" type="text" value="${esc(v)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}"></div></td></tr>`;}
+function check(n,l,v,desc=''){const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><div class="form-check form-switch"><input class="form-check-input" name="${n}" type="checkbox" value="1" ${v?'checked':''}></div></td></tr>`;}
+function select(n,l,opts,val,desc=''){const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><select class="form-select border-success" name="${n}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''} ${o[2]?'disabled':''}>${esc(o[1])}</option>`).join('')}</select></td></tr>`;}
+function color(n,l,v,desc=''){const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><div class="color-row"><input class="form-control form-control-color border-success" name="${n}_picker" type="color" value="${esc(v)}" data-sync="${n}"><input class="form-control border-success" name="${n}" type="text" value="${esc(v)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}"></div></td></tr>`;}
 function fmtUptime(ms){let s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return `${d?d+' ngày ':''}${h} giờ ${m} phút ${s} giây`;}
 function fmtBytes(b){return `${b} bytes (${(b/1024).toFixed(1)} KB / ${(b/1048576).toFixed(2)} MB)`;}
 function actionUrl(path){return new URL(path, location.href).href;}
@@ -95,6 +95,7 @@ function renderStatus(){
     ${s.hardware_gpio_errors?`<div class="alert alert-danger gpio-alert"><strong>Lỗi cấu hình GPIO</strong>\n${esc(s.hardware_gpio_errors)}</div>`:''}
     <details class="detail-card"><summary>Thông tin thiết bị và trạng thái task</summary><div class="detail-body"><table class="table table-sm table-bordered mb-0">
       <tr><td>Thiết bị</td><td>${esc(s.chip_model)} rev ${esc(s.chip_revision)} · ${esc(s.chip_cores)} cores · ${esc(s.chip_target)}</td></tr>
+      <tr><td>Xung nhịp CPU & Nhiệt độ</td><td><span class="badge bg-primary">${s.cpu_freq_mhz || 240} MHz</span> · <span class="badge ${s.cpu_temp_c > 65 ? 'bg-danger' : (s.cpu_temp_c > 50 ? 'bg-warning text-dark' : 'bg-success')}"><i class="bi bi-thermometer-half"></i> ${s.cpu_temp_c ? s.cpu_temp_c + ' °C' : 'N/A'}</span></td></tr>
       <tr><td>Firmware</td><td>${esc(s.version)}</td></tr><tr><td>Địa chỉ IP</td><td>${esc(s.ip)}</td></tr>
       <tr><td>Chế độ khởi chạy</td><td>${esc(s.startup_mode==='standalone'?'Độc lập':'Kết nối máy chủ VBot')}</td></tr>
       <tr><td>Uptime</td><td>${fmtUptime(s.uptime_ms)}</td></tr><tr><td>Min free heap</td><td>${fmtBytes(s.min_free_heap)}</td></tr>${taskRows}
@@ -109,30 +110,29 @@ function renderConfig(){
     : {mbclk:14,mws:13,mdin:34,dbclk:27,dlrc:26,ddout:25,pled:23,bmic:32,bup:33,bdn:18,bwake:19,rclk:32,rdt:33,rsw:19};
   const h=[];
   h.push(tableBlock('Cấu Hình Máy Chủ Socket VBot',[
-    select('startupmode','Chế độ khởi chạy',startupModes,c.client.startup_mode||'vbot_server'),
-    note('Không sử dụng: ESP32 không khởi tạo Mic và không kết nối WebSocket; WebUI, MQTT, mDNS, phát âm thanh, nút nhấn, LED và OTA vẫn hoạt động.'),
+    select('startupmode','Chế độ khởi chạy',startupModes,c.client.startup_mode||'vbot_server','Không sử dụng: ESP32 không khởi tạo Mic và không kết nối WebSocket; WebUI, MQTT, mDNS, phát âm thanh, nút nhấn, LED và OTA vẫn hoạt động.'),
     input('cname','Tên Client',c.client.name,'text','maxlength="32"','VBot Client Socket'),
     input('host','Máy chủ socket',c.server.host,'text','','192.168.1.10'),
     input('port','Địa chỉ port Socket',c.server.port,'number','','5003'),
     input('apiport','Địa chỉ port API',c.server.api_port||5002,'number','','5002'),
     input('path','Socket path (Mặc định: /)',c.server.path,'text','','/'),
-    input('sapi','URL API stream audio_proxy',c.server.stream_api_url||'','url','','http://ip_VBot_Server:5002/audio_proxy?url='),
-    note('ESP32 có thể phát HTTPS trực tiếp, nhưng audio_proxy nội bộ giúp xử lý redirect, định dạng và kết nối ổn định hơn.'),
-    `<tr><td></td><td><small class="text-muted">Tải file làm server stream proxy: <a href="https://github.com/marion001/VBot_Client_Offline/tree/main/SOCKET_CONNECTION/Audio_Proxy_Server_Demo" target="_blank" rel="noopener noreferrer">Audio_Proxy_Server_Demo</a></small></td></tr>`,
+    input('sapi','URL API stream audio_proxy',c.server.stream_api_url||'','url','','http://ip_VBot_Server:5002/audio_proxy?url=','ESP32 có thể phát HTTPS trực tiếp, nhưng audio_proxy nội bộ giúp xử lý redirect, định dạng và kết nối ổn định hơn.'),
     check('usesapi','Sử dụng URL API stream đã nhập',c.server.use_custom_stream_api_url),
     check('sfbapi','Nếu URL stream lỗi thì dùng API máy chủ đang kết nối',c.server.fallback_stream_api_to_server),
     select('mode','Chế độ làm việc',modes,c.client.working_mode)
   ]));
   const hasPsram = Boolean(c.audio.psram_active ?? state.status?.psram_active ?? c.audio.wakenet_supported);
   const wnSupported = Boolean(c.audio.wakenet_supported);
-  const wnOptionText = hasPsram ? 'WakeNet On-Device PSRAM (ESP32 / S3)' : 'WakeNet On-Device PSRAM (ESP32 / S3) [Không có PSRAM]';
+  const wnOptionText = wnSupported
+    ? 'WakeNet On-Device PSRAM (ESP32 / S3)'
+    : (hasPsram ? 'WakeNet On-Device (Cần nạp firmware WakeNet)' : 'WakeNet On-Device [Không có PSRAM]');
   const hotwordModes = [
     ['server', 'Sử Dụng Hotword Ở Máy Chủ VBot'],
-    ['wakenet', wnOptionText, !hasPsram],
+    ['wakenet', wnOptionText, !wnSupported],
     ['none', 'Không Sử Dụng']
   ];
   let currentHotwordMode = c.audio.hotword_mode || (c.audio.wakenet_enabled ? 'wakenet' : (c.audio.hotword_stream_enabled ? 'server' : 'none'));
-  if (!hasPsram && currentHotwordMode === 'wakenet') {
+  if (!wnSupported && currentHotwordMode === 'wakenet') {
     currentHotwordMode = c.audio.hotword_stream_enabled ? 'server' : 'none';
   }
   let wakenetModels = [];
@@ -148,20 +148,20 @@ function renderConfig(){
   }
   h.push(tableBlock('Cấu Hình Âm Thanh / Mic',[
     check('micen','Bật Tắt Mic',c.audio.mic_enabled),
-    check('mvad','Lọc khoảng lặng thông minh (VAD) khi chờ đánh thức',c.audio.mic_vad_enabled!==false),
-    note('Khi bật VAD, ESP32 tự động ngắt gửi gói âm thanh lúc phòng yên tĩnh và dùng bộ đệm nhìn trước (Pre-Roll 128ms) để giữ nguyên độ nhạy đánh thức.'),
+    check('mvad','Lọc khoảng lặng thông minh (VAD) khi chờ đánh thức',c.audio.mic_vad_enabled!==false,'Khi bật VAD, ESP32 tự động ngắt gửi gói âm thanh lúc phòng yên tĩnh và dùng bộ đệm nhìn trước (Pre-Roll 128ms) để giữ nguyên độ nhạy đánh thức.'),
+    check('nsen','Lọc tiếng ồn môi trường AI (Noise Suppression - NS)',c.audio.ns_enabled===true,'Sử dụng mô hình mạng nơ-ron từ esp-sr để loại bỏ tiếng ồn quạt máy, điều hòa, tiếng gõ bàn phím (Mặc định: Tắt).'),
+    check('agcen','Tự động cân bằng & khuếch đại giọng nói (Auto Gain Control - AGC)',c.audio.agc_enabled===true,'Tự động tăng âm lượng khi người nói đứng xa (3-5 mét) và chống vỡ tiếng (Limiter) khi nói sát micro (Mặc định: Tắt).'),
+    input('agcgain','Mức khuếch đại mục tiêu AGC (dB: 0 - 30)',c.audio.agc_gain!=null?c.audio.agc_gain:12,'number','min="0" max="30"','12'),
     check('conv','Chế độ hội thoại',c.audio.conversation_mode),
     check('bootsnd','Âm thanh khi khởi động',c.audio.startup_sound_enabled),
     input('vol','Âm Lượng (0-100)',c.audio.volume,'number','min="0" max="100"','70'),
-    input('micgain','Khuếch đại Mic (gain 0.1-16)',c.audio.mic_gain,'number','min="0.1" max="16" step="0.1"','2.0'),
-    input('pcmboost','Hệ số âm lượng Audio PCM RAW (0.1-16)',c.audio.pcm_volume_boost,'number','min="0.1" max="16" step="0.1"','1.0'),
-    note('Hệ số 1.0 giữ nguyên PCM; 0.5 giảm còn một nửa; lớn hơn 1.0 khuếch đại. Âm lượng tổng của loa vẫn tiếp tục được áp dụng.')
+    input('micgain','Khuếch đại Mic thủ công (gain 0.1-16)',c.audio.mic_gain,'number','min="0.1" max="16" step="0.1"','2.0'),
+    input('pcmboost','Hệ số âm lượng Audio PCM RAW (0.1-16)',c.audio.pcm_volume_boost,'number','min="0.1" max="16" step="0.1"','1.0','Hệ số 1.0 giữ nguyên PCM; 0.5 giảm còn một nửa; lớn hơn 1.0 khuếch đại. Âm lượng tổng của loa vẫn tiếp tục được áp dụng.')
   ]));
 
   let hotwordTabContent = tableBlock('Cấu Hình Chế Độ Hotword / Đánh Thức',[
     select('hotword_mode','Chế độ Hotword / Đánh thức',hotwordModes,currentHotwordMode),
-    select('wn_model','Từ khóa WakeNet On-Device',wakenetModels,c.audio.wakenet_model!=null?c.audio.wakenet_model:'0'),
-    note('Chế độ WakeNet chạy trực tiếp trên chip ESP32/ESP32-S3 không tốn băng thông Wi-Fi ở chế độ chờ và đánh thức tức thì 0ms. Khi chọn Hotword Máy Chủ, ESP32 sẽ stream âm thanh về máy chủ VBot để nhận diện từ khóa "VBot ơi".')
+    select('wn_model','Từ khóa WakeNet On-Device',wakenetModels,c.audio.wakenet_model!=null?c.audio.wakenet_model:'0','Chế độ WakeNet chạy trực tiếp trên chip ESP32/ESP32-S3 không tốn băng thông Wi-Fi ở chế độ chờ và đánh thức tức thì 0ms. Khi chọn Hotword Máy Chủ, ESP32 sẽ stream âm thanh về máy chủ VBot để nhận diện từ khóa "VBot ơi".')
   ]);
 
   if (wnSupported) {
@@ -288,12 +288,31 @@ function renderConfig(){
     input('dlrc','LRC/WS',c.i2s_dac.lrc,'number','',String(gpioDefaults.dlrc)),
     input('ddout','DIN',c.i2s_dac.dout,'number','',String(gpioDefaults.ddout))
   ]));
+  const speakEffects = [
+    ['0', 'Mặc định'],
+    ['1', 'Nháy theo nhạc (Audio VU Meter)'],
+    ['2', 'Xung nhịp sóng âm (Audio Pulse)'],
+    ['3', 'Ngọn lửa âm nhạc (Audio Fire)']
+  ];
+  const thinkEffects = [
+    ['0', 'Mặc định (Sáng toàn bộ LED)'],
+    ['1', 'Sao chổi xoay tròn (Spinning Comet)'],
+    ['2', 'Thở dịu nhẹ (Breathe)']
+  ];
+  const muteEffects = [
+    ['0', 'Mặc định (Sáng toàn bộ LED)'],
+    ['1', 'Thở dịu nhẹ (Breathe)'],
+    ['2', 'Sao chổi xoay tròn (Spinning Comet)']
+  ];
   h.push(tableBlock('Cấu Hình LED WS2812',[
     check('leden','Kích Hoạt',c.led.active),
     input('pled','LED GPIO',c.led.gpio,'number','',String(gpioDefaults.pled)),
     input('ledbr','Độ sáng LED (0-100)',c.led.brightness_percent,'number','min="0" max="100"','100'),
     input('ledcnt','Số lượng LED',c.led.count,'number','min="1" max="300"','12'),
+    select('lspef','Hiệu ứng phát âm thanh TTS / Nói',speakEffects,String(c.led.speak_effect??0)),
+    select('lthkef','Hiệu ứng LED khi đánh thức',thinkEffects,String(c.led.think_effect??0)),
     color('lthink','Màu LED khi đánh thức',c.led.think_color),
+    select('lmuteef','Hiệu ứng LED khi Mic bị tắt',muteEffects,String(c.led.mute_effect??0)),
     color('lmute','Màu LED khi Mic bị tắt',c.led.mute_color)
   ]));
   h.push(tableBlock('Cấu Hình Nút Nhấn / Rotary Encoder',[
@@ -317,7 +336,8 @@ function renderConfig(){
     input('rsw','Rotary Encoder SW GPIO',c.rotary?.sw??gpioDefaults.rsw,'number','',String(gpioDefaults.rsw)),
     input('rstep','Bước âm lượng khi xoay Rotary',c.rotary?.volume_step??2,'number','min="1" max="20"','2')
   ]));
-  h.push(tableBlock('Cấu Hình Hiển Thị Logs',[
+  h.push(tableBlock('Cấu Hình Hệ Thống & Quản Lý Nhiệt',[
+    check('dfsen','Giảm nhiệt độ chip bằng DFS (Dynamic Frequency Scaling)',c.system?.dfs_enabled===true,'Tự động hạ xung nhịp chip xuống 160MHz ở trạng thái chờ giúp giảm nhiệt 8-12°C và tăng lên 240MHz khi xử lý giọng nói / phát nhạc.'),
     check('logs','Hiển thị logs ra Serial (Baud rate 115200)',c.logs.serial)
   ]));
   const defaults=isS3
@@ -331,6 +351,7 @@ function renderConfig(){
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgHotword" type="button">Cấu Hình Hotword WakeUP</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgNetwork" type="button">Mạng & MQTT</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgGpio" type="button">GPIO</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgLed" type="button"><i class="bi bi-lightbulb"></i> LED Effects Control</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgSystem" type="button">Hệ thống</button></li>
     </ul>
     <div class="tab-content">
@@ -340,6 +361,20 @@ function renderConfig(){
       <div class="tab-pane fade" id="cfgNetwork">${h[3]}${h[4]}</div>
       <div class="tab-pane fade" id="cfgGpio"><div class="gpio-guide">${defaults.map(x=>`<div class="gpio-chip"><strong>${esc(x[0])}</strong><br>${esc(x[1])}</div>`).join('')}</div><div id="gpioValidation"></div>${h[5]}${h[6]}${h[7]}${h[8]}</div>
       <div class="tab-pane fade" id="cfgSystem">${h[9]}</div>
+      <div class="tab-pane fade" id="cfgLed">
+        <section class="led-control-card">
+          <div class="led-control-heading"><div><h3>LED Effects Control</h3><p>Điều khiển màu và hiệu ứng LED WS2812 của ESP32 Client.</p></div><button id="refreshLedControlBtn" type="button" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Làm mới</button></div>
+          <div class="led-control-power"><button id="ledPowerBtn" type="button" class="btn btn-success"><i class="bi bi-lightbulb"></i> Bật LED</button><span id="ledControlState" class="led-control-state">Đang tải trạng thái...</span></div>
+          <div class="led-control-grid">
+            <label class="led-control-field" for="ledControlColor"><span>Màu sắc</span><input id="ledControlColor" type="color" class="form-control form-control-color" value="#ffb464" title="Chọn màu LED"></label>
+            <label class="led-control-field" for="ledControlBrightness"><span>Độ sáng <b id="ledControlBrightnessValue">255</b> / 255</span><input id="ledControlBrightness" type="range" class="form-range" min="0" max="255" step="1" value="255"></label>
+            <label class="led-control-field" for="ledControlEffect"><span>Hiệu ứng</span><select id="ledControlEffect" class="form-select"><option value="solid">Solid</option><option value="breathe">Breathe</option><option value="pulse">Pulse</option><option value="color_loop">Color Loop</option><option value="rainbow">Rainbow</option><option value="color_wipe">Color Wipe</option><option value="chase">Chase</option><option value="theater_chase">Theater Chase</option><option value="twinkle">Twinkle</option><option value="sparkle">Sparkle</option><option value="scanner">Scanner</option><option value="fire">Fire</option><option value="candle">Candle</option><option value="strobe">Strobe</option></select></label>
+          </div>
+          <div id="ledControlStatus" class="small mt-2" role="status" aria-live="polite"></div>
+          <p class="small text-muted mb-1">Có thể chọn màu trước, sau đó chọn hiệu ứng thì hiệu ứng sẽ áp dụng màu được chọn.</p>
+          <p class="small text-muted mb-0">Hiệu ứng LED của trợ lý được ưu tiên khi đang nghe hoặc phát âm thanh. Điều khiển thủ công hoạt động ở trạng thái chờ hoặc MUTE.</p>
+        </section>
+      </div>
     </div>
   </section><div class="save-bar"><small>Mọi thay đổi được kiểm tra trước khi lưu vào NVS.</small><button id="saveConfigBtn" class="btn btn-success" type="submit">Lưu cấu hình & khởi động lại</button></div>`;
 }
@@ -477,10 +512,29 @@ function bindPostForms(root=document){
     f.addEventListener('submit',async e=>{
       e.preventDefault();
       const action=f.getAttribute('action')||'';
-      if((action==='/save'||action.endsWith('/save'))&&!validateGpioUi()){
-        const gpioTab=document.querySelector('[data-bs-target="#cfgGpio"]');
-        if(gpioTab){if(window.bootstrap)bootstrap.Tab.getOrCreateInstance(gpioTab).show();else gpioTab.click();}
-        setTimeout(()=>f.reportValidity(),150);
+      if(action==='/save'||action.endsWith('/save')){
+        if(!validateGpioUi()){
+          const gpioTab=document.querySelector('[data-bs-target="#cfgGpio"]');
+          if(gpioTab){if(window.bootstrap)bootstrap.Tab.getOrCreateInstance(gpioTab).show();else gpioTab.click();}
+          setTimeout(()=>{
+            const inv=f.querySelector('#cfgGpio :invalid')||f.querySelector(':invalid');
+            if(inv&&typeof inv.reportValidity==='function')inv.reportValidity();
+            else f.reportValidity();
+          },150);
+          return;
+        }
+      }
+      const invalidEl=f.querySelector(':invalid');
+      if(invalidEl){
+        const pane=invalidEl.closest('.tab-pane');
+        if(pane){
+          const tabBtn=document.querySelector(`[data-bs-target="#${pane.id}"]`);
+          if(tabBtn){if(window.bootstrap)bootstrap.Tab.getOrCreateInstance(tabBtn).show();else tabBtn.click();}
+        }
+        setTimeout(()=>{
+          if(typeof invalidEl.reportValidity==='function')invalidEl.reportValidity();
+          else f.reportValidity();
+        },150);
         return;
       }
       if(!f.reportValidity())return;
@@ -515,6 +569,7 @@ function bindForms(){
     document.querySelectorAll('.tab-pane').forEach(x=>x.classList.remove('show','active'));
     tab.classList.add('active');
     document.querySelector(tab.dataset.bsTarget)?.classList.add('show','active');
+    if(tab.dataset.bsTarget==='#cfgLed')refreshLedControl();
   }));
   document.querySelectorAll('input[type=color][data-sync]').forEach(p=>{const t=document.querySelector(`input[name="${p.dataset.sync}"]`);if(t){p.addEventListener('input',()=>t.value=p.value.toUpperCase());t.addEventListener('input',()=>{if(/^#[0-9a-fA-F]{6}$/.test(t.value))p.value=t.value;});}});
   bindPostForms();
@@ -530,6 +585,17 @@ function bindForms(){
   const hwSelect=document.querySelector('[name=hotword_mode]');
   if(hwSelect)hwSelect.addEventListener('change',updateHotwordModeUi);
   updateHotwordModeUi();
+  document.getElementById('refreshLedControlBtn')?.addEventListener('click',()=>refreshLedControl(true));
+  document.getElementById('ledPowerBtn')?.addEventListener('click',toggleLedControl);
+  document.getElementById('ledControlColor')?.addEventListener('input',()=>{
+    const effect=document.getElementById('ledControlEffect');if(effect)effect.value='solid';
+    scheduleLedControlUpdate();
+  });
+  document.getElementById('ledControlBrightness')?.addEventListener('input',e=>{
+    document.getElementById('ledControlBrightnessValue').textContent=e.target.value;
+    scheduleLedControlUpdate();
+  });
+  document.getElementById('ledControlEffect')?.addEventListener('change',scheduleLedControlUpdate);
   document.getElementById('checkUpdateBtn').addEventListener('click',()=>checkUpdate(false));
   document.getElementById('scanWifiBtn').addEventListener('click',scanWifi);
 }
@@ -537,6 +603,70 @@ function bindForms(){
 function updateHtml(r){let h='<div class="list-group mb-3">';h+=`<div class="list-group-item"><b>Thiết bị:</b> ${esc(r.chip_target)}</div>`;h+=`<div class="list-group-item"><b>Phiên bản hiện tại:</b> ${esc(r.current_build_date)}</div>`;if(r.remote_build_date)h+=`<div class="list-group-item"><b>Phiên bản trên GitHub:</b> ${esc(r.remote_build_date)}</div>`;h+=`<div class="list-group-item"><b>Trạng thái:</b> <span class="${r.success?(r.has_new_version?'text-danger':'text-success'):'text-danger'}">${esc(r.message||'')}</span></div>`;if(r.description)h+=`<div class="list-group-item"><b>Mô tả:</b> ${esc(r.description)}</div>`;if(r.error)h+=`<div class="list-group-item"><b>Lỗi:</b> ${esc(r.error)}</div>`;h+='</div>';if(r.success&&r.has_new_version){h+=`<a class="btn btn-danger me-2 mb-2" href="${esc(r.bin_url)}" target="_blank" download>Tải xuống Firmware mới</a>`;if(r.littlefs_bin_url)h+=`<a class="btn btn-warning mb-2" href="${esc(r.littlefs_bin_url)}" target="_blank" download>Tải xuống LittleFS mới</a>`;}return h;}
 async function fetchUpdateJson(url){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10000);try{const separator=url.includes('?')?'&':'?';const response=await fetch(url+separator+'_t='+Date.now(),{cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('HTTP '+response.status);const data=await response.json();if(!data||!String(data.build_date||'').trim())throw new Error('Version.json thiếu build_date');return data;}finally{clearTimeout(timer);}}
 async function checkUpdate(auto=false){if(!auto)setBusy(true,'Đang kiểm tra cập nhật bằng trình duyệt...');try{const update=state.update||{};const urls=[update.version_url,update.version_fallback_url].filter((url,index,list)=>url&&list.indexOf(url)===index);if(!urls.length)throw new Error('Thiếu URL Version.json trong trạng thái WebUI');let remote=null;let lastError=null;for(const url of urls){try{remote=await fetchUpdateJson(url);break;}catch(err){lastError=err;}}if(!remote)throw lastError||new Error('Không tải được Version.json');const current=String(state.status.version||'');const latest=String(remote.build_date||'').trim();const data={success:true,chip_target:state.status.chip_target,current_build_date:current,remote_build_date:latest,has_new_version:latest!==current,message:latest!==current?'Có phiên bản mới':'Thiết bị đang dùng phiên bản mới nhất',description:String(remote.description||''),bin_url:update.bin_url||'',littlefs_bin_url:update.littlefs_bin_url||''};const h=updateHtml(data);if(!auto){setBusy(false,h);showModalHtml(h);}}catch(err){const result={success:false,chip_target:state.status.chip_target,current_build_date:state.status.version,message:'Không kiểm tra được phiên bản mới',error:String(err)};const h=updateHtml(result);if(!auto){setBusy(false,h);showModalHtml(h);}}}
+let ledControlState=null;
+let ledControlTimer=null;
+let ledControlRequest=0;
+function renderLedControlState(data){
+  ledControlState=data;
+  const supported=data?.supported===true;
+  ['ledPowerBtn','ledControlColor','ledControlBrightness','ledControlEffect'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!supported;});
+  const stateLabel=document.getElementById('ledControlState');
+  const power=document.getElementById('ledPowerBtn');
+  if(stateLabel)stateLabel.textContent=supported?(data.on?'LED đang bật':'LED đang tắt'):'LED chưa sẵn sàng. Bật LED trong cấu hình và kiểm tra GPIO.';
+  if(power){power.innerHTML=data?.on?'<i class="bi bi-lightbulb-off"></i> Tắt LED':'<i class="bi bi-lightbulb"></i> Bật LED';power.classList.toggle('btn-danger',!!data?.on);power.classList.toggle('btn-success',!data?.on);}
+  const color=document.getElementById('ledControlColor');
+  if(color&&Array.isArray(data?.rgb_color)&&data.rgb_color.length===3)color.value='#'+data.rgb_color.map(v=>Number(v).toString(16).padStart(2,'0')).join('').toUpperCase();
+  const brightness=document.getElementById('ledControlBrightness');
+  if(brightness&&Number.isInteger(data?.brightness)){brightness.value=String(data.brightness);document.getElementById('ledControlBrightnessValue').textContent=String(data.brightness);}
+  const effect=document.getElementById('ledControlEffect');
+  if(effect&&data?.effect){
+    const options=data.effects&&typeof data.effects==='object'?data.effects:{solid:'Solid',breathe:'Breathe',pulse:'Pulse',color_loop:'Color Loop',rainbow:'Rainbow',color_wipe:'Color Wipe',chase:'Chase',theater_chase:'Theater Chase',twinkle:'Twinkle',sparkle:'Sparkle',scanner:'Scanner',fire:'Fire',candle:'Candle',strobe:'Strobe'};
+    effect.innerHTML=Object.entries(options).map(([key,label])=>`<option value="${esc(key)}">${esc(label)}</option>`).join('');
+    effect.value=data.effect;
+  }
+}
+function setLedControlMessage(message,isError=false){
+  const box=document.getElementById('ledControlStatus');if(!box)return;
+  box.textContent=message;box.classList.toggle('text-danger',isError);box.classList.toggle('text-primary',!isError);
+}
+async function refreshLedControl(showMessage=false){
+  const request=++ledControlRequest;
+  if(showMessage)setLedControlMessage('Đang đọc trạng thái LED...');
+  try{
+    const response=await fetch('/api/led',{cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.message||`HTTP ${response.status}`);
+    if(request!==ledControlRequest)return;
+    renderLedControlState(data);
+    if(showMessage)setLedControlMessage(data.supported?'Đã cập nhật trạng thái LED.':'LED chưa sẵn sàng để điều khiển.',!data.supported);
+  }catch(error){if(request===ledControlRequest)setLedControlMessage(`Không đọc được trạng thái LED: ${error.message||error}`,true);}
+}
+function ledControlPayload(action='set'){
+  const color=document.getElementById('ledControlColor')?.value||'#FFB464';
+  const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+  return {action,on:action==='turn_on'?true:action==='turn_off'?false:ledControlState?.on===true,rgb_color:rgb,brightness:Number(document.getElementById('ledControlBrightness')?.value||255),effect:document.getElementById('ledControlEffect')?.value||'solid'};
+}
+async function sendLedControl(action='set'){
+  if(!ledControlState?.supported){setLedControlMessage('LED chưa sẵn sàng. Kiểm tra cấu hình LED và GPIO.',true);return;}
+  const request=++ledControlRequest;
+  try{
+    const response=await fetch('/api/led',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ledControlPayload(action))});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.message||`HTTP ${response.status}`);
+    if(request!==ledControlRequest)return;
+    renderLedControlState(data);setLedControlMessage('Đã gửi lệnh điều khiển LED.');
+  }catch(error){if(request===ledControlRequest)setLedControlMessage(`Không điều khiển được LED: ${error.message||error}`,true);}
+}
+function scheduleLedControlUpdate(){
+  ledControlRequest++;
+  if(ledControlTimer)clearTimeout(ledControlTimer);
+  ledControlTimer=setTimeout(()=>{ledControlTimer=null;sendLedControl('set');},500);
+}
+function toggleLedControl(){
+  if(ledControlTimer){clearTimeout(ledControlTimer);ledControlTimer=null;}
+  sendLedControl(ledControlState?.on?'turn_off':'turn_on');
+}
+
 async function scanWifi(){const box=document.getElementById('wifiScanResult');box.innerHTML='<span class="text-primary">Đang tìm kiếm mạng Wifi...</span>';try{const r=await fetch('/scan_wifi',{cache:'no-store'});const data=await r.json();if(data.scanning){setTimeout(scanWifi,1200);return;}if(!data.success)throw new Error(data.message||'Tìm kiếm mạng wifi thất bại');let h='<div class="list-group">';data.networks.forEach(n=>{h+=`<button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-ssid="${esc(n.ssid)}"><span>${esc(n.ssid||'(hidden)')}</span><small>${n.rssi} dBm ${esc(n.encryption||'')}</small></button>`;});h+='</div>';box.innerHTML=h;box.querySelectorAll('button[data-ssid]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('wifiSsid').value=b.dataset.ssid;}));}catch(err){box.innerHTML=`<span class="text-danger">${esc(String(err))}</span>`;}}
 
 async function boot(){

@@ -1,4 +1,4 @@
 {
-  "build_date": "09/11/2026",
-  "description": "Tối ưu hóa pipeline âm thanh, đồng bộ WebUI mới và nâng cao độ ổn định I2S"
+  "build_date": "12/11/2026",
+  "description": "Phiên bản 12/11/2026: Bổ sung cấu hình nhấn giữ và nhấn đúp cho toàn bộ nút nhấn, hiệu ứng LED đa sắc cầu vồng nháy theo nhạc (Spectrum VU Meter), cấu hình hiệu ứng và màu LED báo lỗi mất kết nối máy chủ, tối ưu ổn định I2S audio và giao diện WebUI."
 }
