@@ -18,7 +18,8 @@ Module bộ thu âm thanh Bluetooth A2DP Sink (ESP32 Dev Module) hoạt động 
    - **Điều khiển phát nhạc (AVRCP)**: Hỗ trợ nhận các lệnh điều khiển `PLAY`, `PAUSE`, `NEXT`, `PREV`, `DISCONNECT` từ phím bấm cứng, WebUI VBot hoặc các Automation/Dashboard của Home Assistant.
 
 3. **Cơ chế chuyển tiếp thông minh (Zero Collision với Mic & WakeNet)**:
-   - Khi tạm dừng nhạc (Pause) hoặc không có tín hiệu âm thanh (>800ms), ESP32-S3 sẽ tự động chuyển nhượng phần cứng I2S để kích hoạt lại Microphone INMP441 và WakeNet ("Hi Lily", "VBot ơi").
+   - Khi người dùng tạm dừng nhạc (Pause/Stop) trên điện thoại hoặc ngắt kết nối, ESP32-S3 sẽ tự động chuyển nhượng phần cứng I2S để kích hoạt lại Microphone INMP441 và WakeNet ("Hi Lily", "VBot ơi"). Luồng phát nhạc được giữ liên tục qua các nốt lặng và đoạn chuyển bài hát.
+   - Hỗ trợ đổi động các chân I2S Master, UART và nút bấm vật lý trực tiếp từ WebUI của ESP32-S3 qua kết nối UART (lưu vào NVS flash của ESP32 thường).
    - Khi nhạc tiếp tục phát, hệ thống tự động tạm ngưng Mic và chuyển DAC Loa sang 44.1kHz Stereo tức thì.
 
 ---
@@ -29,13 +30,23 @@ Kết nối giữa **ESP32 Thường** và **ESP32-S3 VBot Client**:
 
 | Tín hiệu | ESP32 Thường (A2DP Receiver) | ESP32-S3 (VBot Client) | Ghi chú |
 | :--- | :--- | :--- | :--- |
-| **I2S BCLK** | **GPIO 14** | **GPIO 14** | Xung bit clock I2S |
-| **I2S WS (LRCK)** | **GPIO 21** | **GPIO 21** | Xung chọn kênh L/R |
-| **I2S DATA OUT** | **GPIO 22** | **GPIO 47 (DIN)** | Dữ liệu âm thanh PCM |
-| **UART TX** | **GPIO 17 (TX2)** | **GPIO 2 (RX)** | ESP32 gửi metadata & trạng thái |
-| **UART RX** | **GPIO 16 (RX2)** | **GPIO 1 (TX)** | ESP32 nhận cấu hình & lệnh điều khiển |
+| **I2S BCLK** | **GPIO 26** | **GPIO 14** | Xung bit clock I2S Master -> Slave |
+| **I2S WS (LRCK)** | **GPIO 25** | **GPIO 21** | Xung chọn kênh L/R I2S Master -> Slave |
+| **I2S DATA OUT** | **GPIO 22** | **GPIO 47 (DIN)** | Dữ liệu âm thanh PCM từ ESP32 sang S3 |
+| **UART TX** | **GPIO 17 (TX2)** | **GPIO 2 (RX)** | ESP32 gửi metadata & trạng thái sang S3 |
+| **UART RX** | **GPIO 16 (RX2)** | **GPIO 1 (TX)** | ESP32 nhận cấu hình & lệnh điều khiển từ S3 |
 | **GND** | **GND** | **GND** | **Bắt buộc nối chung Mass (GND)** |
 | **Nguồn cấp** | **5V (VIN)** | **5V (VIN)** | Khuyên dùng nguồn 5V 2A-3A chung |
+
+### Sơ đồ 4 Nút Bấm Cứng Điều Khiển Bluetooth (ESP32 Thường):
+*(Tất cả nút bấm dùng chân kéo lên nội `INPUT_PULLUP`, một đầu nối GPIO, đầu còn lại nối thẳng vào GND)*
+
+| Nút bấm | GPIO | Nhấn nhả (Single Click) | Nhấn đúp (Double Click) | Nhấn giữ (Long Press) |
+| :--- | :---: | :--- | :--- | :--- |
+| **Nút 1** | **GPIO 32** | **Play / Pause** (Phát / Tạm dừng) | Mute / Unmute | **Ngắt kết nối** Bluetooth (Disconnect) |
+| **Nút 2** | **GPIO 33** | **Next** (Chuyển bài tiếp theo) | **Phát lại từ đầu bài hát** | **Tăng âm lượng** (Volume Up) |
+| **Nút 3** | **GPIO 27** | **Previous** (Quay lại bài trước) | **Phát lại từ đầu bài hát** | **Giảm âm lượng** (Volume Down) |
+| **Nút 4** | **GPIO 13** | **Sync S3** (Đồng bộ thông tin sang S3) | Refresh trạng thái | **Khởi động lại ESP32** (Giữ > 2s) |
 
 ---
 

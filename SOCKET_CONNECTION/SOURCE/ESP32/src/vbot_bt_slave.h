@@ -31,6 +31,20 @@ struct BtSlaveInfo {
   char peerDevice[64] = "";
 };
 
+// Cấu trúc chân GPIO của ESP32 thường
+struct BtSlavePins {
+  int8_t bclk = 26;
+  int8_t ws = 25;
+  int8_t dout = 22;
+  int8_t rx = 16;
+  int8_t tx = 17;
+  int8_t btn1 = 32;
+  int8_t btn2 = 33;
+  int8_t btn3 = 27;
+  int8_t btn4 = 13;
+  bool loaded = false;
+};
+
 // Cấu hình chân nhận I2S Slave RX từ ESP32 thường
 void vbot_bt_slave_set_pins(int8_t bclk, int8_t ws, int8_t din);
 
@@ -69,3 +83,15 @@ void vbot_bt_slave_sync_config(const char *deviceName, bool enabled);
 
 // Lấy thông tin Metadata hiện tại
 BtSlaveInfo vbot_bt_slave_get_info();
+
+// Lấy thông tin cấu hình chân hiện tại của ESP32 thường
+BtSlavePins vbot_bt_slave_get_pins();
+
+// Gửi yêu cầu ESP32 thường gửi cấu hình chân sang
+void vbot_bt_slave_request_pins();
+
+// Gửi cấu hình chân mới sang ESP32 thường để lưu vào NVS và reboot
+void vbot_bt_slave_set_slave_pins(const BtSlavePins &pins);
+
+// Khôi phục chân mặc định trên ESP32 thường
+void vbot_bt_slave_reset_slave_pins();

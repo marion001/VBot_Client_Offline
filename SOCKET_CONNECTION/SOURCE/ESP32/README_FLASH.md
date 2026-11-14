@@ -31,7 +31,7 @@
 | Rotary CLK / DT / SW | 32 / 33 / 19 | 41 / 40 / 42 | Chiết áp xoay âm lượng |
 | Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 18 / 17 / 8 | INMP441 Microphone (Kênh L) |
 | MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 | 15 / 16 / 7 | I2S DAC Loa |
-| Bluetooth I2S RX (BCLK / WS / DIN) | 14 / 21 / 47 | 14 / 21 / 47 | Nhận luồng nhạc A2DP từ ESP32 thường |
+| Bluetooth I2S (BCLK / WS / DIN) | 26 / 25 / 22 (ESP32 Thường TX) | 14 / 21 / 47 (ESP32-S3 RX) | Nhận luồng nhạc A2DP từ ESP32 thường |
 | Bluetooth UART (TX / RX) | 17 / 16 (ESP32 Thường) | 1 (TX) / 2 (RX) (ESP32-S3) | UART metadata, trạng thái & điều khiển |
 
 Các nút được đấu giữa GPIO tương ứng và GND; firmware sử dụng `INPUT_PULLUP`. Không dùng GPIO22–37 cho ngoại vi trên ESP32-S3 N8R8/N16R8 vì các chân khả dụng trong vùng này có thể thuộc bus flash/OPI PSRAM.

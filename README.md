@@ -24,16 +24,28 @@ Hệ thống Client thông minh dành riêng cho **VBot Assistant (Loa Chủ)**,
    - Nhận nhạc chất lượng cao từ điện thoại/PC qua ESP32 thường, truyền tín hiệu số PCM sang ESP32-S3 qua **I2S Slave RX** (44.1kHz Stereo).
    - Truyền metadata bài hát (**Title, Artist, Album**), tên thiết bị kết nối (**Peer Device Name**) và các lệnh điều khiển (**Play, Pause, Next, Prev, Disconnect**) qua UART hai chiều.
    - Tab điều khiển **Bluetooth Control** trên WebUI với giao diện trực quan và phản hồi tức thì.
-   - Cơ chế giải phóng phần cứng thông minh: Tự động trả lại I2S cho Microphone INMP441 và WakeNet khi nhạc tạm dừng (>800ms im lặng).
+   - Cơ chế giải phóng phần cứng thông minh: Tự động trả lại I2S cho Microphone INMP441 và WakeNet khi người dùng tạm dừng nhạc (Pause/Stop) trên điện thoại hoặc ngắt kết nối. Giữ luồng phát âm thanh liên tục không ngắt quãng qua các nốt lặng và đoạn chuyển bài.
+   - Tab WebUI riêng **Cấu Hình GPIO Bluetooth ESP32**: Cấu hình động toàn bộ chân I2S Master, UART và 4 nút bấm cứng cho chip ESP32 Thường trực tiếp từ WebUI của ESP32-S3 qua kết nối UART mà không cần nạp lại code.
 
-2. **Nhận Diện Giọng Nói Offline (WakeNet9 On-Device)**:
+2. **Kết Nối Âm Thanh Không Dây Đa Nền Tảng (Apple AirPlay 1 & DLNA / UPnP)**:
+   - **Apple AirPlay 1 (AirTunes Receiver)**:
+     - Tự động xuất hiện trong **Trung tâm điều khiển (Control Center)** của iPhone, iPad, Mac và các ứng dụng phát nhạc của Apple qua giao thức mDNS Bonjour (`_raop._tcp`, `_airplay._tcp`).
+     - Truyền phát âm thanh chuẩn kỹ thuật số không nén (ALAC/PCM 44.1kHz 16-bit Stereo) với độ trung thực cao.
+     - Đồng bộ thanh trượt âm lượng 2 chiều giữa thiết bị Apple và loa VBot, nháy LED hiệu ứng theo nhạc.
+   - **DLNA / UPnP MediaRenderer (DMR)**:
+     - Tự động nhận diện trên mạng Wi-Fi cục bộ (LAN) qua giao thức SSDP Discovery.
+     - Tương thích hoàn hảo với các thiết bị Android, Windows PC ("Cast to Device"), Smart TV, NAS và Home Assistant (BubbleUPnP, MusicBee, Windows Media Player, v.v.).
+     - Hỗ trợ phát trực tiếp các định dạng âm thanh phổ biến: MP3, AAC, FLAC, WAV kèm đầy đủ lệnh điều khiển Play, Pause, Stop, tua bài và Volume.
+   - **Cơ chế nhường quyền thông minh (Zero Collision)**: Tự động tạm ngưng hoặc hạ âm lượng AirPlay/DLNA khi người dùng gọi "VBot ơi" hoặc khi VBot phản hồi, sau đó tự khôi phục lại khi rảnh.
+
+3. **Nhận Diện Giọng Nói Offline (WakeNet9 On-Device)**:
    - Xử lý nhận diện từ khóa đánh thức hoàn toàn Offline (~0ms độ trễ), không tốn băng thông Wi-Fi và hoạt động độc lập khi ở trạng thái chờ.
    - Hỗ trợ nạp và quản lý trực tiếp tới **5 từ khóa tùy chỉnh** thông qua WebUI.
 
-3. **Cấu Hình Phần Cứng Linh Hoạt (Tab GPIO)**:
+4. **Cấu Hình Phần Cứng Linh Hoạt (Tab GPIO)**:
    - Tab **Cấu Hình GPIO (LED, MIC, Bluetooth, Audio)** hỗ trợ cấu hình tùy biến mọi chân GPIO: LED WS2812, nút bấm, rotary encoder, Microphone I2S, DAC Loa MAX98357 và Bluetooth I2S & UART.
 
-4. **Đồng Bộ Hoàn Hảo Với Home Assistant**:
+5. **Đồng Bộ Hoàn Hảo Với Home Assistant**:
    - Tự động xuất bản các cảm biến trạng thái Bluetooth, thiết bị kết nối, trạng thái phát và tên bài hát lên MQTT.
    - Điều khiển media_player chuẩn Home Assistant (`script/media_control/set` và `script/bluetooth_control/set`).
 

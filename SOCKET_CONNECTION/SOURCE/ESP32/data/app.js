@@ -53,7 +53,7 @@ function section(t){return `<tr><th colspan="2" class="table-light text-center t
 function tableBlock(t,rows,extra='table-striped table-hover'){return `<table class="table table-bordered ${extra} align-middle bg-white shadow-sm mb-3">${section(t)}${rows.join('')}</table>`;}
 function input(n,l,v,type='text',extra='',placeholder='',desc=''){const b=n==='path'?'border-danger':'border-success';const ph=placeholder?`placeholder="${esc(placeholder)}"`:'';const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><input class="form-control ${b}" name="${n}" type="${type}" value="${esc(v)}" ${ph} ${extra}></td></tr>`;}
 function note(t){return `<tr><td></td><td><small class="text-danger">${esc(t)}</small></td></tr>`;}
-function check(n,l,v,desc=''){const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><div class="form-check form-switch"><input class="form-check-input" name="${n}" type="checkbox" value="1" ${v?'checked':''}></div></td></tr>`;}
+function check(n,l,v,desc=''){const d=desc?`<div class="text-danger small mt-1">${desc.includes('<')?desc:esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><div class="form-check form-switch"><input class="form-check-input" name="${n}" type="checkbox" value="1" ${v?'checked':''}></div></td></tr>`;}
 function select(n,l,opts,val,desc=''){const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><select class="form-select border-success" name="${n}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''} ${o[2]?'disabled':''}>${esc(o[1])}</option>`).join('')}</select></td></tr>`;}
 function color(n,l,v,desc=''){const d=desc?`<div class="text-danger small mt-1">${esc(desc)}</div>`:'';return `<tr><td>${esc(l)}${d}</td><td><div class="color-row"><input class="form-control form-control-color border-success" name="${n}_picker" type="color" value="${esc(v)}" data-sync="${n}"><input class="form-control border-success" name="${n}" type="text" value="${esc(v)}" maxlength="7" pattern="#[0-9A-Fa-f]{6}"></div></td></tr>`;}
 function fmtUptime(ms){let s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return `${d?d+' ngày ':''}${h} giờ ${m} phút ${s} giây`;}
@@ -182,7 +182,7 @@ function renderConfig(){
         <td><span class="badge bg-secondary">Mặc định</span> <strong>${esc(dh.name)}</strong></td>
         <td><code>${esc(dh.key)}</code></td>
         <td>Flash Partition</td>
-        <td><span class="text-muted small"><i class="bi bi-lock-fill"></i> Cố định (Không thể xóa)</span></td>
+        <td><span class="text-danger small fw-bold"><i class="bi bi-lock-fill"></i> Cố định (Không thể xóa)</span></td>
       </tr>`);
     });
 
@@ -296,7 +296,7 @@ function renderConfig(){
     input('ddout','DIN',c.i2s_dac.dout,'number','',String(gpioDefaults.ddout))
   ]));
   const btSlaveTable = tableBlock('Cấu Hình Nhận Bluetooth I2S & UART Slave (Từ ESP32 Thường)',[
-    check('btsl_en','Kích hoạt nhận Bluetooth từ ESP32 thường',c.bt_slave?.enabled!==false,'Khi bật, ESP32-S3 sẽ kích hoạt luồng nhận tín hiệu âm thanh I2S từ ESP32 thường để phát ra loa và nháy LED WS2812.'),
+    check('btsl_en','Kích hoạt nhận Bluetooth từ ESP32 thường',Boolean(c.bt_slave?.enabled),'Khi bật, ESP32-S3 sẽ kích hoạt luồng nhận tín hiệu âm thanh I2S từ ESP32 thường để phát ra loa và nháy LED WS2812. Xem <a href="https://github.com/marion001/VBot_Client_Offline/tree/main/SOCKET_CONNECTION/Bluetooth_ESP32_RECEIVER" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-underline fw-bold">hướng dẫn flash, nạp chương trình ESP32 kết nối với ESP32S3</a>.'),
     input('btsl_bclk','BCLK / Bit Clock GPIO',c.bt_slave?.bclk??gpioDefaults.btsl_bclk,'number','',String(gpioDefaults.btsl_bclk),'Chân nhận xung nhịp Bit Clock từ ESP32 thường.'),
     input('btsl_ws','WS / LRCK GPIO',c.bt_slave?.ws??gpioDefaults.btsl_ws,'number','',String(gpioDefaults.btsl_ws),'Chân nhận xung nhịp Word Select từ ESP32 thường (Tránh trùng với GPIO15 của DAC).'),
     input('btsl_din','DIN / Data In GPIO',c.bt_slave?.din??gpioDefaults.btsl_din,'number','',String(gpioDefaults.btsl_din),'Chân nhận dữ liệu PCM từ ESP32 thường (Tránh trùng với GPIO16 của DAC).'),
@@ -381,6 +381,7 @@ function renderConfig(){
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgHotword" type="button">Cấu Hình Hotword WakeUP</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgNetwork" type="button">Mạng & MQTT</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgGpio" type="button">Cấu Hình GPIO (LED, MIC, Bluetooth, Audio)</button></li>
+      <li class="nav-item"><button id="tabBtSlaveGpioBtn" class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgBtSlaveGpio" type="button"><i class="bi bi-cpu"></i> Cấu Hình GPIO Bluetooth ESP32</button></li>
       <li class="nav-item"><button id="tabBtControlBtn" class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgBtControl" type="button"><i class="bi bi-bluetooth"></i> Bluetooth Control</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgLed" type="button"><i class="bi bi-lightbulb"></i> LED Effects Control</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgSystem" type="button">Hệ thống</button></li>
@@ -391,6 +392,93 @@ function renderConfig(){
       <div class="tab-pane fade" id="cfgHotword">${h[2]}</div>
       <div class="tab-pane fade" id="cfgNetwork">${h[3]}${h[4]}${h[5]}${h[6]}</div>
       <div class="tab-pane fade" id="cfgGpio"><div class="gpio-guide">${defaults.map(x=>`<div class="gpio-chip"><strong>${esc(x[0])}</strong><br>${esc(x[1])}</div>`).join('')}</div><div id="gpioValidation"></div>${h[7]}${h[8]}${btSlaveTable}${h[9]}${h[10]}</div>
+      <div class="tab-pane fade" id="cfgBtSlaveGpio">
+        <section class="led-control-card">
+          <div class="led-control-heading">
+            <div>
+              <h3><i class="bi bi-cpu text-primary"></i> Cấu Hình GPIO Bluetooth ESP32 (A2DP Receiver)</h3>
+              <p>Cấu hình động các chân I2S Master, UART và 4 Nút Bấm Cứng trên chip ESP32 thường. Cài đặt được lưu trực tiếp vào NVS flash của ESP32 thường qua UART.</p>
+            </div>
+            <button id="refreshBtSlavePinsBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="loadBtSlavePins()"><i class="bi bi-arrow-repeat"></i> Đọc lại từ ESP32</button>
+          </div>
+
+          <div class="alert alert-info py-2 small mb-3">
+            <strong><i class="bi bi-info-circle"></i> Sơ đồ đấu dây chuẩn (ESP32 Thường nối sang ESP32-S3):</strong><br>
+            • <b>I2S BCLK</b> (ESP32 Thường) nối sang <b>GPIO 14</b> (ESP32-S3)<br>
+            • <b>I2S WS / LRCK</b> (ESP32 Thường) nối sang <b>GPIO 21</b> (ESP32-S3)<br>
+            • <b>I2S DATA OUT</b> (ESP32 Thường) nối sang <b>GPIO 47 / DIN</b> (ESP32-S3)<br>
+            • <b>UART RX</b> (ESP32 Thường) nối sang <b>GPIO 1 / TX</b> (ESP32-S3)<br>
+            • <b>UART TX</b> (ESP32 Thường) nối sang <b>GPIO 2 / RX</b> (ESP32-S3)
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card p-3 border shadow-sm h-100">
+                <h5 class="text-primary mb-3"><i class="bi bi-music-note-beamed"></i> Âm Thanh I2S & Giao Tiếp UART</h5>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">I2S Bit Clock (BCLK) <small class="text-muted">(Mặc định: 26)</small></label>
+                  <input type="number" id="btPinBclk" class="form-control" value="26" min="0" max="39">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">I2S Word Select (WS / LRCK) <small class="text-muted">(Mặc định: 25)</small></label>
+                  <input type="number" id="btPinWs" class="form-control" value="25" min="0" max="39">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">I2S Data Out (DOUT) <small class="text-muted">(Mặc định: 22)</small></label>
+                  <input type="number" id="btPinDout" class="form-control" value="22" min="0" max="39">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">UART2 RXD (Nhận từ ESP32-S3) <small class="text-muted">(Mặc định: 16)</small></label>
+                  <input type="number" id="btPinRx" class="form-control" value="16" min="0" max="39">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">UART2 TXD (Gửi sang ESP32-S3) <small class="text-muted">(Mặc định: 17)</small></label>
+                  <input type="number" id="btPinTx" class="form-control" value="17" min="0" max="39">
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card p-3 border shadow-sm h-100">
+                <h5 class="text-primary mb-3"><i class="bi bi-hand-index-thumb"></i> 4 Nút Bấm Cứng Vật Lý (INPUT_PULLUP)</h5>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Nút 1 - Play/Pause / Disconnect <small class="text-muted">(Mặc định: 32)</small></label>
+                  <input type="number" id="btPinBtn1" class="form-control" value="32" min="0" max="39">
+                  <small class="text-muted d-block mt-1">Nhấn nhả: Play/Pause | Nhấn giữ: Ngắt Bluetooth</small>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Nút 2 - Next / Replay / Vol+ <small class="text-muted">(Mặc định: 33)</small></label>
+                  <input type="number" id="btPinBtn2" class="form-control" value="33" min="0" max="39">
+                  <small class="text-muted d-block mt-1">Nhấn nhả: Next bài | Nhấn đúp: Phát lại từ đầu | Nhấn giữ: Tăng âm lượng</small>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Nút 3 - Previous / Replay / Vol- <small class="text-muted">(Mặc định: 27)</small></label>
+                  <input type="number" id="btPinBtn3" class="form-control" value="27" min="0" max="39">
+                  <small class="text-muted d-block mt-1">Nhấn nhả: Prev bài | Nhấn đúp: Phát lại từ đầu | Nhấn giữ: Giảm âm lượng</small>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Nút 4 - Sync / Restart ESP32 <small class="text-muted">(Mặc định: 13)</small></label>
+                  <input type="number" id="btPinBtn4" class="form-control" value="13" min="0" max="39">
+                  <small class="text-muted d-block mt-1">Nhấn nhả: Đồng bộ trạng thái | Nhấn giữ > 2s: Khởi động lại ESP32</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-warning py-2 small my-3">
+            <strong class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Lưu ý chân GPIO trên ESP32 thường:</strong><br>
+            • <b>Không dùng GPIO 6 – 11</b> (chân nối chip Flash nội bộ).<br>
+            • <b>Nút bấm KHÔNG DÙNG GPIO 34, 35, 36, 39</b> (vì các chân này là Input-only, không có trở kéo lên nội pull-up).<br>
+            • <b>Hạn chế dùng GPIO 0, 2, 12, 15</b> (các chân Strapping ảnh hưởng chế độ boot của chip).
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 justify-content-center my-3">
+            <button type="button" class="btn btn-primary px-4 py-2" onclick="saveBtSlavePins()"><i class="bi bi-save"></i> Lưu & Áp Dụng Cho ESP32 Thường</button>
+            <button type="button" class="btn btn-outline-danger px-3 py-2" onclick="resetBtSlavePins()"><i class="bi bi-arrow-counterclockwise"></i> Khôi Phục Chân Mặc Định</button>
+          </div>
+          <div id="btSlavePinsMsg" class="small text-center mt-2 fw-bold" role="status"></div>
+        </section>
+      </div>
       <div class="tab-pane fade" id="cfgBtControl">
         <section class="led-control-card">
           <div class="led-control-heading">
@@ -424,15 +512,6 @@ function renderConfig(){
             <button type="button" class="btn btn-outline-secondary px-3 py-2" onclick="sendBtCommand('NEXT')"><i class="bi bi-skip-end-fill"></i> Bài tiếp theo</button>
           </div>
           <div id="btControlMsg" class="small text-center text-muted mb-3" role="status"></div>
-
-          <div class="card p-3 border-0 bg-white shadow-sm mt-3">
-            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-info-circle text-info"></i> Cơ Chế Hoạt Động & Đồng Bộ Home Assistant</h6>
-            <ul class="small text-muted mb-0 ps-3">
-              <li><strong>Liên chip UART & I2S:</strong> ESP32-S3 điều khiển ESP32 thường qua UART 2 chiều (GPIO 1 & 2), đồng thời nhận âm thanh Stereo 44.1kHz qua I2S Slave (GPIO 14, 21, 47).</li>
-              <li><strong>Tự động nhường Mic:</strong> Khi người dùng gọi "VBot ơi" hoặc VBot xử lý câu lệnh, âm thanh Bluetooth tự động tạm nhường và phục hồi lại ngay sau khi rảnh.</li>
-              <li><strong>Đồng bộ Home Assistant:</strong> Đầy đủ các thực thể <code>media_player</code>, trạng thái bài hát, ca sĩ, tên thiết bị kết nối và các nút Play, Pause, Next, Prev được đồng bộ tức thì qua MQTT.</li>
-            </ul>
-          </div>
         </section>
       </div>
       <div class="tab-pane fade" id="cfgSystem">${h[11]}</div>
@@ -933,5 +1012,124 @@ setInterval(() => {
     window.refreshBtInfo();
   }
 }, 2500);
+
+window.loadBtSlavePins = async function() {
+  const msg = document.getElementById('btSlavePinsMsg');
+  if (msg) msg.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm"></span> Đang đọc cấu hình chân từ ESP32 thường...</span>';
+  try {
+    const res = await fetch('/api/bt/pins');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    if (d.bclk !== undefined) document.getElementById('btPinBclk').value = d.bclk;
+    if (d.ws !== undefined)   document.getElementById('btPinWs').value = d.ws;
+    if (d.dout !== undefined) document.getElementById('btPinDout').value = d.dout;
+    if (d.rx !== undefined)   document.getElementById('btPinRx').value = d.rx;
+    if (d.tx !== undefined)   document.getElementById('btPinTx').value = d.tx;
+    if (d.btn1 !== undefined) document.getElementById('btPinBtn1').value = d.btn1;
+    if (d.btn2 !== undefined) document.getElementById('btPinBtn2').value = d.btn2;
+    if (d.btn3 !== undefined) document.getElementById('btPinBtn3').value = d.btn3;
+    if (d.btn4 !== undefined) document.getElementById('btPinBtn4').value = d.btn4;
+    if (msg) {
+      msg.innerHTML = d.loaded 
+        ? '<span class="text-success"><i class="bi bi-check-circle"></i> Đã tải cấu hình chân từ ESP32 thường thành công!</span>' 
+        : '<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Đang hiển thị cấu hình chân mặc định. Bấm "Lưu" để đồng bộ sang ESP32 thường.</span>';
+    }
+  } catch(e) {
+    if (msg) msg.innerHTML = '<span class="text-danger">Lỗi khi tải cấu hình chân: ' + e.message + '</span>';
+  }
+};
+
+window.saveBtSlavePins = async function() {
+  const msg = document.getElementById('btSlavePinsMsg');
+  const bclk = parseInt(document.getElementById('btPinBclk').value);
+  const ws = parseInt(document.getElementById('btPinWs').value);
+  const dout = parseInt(document.getElementById('btPinDout').value);
+  const rx = parseInt(document.getElementById('btPinRx').value);
+  const tx = parseInt(document.getElementById('btPinTx').value);
+  const btn1 = parseInt(document.getElementById('btPinBtn1').value);
+  const btn2 = parseInt(document.getElementById('btPinBtn2').value);
+  const btn3 = parseInt(document.getElementById('btPinBtn3').value);
+  const btn4 = parseInt(document.getElementById('btPinBtn4').value);
+
+  const forbiddenFlash = [6, 7, 8, 9, 10, 11];
+  const allPins = [bclk, ws, dout, rx, tx, btn1, btn2, btn3, btn4];
+  for (const p of allPins) {
+    if (forbiddenFlash.includes(p)) {
+      alert('Lỗi: GPIO ' + p + ' thuộc bộ nhớ SPI Flash nội bộ của ESP32 thường, không thể sử dụng!');
+      return;
+    }
+  }
+  const inputOnly = [34, 35, 36, 39];
+  const btnPins = [btn1, btn2, btn3, btn4];
+  for (const p of btnPins) {
+    if (inputOnly.includes(p)) {
+      alert('Lỗi: Nút bấm không thể dùng GPIO ' + p + ' vì là chân Input-only không có trở kéo lên nội INPUT_PULLUP!');
+      return;
+    }
+  }
+
+  if (!confirm('Bạn có chắc muốn lưu cấu hình GPIO mới và khởi động lại ESP32 thường?')) return;
+
+  if (msg) msg.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm"></span> Đang gửi cấu hình sang ESP32 thường...</span>';
+  try {
+    const body = new URLSearchParams();
+    body.append('bclk', bclk);
+    body.append('ws', ws);
+    body.append('dout', dout);
+    body.append('rx', rx);
+    body.append('tx', tx);
+    body.append('btn1', btn1);
+    body.append('btn2', btn2);
+    body.append('btn3', btn3);
+    body.append('btn4', btn4);
+
+    const res = await fetch('/api/bt/pins', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    const d = await res.json();
+    if (d.success) {
+      if (msg) msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> ' + d.message + '</span>';
+      alert('Đã gửi cấu hình thành công! ESP32 thường đang tự khởi động lại để áp dụng các chân GPIO mới.');
+    } else {
+      if (msg) msg.innerHTML = '<span class="text-danger">Lỗi: ' + d.message + '</span>';
+    }
+  } catch(e) {
+    if (msg) msg.innerHTML = '<span class="text-danger">Lỗi kết nối: ' + e.message + '</span>';
+  }
+};
+
+window.resetBtSlavePins = async function() {
+  if (!confirm('Khôi phục toàn bộ GPIO của ESP32 thường về mặc định ban đầu?')) return;
+  const msg = document.getElementById('btSlavePinsMsg');
+  if (msg) msg.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm"></span> Đang gửi lệnh khôi phục mặc định...</span>';
+  try {
+    const res = await fetch('/api/bt/pins', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'action=reset'
+    });
+    const d = await res.json();
+    document.getElementById('btPinBclk').value = 26;
+    document.getElementById('btPinWs').value = 25;
+    document.getElementById('btPinDout').value = 22;
+    document.getElementById('btPinRx').value = 16;
+    document.getElementById('btPinTx').value = 17;
+    document.getElementById('btPinBtn1').value = 32;
+    document.getElementById('btPinBtn2').value = 33;
+    document.getElementById('btPinBtn3').value = 27;
+    document.getElementById('btPinBtn4').value = 13;
+    if (msg) msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> ' + d.message + '</span>';
+  } catch(e) {
+    if (msg) msg.innerHTML = '<span class="text-danger">Lỗi: ' + e.message + '</span>';
+  }
+};
+
+document.addEventListener('click', (e) => {
+  if (e.target && (e.target.id === 'tabBtSlaveGpioBtn' || e.target.closest('#tabBtSlaveGpioBtn'))) {
+    window.loadBtSlavePins();
+  }
+});
 
 boot();

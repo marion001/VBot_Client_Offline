@@ -286,7 +286,7 @@ bool vbot_airplay_install_i2s() {
   i2sConfig.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT; // Stereo
   i2sConfig.communication_format = I2S_COMM_FORMAT_STAND_I2S;
   i2sConfig.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
-  i2sConfig.dma_buf_count = 6;
+  i2sConfig.dma_buf_count = 8;
   i2sConfig.dma_buf_len = 512;
   i2sConfig.use_apll = false;
   i2sConfig.tx_desc_auto_clear = true;
@@ -1109,8 +1109,8 @@ static void vbot_airplay_play_task(void *param) {
                     (float)avail / 176400.0f, (unsigned)s_rawPacketRing.count(), (unsigned)underrunTotal);
     }
 
-    // 1. Nếu cạn đệm: chuyển sang chế độ gom, xả DMA tĩnh lặng tránh bụp
-    if (!isBuffering && avail == 0) {
+    // 1. Nếu đệm tụt thấp (< 8KB ~ 45ms): chủ động chuyển sang gom đệm để không bị giật lách tách
+    if (!isBuffering && avail < 8192) {
       isBuffering = true;
       underrunTotal++;
       if (airplayI2sInstalled) {
@@ -1136,10 +1136,10 @@ static void vbot_airplay_play_task(void *param) {
       }
     }
 
-    // 3. Adaptive Drift Control: Chống trôi clock khi ESP32 tiêu thụ nhanh hơn tốc độ iPhone gửi
-    // Giữ cho bộ đệm luôn ổn định quanh mức an toàn (> 32 KB), ngăn chặn cạn đệm từ gốc
-    if (avail < 32 * 1024) {
-      vTaskDelay(pdMS_TO_TICKS(1));
+    // 3. Adaptive Drift Control: Điều tiết nhịp đọc khi đệm an toàn
+    // Không delay khi đệm đang thấp để tránh làm trễ xả buffer ra DAC
+    if (avail < 16 * 1024 && !isBuffering) {
+      // Cho phép phát tiếp tục mà không chèn delay nhân tạo
     }
 
     if (avail > 0) {

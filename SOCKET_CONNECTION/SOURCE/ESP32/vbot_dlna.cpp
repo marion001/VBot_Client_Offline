@@ -7,7 +7,8 @@
 
 #include "vbot_dlna.h"
 #include <WiFi.h>
-#include <WiFiUdp.h>
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -308,21 +309,66 @@ static String generateDeviceDescriptionXml() {
 
 // FreeRTOS Task lắng nghe và phản hồi gói tin SSDP (UDP 1900 multicast)
 static void vbot_ssdp_task(void *param) {
-  WiFiUDP udp;
-  IPAddress multicastIp(239, 255, 255, 250);
-  const uint16_t ssdpPort = 1900;
-
-  if (!udp.beginMulticast(multicastIp, ssdpPort)) {
-    Serial.println("[DLNA] Không thể khởi tạo SSDP multicast UDP.");
+  int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (sock < 0) {
+    Serial.println("[DLNA] Không thể tạo SSDP socket.");
     vTaskDelete(NULL);
     return;
   }
 
+  int reuse = 1;
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+  struct sockaddr_in bindAddr;
+  memset(&bindAddr, 0, sizeof(bindAddr));
+  bindAddr.sin_family = AF_INET;
+  bindAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  bindAddr.sin_port = htons(1900);
+
+  if (bind(sock, (struct sockaddr*)&bindAddr, sizeof(bindAddr)) < 0) {
+    Serial.println("[DLNA] Lỗi bind SSDP port 1900.");
+    close(sock);
+    vTaskDelete(NULL);
+    return;
+  }
+
+  // Gia nhập nhóm Multicast SSDP 239.255.255.250
+  struct ip_mreq mreq;
+  mreq.imr_multiaddr.s_addr = inet_addr("239.255.255.250");
+  mreq.imr_interface.s_addr = (uint32_t)WiFi.localIP();
+  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+    mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+    setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+  }
+
   Serial.println("[DLNA] Máy chủ SSDP Discovery đã sẵn sàng trên cổng 1900.");
 
-  char buffer[1024];
+  auto sendSsdpNotify = [&](const char *nt) {
+    IPAddress localIp = WiFi.localIP();
+    String notify;
+    notify.reserve(512);
+    notify += "NOTIFY * HTTP/1.1\r\n";
+    notify += "HOST: 239.255.255.250:1900\r\n";
+    notify += "CACHE-CONTROL: max-age=1800\r\n";
+    notify += "LOCATION: http://" + localIp.toString() + ":80/dlna/desc.xml\r\n";
+    notify += "NT: " + String(nt) + "\r\n";
+    notify += "NTS: ssdp:alive\r\n";
+    notify += "SERVER: ESP32/1.0 UPnP/1.0 VBot/1.0\r\n";
+    notify += "USN: uuid:" + dlnaUuid;
+    if (strcmp(nt, "upnp:rootdevice") != 0) {
+      notify += "::" + String(nt);
+    }
+    notify += "\r\nBOOTID.UPNP.ORG: 1\r\nCONFIGID.UPNP.ORG: 1\r\n\r\n";
 
-  auto sendSsdpResponse = [&](const IPAddress &remoteIp, uint16_t remotePort, const char *st) {
+    struct sockaddr_in destAddr;
+    memset(&destAddr, 0, sizeof(destAddr));
+    destAddr.sin_family = AF_INET;
+    destAddr.sin_addr.s_addr = inet_addr("239.255.255.250");
+    destAddr.sin_port = htons(1900);
+    sendto(sock, notify.c_str(), notify.length(), 0, (struct sockaddr*)&destAddr, sizeof(destAddr));
+  };
+
+  auto sendSsdpResponse = [&](const struct sockaddr_in &remoteAddr, const char *st) {
     IPAddress localIp = WiFi.localIP();
     String resp;
     resp.reserve(512);
@@ -338,23 +384,34 @@ static void vbot_ssdp_task(void *param) {
     }
     resp += "\r\nBOOTID.UPNP.ORG: 1\r\nCONFIGID.UPNP.ORG: 1\r\n\r\n";
 
-    udp.beginPacket(remoteIp, remotePort);
-    udp.write((const uint8_t*)resp.c_str(), resp.length());
-    udp.endPacket();
+    sendto(sock, resp.c_str(), resp.length(), 0, (struct sockaddr*)&remoteAddr, sizeof(remoteAddr));
   };
 
+  // Broadcast NOTIFY ngay khi khởi động
+  sendSsdpNotify("upnp:rootdevice");
+  sendSsdpNotify("urn:schemas-upnp-org:device:MediaRenderer:1");
+  sendSsdpNotify("urn:schemas-upnp-org:service:AVTransport:1");
+  sendSsdpNotify("urn:schemas-upnp-org:service:RenderingControl:1");
+
+  uint32_t lastNotifyMs = millis();
+  char buffer[1024];
+
   while (dlnaRunning) {
-    int packetSize = udp.parsePacket();
-    if (packetSize > 0) {
-      int len = udp.read(buffer, sizeof(buffer) - 1);
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(sock, &readfds);
+    struct timeval tv = { .tv_sec = 0, .tv_usec = 100000 };
+    int ret = select(sock + 1, &readfds, NULL, NULL, &tv);
+
+    if (ret > 0 && FD_ISSET(sock, &readfds)) {
+      struct sockaddr_in fromAddr;
+      socklen_t fromLen = sizeof(fromAddr);
+      int len = recvfrom(sock, buffer, sizeof(buffer) - 1, 0, (struct sockaddr*)&fromAddr, &fromLen);
       if (len > 0) {
         buffer[len] = '\0';
         String msg(buffer);
 
-        if (msg.startsWith("M-SEARCH")) {
-          IPAddress remoteIp = udp.remoteIP();
-          uint16_t remotePort = udp.remotePort();
-
+        if (msg.indexOf("M-SEARCH") >= 0) {
           int stIdx = msg.indexOf("ST:");
           if (stIdx < 0) stIdx = msg.indexOf("st:");
           if (stIdx >= 0) {
@@ -369,17 +426,24 @@ static void vbot_ssdp_task(void *param) {
                   targetSt == "urn:schemas-upnp-org:service:AVTransport:1" ||
                   targetSt == "urn:schemas-upnp-org:service:RenderingControl:1" ||
                   targetSt == "urn:schemas-upnp-org:service:ConnectionManager:1") {
-                sendSsdpResponse(remoteIp, remotePort, targetSt.c_str());
+                sendSsdpResponse(fromAddr, targetSt.c_str());
               }
             }
           }
         }
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(50));
+
+    if (millis() - lastNotifyMs >= 20000) {
+      lastNotifyMs = millis();
+      sendSsdpNotify("upnp:rootdevice");
+      sendSsdpNotify("urn:schemas-upnp-org:device:MediaRenderer:1");
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 
-  udp.stop();
+  close(sock);
   vTaskDelete(NULL);
 }
 
@@ -627,7 +691,7 @@ bool vbot_dlna_init(AsyncWebServer &server, const char *friendlyName, const Dlna
   xTaskCreatePinnedToCore(
     vbot_ssdp_task,
     "vbot_ssdp",
-    4096,
+    8192,
     NULL,
     1,
     &ssdpTaskHandle,

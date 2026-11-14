@@ -197,7 +197,7 @@ struct AppConfig {
 #else
     25;
 #endif
-  bool btSlaveEnabled = true;
+  bool btSlaveEnabled = false;
   int btSlaveBclk =
 #if defined(ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S3)
     14;
@@ -654,6 +654,7 @@ volatile uint32_t pendingFactoryResetAtMs = 0;
 volatile bool volumeSavePending = false;
 volatile uint32_t volumeSaveAtMs = 0;
 volatile uint8_t volumeSaveValue = 0;
+volatile uint8_t preMuteVolume = 50;
 volatile bool volumeSaveFeedbackPending = false;
 volatile bool volumeFeedbackPending = false;
 volatile uint32_t volumeFeedbackAtMs = 0;
@@ -3195,6 +3196,7 @@ static bool isVBotAssistantBusy() {
   if (pcmPlaybackActive) return true;
   if (audioQueue && uxQueueMessagesWaiting(audioQueue) > 0) return true;
   if (millis() - lastPcmPlaybackMs < 600) return true;
+  if (vbot_airplay_is_streaming()) return true;
   return false;
 }
 
@@ -4565,6 +4567,7 @@ static void onAirPlayPlay() {
   unlockMediaState();
   mqttStateDirty = true;
   stopAudioPlayback(true);
+  vbot_bt_slave_suspend();
   uninstallPcmTx();
   suspendMicForAudio();
   setLedEffect(LED_SPEAK);
@@ -4574,7 +4577,9 @@ static void onAirPlayStop() {
   UART_LOG("[AirPlay] Dừng phát từ iPhone / Mac.");
   stopAudioPlayback(true);
   resumeMicAfterAudio();
+  vTaskDelay(pdMS_TO_TICKS(15));
   installSilentDac();
+  vbot_bt_slave_resume();
   setLedEffect(micActive() ? LED_OFF : LED_MUTE);
 }
 
@@ -5015,6 +5020,49 @@ static void initWeb() {
       return;
     }
     sendCorsJsonResult(request, 400, false, "Thiếu tham số action (PLAY, PAUSE, NEXT, PREV, DISCONNECT)");
+  });
+  web.on("/api/bt/pins", HTTP_GET, [](AsyncWebServerRequest *request) {
+    BtSlavePins p = vbot_bt_slave_get_pins();
+    BtSlaveInfo info = vbot_bt_slave_get_info();
+    JsonDocument doc;
+    doc["bclk"] = p.bclk;
+    doc["ws"] = p.ws;
+    doc["dout"] = p.dout;
+    doc["rx"] = p.rx;
+    doc["tx"] = p.tx;
+    doc["btn1"] = p.btn1;
+    doc["btn2"] = p.btn2;
+    doc["btn3"] = p.btn3;
+    doc["btn4"] = p.btn4;
+    doc["loaded"] = p.loaded;
+    doc["connected"] = info.connected;
+    String res;
+    serializeJson(doc, res);
+    request->send(200, CONTENT_JSON, res);
+  });
+  web.on("/api/bt/pins", HTTP_POST, [](AsyncWebServerRequest *request) {
+    if (request->hasParam("action", true) && request->getParam("action", true)->value() == "reset") {
+      vbot_bt_slave_reset_slave_pins();
+      sendCorsJsonResult(request, 200, true, "Đã gửi lệnh khôi phục chân mặc định sang ESP32 thường.");
+      return;
+    }
+    if (request->hasParam("action", true) && request->getParam("action", true)->value() == "get") {
+      vbot_bt_slave_request_pins();
+      sendCorsJsonResult(request, 200, true, "Đã gửi yêu cầu đọc chân sang ESP32 thường.");
+      return;
+    }
+    BtSlavePins p = vbot_bt_slave_get_pins();
+    if (request->hasParam("bclk", true)) p.bclk = request->getParam("bclk", true)->value().toInt();
+    if (request->hasParam("ws", true))   p.ws   = request->getParam("ws", true)->value().toInt();
+    if (request->hasParam("dout", true)) p.dout = request->getParam("dout", true)->value().toInt();
+    if (request->hasParam("rx", true))   p.rx   = request->getParam("rx", true)->value().toInt();
+    if (request->hasParam("tx", true))   p.tx   = request->getParam("tx", true)->value().toInt();
+    if (request->hasParam("btn1", true)) p.btn1 = request->getParam("btn1", true)->value().toInt();
+    if (request->hasParam("btn2", true)) p.btn2 = request->getParam("btn2", true)->value().toInt();
+    if (request->hasParam("btn3", true)) p.btn3 = request->getParam("btn3", true)->value().toInt();
+    if (request->hasParam("btn4", true)) p.btn4 = request->getParam("btn4", true)->value().toInt();
+    vbot_bt_slave_set_slave_pins(p);
+    sendCorsJsonResult(request, 200, true, "Đã gửi cấu hình GPIO sang ESP32 thường. Chip đang khởi động lại...");
   });
   web.on("/stop_audio", HTTP_POST, [](AsyncWebServerRequest *request) {
     if (!stopAudioPlaybackWithFeedback(true)) {
@@ -5463,7 +5511,7 @@ static void initWeb() {
       mqttStateDirty = true;
       stopAudioPlayback(true);
       suspendMicForAudio();
-      setLedEffect(LED_SPEAK);
+      // Khong bat LED_SPEAK o day de tranh nhay LED khi moi ket noi hoac khi chua phat nhac
     };
     btCb.onStop = []() {
       UART_LOG("[BT-Slave] Dừng phát nhạc Bluetooth từ ESP32 thường.");
@@ -5482,6 +5530,12 @@ static void initWeb() {
     };
     btCb.onPeak = [](uint16_t peak) {
       currentAudioPeak = peak;
+      // Chi khi co am thanh thuc su (peak > 100) thi moi bat hieu ung LED_SPEAK
+      static uint32_t lastBtLedTrigger = 0;
+      if (peak > 100 && vbot_bt_slave_is_streaming() && (millis() - lastBtLedTrigger > 2000)) {
+        lastBtLedTrigger = millis();
+        setLedEffect(LED_SPEAK);
+      }
     };
     btCb.onSuspendMic = []() {
       lockMicI2s();
@@ -6431,7 +6485,14 @@ static void mqttMessageCallback(char *topicRaw, uint8_t *payloadRaw, unsigned in
   } else if (topicValue.endsWith("/script/volume_control/set")) {
     if (payload.equalsIgnoreCase("UP")) volUpShortPress();
     else if (payload.equalsIgnoreCase("DOWN")) volDownShortPress();
-    else {
+    else if (payload.equalsIgnoreCase("mute")) {
+      lockCfg();
+      if (cfg.volume > 0) preMuteVolume = cfg.volume;
+      unlockCfg();
+      mqttSetVolume(0);
+    } else if (payload.equalsIgnoreCase("unmute")) {
+      mqttSetVolume(preMuteVolume > 0 ? preMuteVolume : 50);
+    } else {
       logInvalidMqttPayload(topicValue, payload);
       return;
     }

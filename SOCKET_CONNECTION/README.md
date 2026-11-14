@@ -41,23 +41,41 @@ Dành riêng cho việc nâng cấp loa VBot Client thành một chiếc loa Blu
   * Đồng bộ Metadata bài hát (**Title, Artist, Album**) sang ESP32-S3 để hiển thị lên WebUI và Home Assistant.
   * Nhận lệnh điều khiển `PLAY`, `PAUSE`, `NEXT`, `PREV`, `DISCONNECT` từ phím bấm cứng, WebUI VBot hoặc các Automation/Dashboard của Home Assistant.
 * **Cơ chế chuyển tiếp Zero-Collision**:
-  * Khi nhạc tạm dừng (>800ms im lặng), ESP32-S3 tự động ngắt I2S Slave RX, trả lại cổng I2S_NUM_1 cho Microphone INMP441 và WakeNet ("VBot ơi") hoạt động bình thường.
+  * Khi người dùng tạm dừng nhạc (Pause/Stop) trên điện thoại hoặc ngắt kết nối, ESP32-S3 tự động ngắt I2S Slave RX, trả lại cổng I2S_NUM_1 cho Microphone INMP441 và WakeNet ("VBot ơi") hoạt động bình thường. Luồng phát âm thanh luôn được giữ liên tục qua các nốt lặng và đoạn chuyển bài mà không bị ngắt tiếng.
+  * Hỗ trợ cấu hình động toàn bộ chân GPIO của ESP32 Thường trực tiếp qua Tab WebUI riêng **Cấu Hình GPIO Bluetooth ESP32**.
   * Khi nhạc phát lại, tự động chuyển DAC Loa sang 44.1kHz Stereo mượt mà.
 
 ### Sơ đồ nối dây giữa ESP32 Thường và ESP32-S3
 
-| Tín hiệu | ESP32 Thường (A2DP Master) | ESP32-S3 (VBot Client) | Ghi chú |
+| Tín hiệu | ESP32 Thường (A2DP Receiver) | ESP32-S3 (VBot Client) | Ghi chú |
 | :--- | :--- | :--- | :--- |
-| **I2S BCLK** | **GPIO 14** | **GPIO 14** | Xung bit clock I2S |
-| **I2S WS (LRCK)** | **GPIO 21** | **GPIO 21** | Xung chọn kênh L/R |
-| **I2S DATA OUT** | **GPIO 22** | **GPIO 47 (DIN)** | Dữ liệu âm thanh PCM |
-| **UART TX** | **GPIO 17 (TX2)** | **GPIO 2 (RX)** | ESP32 gửi metadata & trạng thái |
-| **UART RX** | **GPIO 16 (RX2)** | **GPIO 1 (TX)** | ESP32 nhận cấu hình & điều khiển |
+| **I2S BCLK** | **GPIO 26** | **GPIO 14** | Xung bit clock I2S Master -> Slave |
+| **I2S WS (LRCK)** | **GPIO 25** | **GPIO 21** | Xung chọn kênh L/R I2S Master -> Slave |
+| **I2S DATA OUT** | **GPIO 22** | **GPIO 47 (DIN)** | Dữ liệu âm thanh PCM từ ESP32 sang S3 |
+| **UART TX** | **GPIO 17 (TX2)** | **GPIO 2 (RX)** | ESP32 gửi metadata & trạng thái sang S3 |
+| **UART RX** | **GPIO 16 (RX2)** | **GPIO 1 (TX)** | ESP32 nhận cấu hình & điều khiển từ S3 |
 | **GND** | **GND** | **GND** | **Bắt buộc nối chung GND** |
 | **Nguồn cấp** | **5V (VIN)** | **5V (VIN)** | Khuyên dùng nguồn 5V chung 2A-3A |
 
+### 4 Nút Bấm Cứng Vật Lý Trên ESP32 Thường (Nối GPIO với GND):
+- **Nút 1 (GPIO 32)**: Nhấn nhả $\rightarrow$ **Play / Pause**; Nhấn giữ $\rightarrow$ **Ngắt kết nối** Bluetooth (Disconnect).
+- **Nút 2 (GPIO 33)**: Nhấn nhả $\rightarrow$ **Next** bài; Nhấn đúp $\rightarrow$ **Phát lại từ đầu** bài hiện tại; Nhấn giữ $\rightarrow$ **Tăng âm lượng**.
+- **Nút 3 (GPIO 27)**: Nhấn nhả $\rightarrow$ **Previous** bài; Nhấn đúp $\rightarrow$ **Phát lại từ đầu** bài hiện tại; Nhấn giữ $\rightarrow$ **Giảm âm lượng**.
+- **Nút 4 (GPIO 13)**: Nhấn nhả $\rightarrow$ **Đồng bộ trạng thái** sang ESP32-S3; Nhấn giữ > 2 giây $\rightarrow$ **Khởi động lại ESP32**.
+
 ## Tính năng
 
+- **Hỗ trợ kết nối âm thanh không dây Apple AirPlay 1 (AirTunes Receiver)**:
+  - Tự động quảng bá dịch vụ Bonjour mDNS (`_raop._tcp`, `_airplay._tcp`), hiển thị tức thì trên **Trung tâm điều khiển (Control Center)** của iPhone, iPad, Mac và các ứng dụng phát nhạc Apple Music, Spotify, YouTube Music.
+  - Nhận luồng âm thanh kỹ thuật số không nén (ALAC/PCM 44.1kHz Stereo 16-bit), mang lại chất lượng âm thanh phòng thu vượt trội.
+  - Hỗ trợ đồng bộ âm lượng 2 chiều giữa thiết bị Apple và loa VBot, hiển thị LED nhịp điệu theo bài hát.
+  - Tự động nhường quyền thông minh: Tạm dừng hoặc giảm âm lượng AirPlay khi người dùng gọi "VBot ơi" và khôi phục mượt mà khi xử lý xong.
+- **Hỗ trợ kết nối âm thanh không dây DLNA / UPnP MediaRenderer (DMR)**:
+  - Tự động nhận diện trên mạng Wi-Fi LAN qua giao thức SSDP Discovery.
+  - Tương thích rộng rãi với các thiết bị Android, Windows PC ("Cast to Device" / Windows Media Player), Smart TV, NAS và Home Assistant (BubbleUPnP, MusicBee, Foobar2000, v.v.).
+  - Phát trực tiếp các định dạng âm thanh chất lượng cao: MP3, AAC, FLAC, WAV từ mạng cục bộ hoặc máy chủ nội bộ.
+  - Hỗ trợ đầy đủ lệnh điều khiển: Play, Pause, Stop, Seek (tua bài), tăng/giảm âm lượng.
+- **Tùy chọn bật/tắt độc lập AirPlay & DLNA**: Người dùng có thể dễ dàng kích hoạt hoặc tạm tắt từng tính năng trực tiếp trên WebUI hoặc lưu vào NVS.
 - **Tab WebUI riêng `Bluetooth Control`**: Điều khiển phát/tạm dừng, bài tiếp theo/bài trước, ngắt kết nối, thanh trượt âm lượng, hiển thị tên loa Bluetooth, tên điện thoại đang kết nối và thông tin bài hát thời gian thực.
 - **Tab WebUI `Cấu Hình GPIO (LED, MIC, Bluetooth, Audio)`**: Cấu hình trực quan toàn bộ chân phần cứng (LED WS2812, Mic INMP441, DAC Loa MAX98357, nút bấm, rotary encoder, chân Bluetooth I2S & UART).
 - **Đồng bộ toàn diện MQTT Home Assistant**: Xuất bản tự động các cảm biến Bluetooth (`sensor/bluetooth_connection`, `sensor/bluetooth_device_name`, `sensor/bluetooth_playing`, `sensor/bluetooth_title`, `sensor/bluetooth_artist`, `sensor/bluetooth_album`, `sensor/bluetooth_enabled`) và entity `media_player` chuẩn Home Assistant.

@@ -26,6 +26,7 @@ static volatile bool s_dacInstalled = false;
 static volatile uint8_t s_btVolume = 100;
 static volatile bool s_waitingBclkStop = false;
 static volatile uint32_t s_waitingBclkStopStartMs = 0;
+static BtSlavePins s_btSlavePins;
 
 // UART Serial kết nối với ESP32 thường
 static HardwareSerial SerialBt(1);
@@ -61,21 +62,23 @@ uint8_t vbot_bt_slave_get_volume() {
   return s_btVolume;
 }
 
-// Kiểm tra xem chân BCLK từ ESP32 thường có đang phát xung dao động (1.4MHz) hay không
+// Kiểm tra xem chân BCLK từ ESP32 thường có đang phát xung dao động I2S (tần số ~1.4MHz) hay không
 static bool isBclkActive() {
   if (s_slaveBclk < 0) return false;
   pinMode(s_slaveBclk, INPUT_PULLDOWN);
   int last = digitalRead(s_slaveBclk);
   int transitions = 0;
-  for (int i = 0; i < 100; i++) {
+  uint32_t tStart = micros();
+  // Đo trong 60 microsecond: Nếu là I2S BCLK 1.4MHz (~0.7us/chu kỳ) sẽ có khoảng 85 chu kỳ = ~170 transitions.
+  // Nếu là nhiễu ngẫu nhiên hoặc xung ngắn thì transitions thường < 10.
+  while ((micros() - tStart) < 60) {
     int cur = digitalRead(s_slaveBclk);
     if (cur != last) {
       transitions++;
       last = cur;
-      if (transitions >= 4) return true;
     }
   }
-  return false;
+  return (transitions >= 25);
 }
 
 static bool installSlaveI2s() {
@@ -210,6 +213,7 @@ static void handleUartLine(const String &line) {
     strlcpy(s_btInfo.status, "PLAYING", sizeof(s_btInfo.status));
     portEXIT_CRITICAL(&s_btInfoMux);
     s_waitingBclkStop = false;
+    s_btSuspended = false;
     Serial.println("[BT-UART] >> Trang thai: PLAYING");
     if (s_callbacks.onStatus) s_callbacks.onStatus("PLAYING");
   }
@@ -219,14 +223,7 @@ static void handleUartLine(const String &line) {
     portEXIT_CRITICAL(&s_btInfoMux);
     s_waitingBclkStop = true;
     s_waitingBclkStopStartMs = millis();
-    if (s_btStreaming) {
-      Serial.println("\n[BT-Slave] >>> Nhan lenh PAUSE tu ESP32 thuong. Tra lai Mic va WakeNet ngay!");
-      s_btStreaming = false;
-      uninstallSlaveI2s();
-      restoreDacForVBot();
-      if (s_callbacks.onStop) s_callbacks.onStop();
-      if (s_callbacks.onResumeMic) s_callbacks.onResumeMic();
-    }
+    s_btSuspended = true; // Yeu cau task BT-Slave tu dong tra Mic an toan, tranh xung dot I2S
     Serial.println("[BT-UART] >> Trang thai: PAUSED");
     if (s_callbacks.onStatus) s_callbacks.onStatus("PAUSED");
   }
@@ -236,13 +233,7 @@ static void handleUartLine(const String &line) {
     portEXIT_CRITICAL(&s_btInfoMux);
     s_waitingBclkStop = true;
     s_waitingBclkStopStartMs = millis();
-    if (s_btStreaming) {
-      s_btStreaming = false;
-      uninstallSlaveI2s();
-      restoreDacForVBot();
-      if (s_callbacks.onStop) s_callbacks.onStop();
-      if (s_callbacks.onResumeMic) s_callbacks.onResumeMic();
-    }
+    s_btSuspended = true; // Yeu cau task BT-Slave tu dong tra Mic an toan
     Serial.println("[BT-UART] >> Trang thai: STOPPED");
     if (s_callbacks.onStatus) s_callbacks.onStatus("STOPPED");
   }
@@ -265,16 +256,40 @@ static void handleUartLine(const String &line) {
     portEXIT_CRITICAL(&s_btInfoMux);
     s_waitingBclkStop = true;
     s_waitingBclkStopStartMs = millis();
-    if (s_btStreaming) {
-      s_btStreaming = false;
-      uninstallSlaveI2s();
-      restoreDacForVBot();
-      if (s_callbacks.onStop) s_callbacks.onStop();
-      if (s_callbacks.onResumeMic) s_callbacks.onResumeMic();
-    }
+    s_btSuspended = true; // Yeu cau task BT-Slave tu dong tra Mic an toan
     Serial.println("[BT-UART] >> Thiet bi Bluetooth da NGAT KET NOI.");
     if (s_callbacks.onMeta) s_callbacks.onMeta("", "");
     if (s_callbacks.onStatus) s_callbacks.onStatus("DISCONNECTED");
+  }
+  else if (line.startsWith("PINS:")) {
+    String params = line.substring(5);
+    int start = 0;
+    while (start < params.length()) {
+      int comma = params.indexOf(',', start);
+      if (comma == -1) comma = params.length();
+      String pair = params.substring(start, comma);
+      pair.trim();
+      int eq = pair.indexOf('=');
+      if (eq > 0) {
+        String k = pair.substring(0, eq);
+        int v = pair.substring(eq + 1).toInt();
+        k.toUpperCase();
+        if (k == "BCLK") s_btSlavePins.bclk = v;
+        else if (k == "WS") s_btSlavePins.ws = v;
+        else if (k == "DOUT") s_btSlavePins.dout = v;
+        else if (k == "RX") s_btSlavePins.rx = v;
+        else if (k == "TX") s_btSlavePins.tx = v;
+        else if (k == "BTN1") s_btSlavePins.btn1 = v;
+        else if (k == "BTN2") s_btSlavePins.btn2 = v;
+        else if (k == "BTN3") s_btSlavePins.btn3 = v;
+        else if (k == "BTN4") s_btSlavePins.btn4 = v;
+      }
+      start = comma + 1;
+    }
+    s_btSlavePins.loaded = true;
+    Serial.printf("[BT-UART] >> Da nhan cau hinh GPIO tu ESP32 thuong: BCLK=%d, WS=%d, DOUT=%d, RX=%d, TX=%d, BTN1=%d, BTN2=%d, BTN3=%d, BTN4=%d\n",
+                  s_btSlavePins.bclk, s_btSlavePins.ws, s_btSlavePins.dout, s_btSlavePins.rx, s_btSlavePins.tx,
+                  s_btSlavePins.btn1, s_btSlavePins.btn2, s_btSlavePins.btn3, s_btSlavePins.btn4);
   }
 }
 
@@ -312,8 +327,7 @@ static void vbot_bt_slave_task(void *param) {
   int16_t pcmBuffer[BUF_SAMPLES * 2]; // Stereo 16-bit
   size_t bytesRead = 0;
   size_t bytesWritten = 0;
-  uint32_t lastSoundMs = 0;
-  uint32_t lastLogMs = 0;
+  uint32_t lastI2sDataMs = 0;
 
   Serial.println("[BT-Slave] Task giam sat nhac Bluetooth bat dau hoat dong.");
 
@@ -326,15 +340,25 @@ static void vbot_bt_slave_task(void *param) {
 
     if (s_btSuspended) {
       if (s_btStreaming || s_slaveInstalled) {
-        Serial.println("\n[BT-Slave] >>> VBot can thiep (Wakeup/Recording/Playing). Tam dung nhac Bluetooth va tra lai I2S!");
+        Serial.println("\n[BT-Slave] >>> Tam dung nhac Bluetooth. Tra lai Mic va WakeNet ngay!");
         uninstallSlaveI2s();
         restoreDacForVBot();
         s_btStreaming = false;
         if (s_callbacks.onStop) s_callbacks.onStop();
         if (s_callbacks.onResumeMic) s_callbacks.onResumeMic();
       }
-      // Chỉ khi trợ lý ảo VBot hoàn toàn rảnh rỗi (chờ đánh thức, không ghi âm, loa im lặng)
-      if (!assistantBusy) {
+      // Kiểm tra xem ESP32 thường có đang ở trạng thái ngừng phát hay không
+      bool uartSuspended = false;
+      portENTER_CRITICAL(&s_btInfoMux);
+      if (strcmp(s_btInfo.status, "PAUSED") == 0 ||
+          strcmp(s_btInfo.status, "STOPPED") == 0 ||
+          strcmp(s_btInfo.status, "DISCONNECTED") == 0) {
+        uartSuspended = true;
+      }
+      portEXIT_CRITICAL(&s_btInfoMux);
+
+      // Chỉ hủy cờ suspend khi VBot rảnh rỗi VÀ UART không bị tạm dừng
+      if (!assistantBusy && !uartSuspended) {
         s_btSuspended = false;
       }
       vTaskDelay(pdMS_TO_TICKS(50));
@@ -342,20 +366,40 @@ static void vbot_bt_slave_task(void *param) {
     }
 
     if (!s_btStreaming) {
-      // Nếu vừa Pause xong, cho timeout 400ms để không bao giờ bị kẹt
+      // 1. Kiểm tra trạng thái báo từ UART của ESP32 thường
+      bool uartPlaying = false;
+      bool uartSuspended = false;
+      portENTER_CRITICAL(&s_btInfoMux);
+      if (strcmp(s_btInfo.status, "PLAYING") == 0) {
+        uartPlaying = true;
+      } else if (strcmp(s_btInfo.status, "PAUSED") == 0 ||
+                 strcmp(s_btInfo.status, "STOPPED") == 0 ||
+                 strcmp(s_btInfo.status, "DISCONNECTED") == 0) {
+        uartSuspended = true;
+      }
+      portEXIT_CRITICAL(&s_btInfoMux);
+
+      // Nếu ESP32 thường báo trạng thái rõ ràng là PAUSED/STOPPED/DISCONNECTED:
+      // Chắc chắn không có phát nhạc -> Bỏ qua mọi xung nhiễu và tiếp tục ngủ.
+      if (uartSuspended) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+        continue;
+      }
+
+      // Nếu vừa Pause xong, cho timeout 800ms để xung clock và đệm ổn định hoàn toàn
       if (s_waitingBclkStop) {
-        if (!isBclkActive() || (millis() - s_waitingBclkStopStartMs > 400)) {
+        if (!isBclkActive() || (millis() - s_waitingBclkStopStartMs > 800)) {
           s_waitingBclkStop = false;
           Serial.println("[BT-Slave] Da san sang nhan nhac tiep.");
         } else {
-          vTaskDelay(pdMS_TO_TICKS(50));
+          vTaskDelay(pdMS_TO_TICKS(80));
           continue;
         }
       }
 
       // TRẠNG THÁI CHỜ: VBot đang dùng Mic INMP441 để nhận diện WakeNet
-      // Giám sát chân BCLK xem ESP32 thường có bắt đầu phát nhạc không
-      if (isBclkActive()) {
+      // Chỉ nhận nhạc khi UART báo PLAYING hoặc BCLK dao động chuẩn I2S (tần số cao)
+      if (uartPlaying || isBclkActive()) {
         Serial.println("\n[BT-Slave] >>> Phat hien xung nhac Bluetooth tu ESP32 thuong!");
         s_btStreaming = true;
 
@@ -371,8 +415,7 @@ static void vbot_bt_slave_task(void *param) {
         // Chuyển DAC Loa MAX98357 sang 44.1kHz Stereo
         prepareDacForBluetooth();
 
-        lastSoundMs = millis();
-        lastLogMs = millis();
+        lastI2sDataMs = millis();
       } else {
         // Chưa có nhạc: Ngủ 100ms, tiêu thụ 0% CPU để Mic và WakeNet hoạt động tối đa
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -401,13 +444,13 @@ static void vbot_bt_slave_task(void *param) {
       // Áp dụng âm lượng phần cứng từ phím bấm VBot
       uint8_t vol = s_btVolume;
       int32_t volFactor = (int32_t)vol;
-      uint16_t maxPeak = 0;
+      uint16_t outPeak = 0;
 
       for (int i = 0; i < sampleCount; i++) {
         int32_t s = (pcmBuffer[i] * volFactor) / 100;
         pcmBuffer[i] = (int16_t)constrain(s, -32768, 32767);
         int16_t absVal = abs(pcmBuffer[i]);
-        if (absVal > maxPeak) maxPeak = absVal;
+        if (absVal > outPeak) outPeak = absVal;
       }
 
       // Ghi ra Loa MAX98357
@@ -415,37 +458,15 @@ static void vbot_bt_slave_task(void *param) {
 
       // Nháy LED hiệu ứng theo nhạc
       if (s_callbacks.onPeak) {
-        s_callbacks.onPeak(maxPeak);
+        s_callbacks.onPeak(outPeak);
       }
 
-      // Cập nhật mốc thời gian có âm thanh thực sự
-      if (maxPeak > 50) {
-        lastSoundMs = millis();
-      }
-
-      if (millis() - lastLogMs > 3000) {
-        lastLogMs = millis();
-        Serial.printf("[BT-Slave] >> Dang phat nhac ra Loa (Vol=%u%%): bytes=%u, peak=%u\n",
-                      vol, (unsigned)bytesRead, maxPeak);
-      }
-
-      // Nếu im lặng (peak <= 50) liên tục trong 800ms -> Điện thoại đã Pause nhạc!
-      if (millis() - lastSoundMs > 800) {
-        Serial.println("\n[BT-Slave] >>> Phat hien nhac Bluetooth da Pause (Silence > 800ms). Tra lai Mic va WakeNet ngay!");
-        s_btStreaming = false;
-        s_waitingBclkStop = true;
-        s_waitingBclkStopStartMs = millis();
-        uninstallSlaveI2s();
-        restoreDacForVBot();
-        if (s_callbacks.onStop) s_callbacks.onStop();
-        if (s_callbacks.onResumeMic) s_callbacks.onResumeMic();
-        vTaskDelay(pdMS_TO_TICKS(50));
-        continue;
-      }
+      // Cập nhật mốc thời gian nhận dữ liệu I2S từ ESP32 thường
+      lastI2sDataMs = millis();
     } else {
-      // Đọc timeout hoặc không có dữ liệu (> 500ms dừng phát)
-      if (millis() - lastSoundMs > 500) {
-        Serial.println("\n[BT-Slave] >>> Nhac Bluetooth da dung. Dang khoi phuc lai Microphone va VBot WakeNet...");
+      // Đọc timeout hoặc không có dữ liệu (> 1000ms không có xung I2S từ ESP32 thường do đã tạm dừng/ngắt kết nối)
+      if (millis() - lastI2sDataMs > 1000) {
+        Serial.println("\n[BT-Slave] >>> Xung I2S Bluetooth da ngat (> 1000ms). Dang khoi phuc lai Microphone va VBot WakeNet...");
         s_btStreaming = false;
         s_waitingBclkStop = true;
         s_waitingBclkStopStartMs = millis();
@@ -574,4 +595,28 @@ BtSlaveInfo vbot_bt_slave_get_info() {
   copy = s_btInfo;
   portEXIT_CRITICAL(&s_btInfoMux);
   return copy;
+}
+
+BtSlavePins vbot_bt_slave_get_pins() {
+  return s_btSlavePins;
+}
+
+void vbot_bt_slave_request_pins() {
+  vbot_bt_slave_send_cmd("REQ:PINS");
+}
+
+void vbot_bt_slave_set_slave_pins(const BtSlavePins &pins) {
+  s_btSlavePins = pins;
+  s_btSlavePins.loaded = true;
+  char buf[128];
+  snprintf(buf, sizeof(buf), "CMD:SET_PINS:BCLK=%d,WS=%d,DOUT=%d,RX=%d,TX=%d,BTN1=%d,BTN2=%d,BTN3=%d,BTN4=%d",
+           pins.bclk, pins.ws, pins.dout, pins.rx, pins.tx,
+           pins.btn1, pins.btn2, pins.btn3, pins.btn4);
+  vbot_bt_slave_send_cmd(buf);
+}
+
+void vbot_bt_slave_reset_slave_pins() {
+  s_btSlavePins = BtSlavePins();
+  s_btSlavePins.loaded = true;
+  vbot_bt_slave_send_cmd("CMD:RESET_PINS");
 }
