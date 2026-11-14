@@ -1,17 +1,6 @@
-# ESP32 VBot Socket Client
+# ESP32 VBot Socket Client (Làm Client Cho Loa Chủ Đang Chạy VBot Assistant)
 
-## Hướng dẫn theo từng loại bo mạch
-
-- [ESP32 và các biến thể PSRAM](README_ESP32.md)
-- [ESP32 PSRAM](README_ESP32_PSRAM.md)
-- [ESP32-WROVER](README_ESP32_WROVER.md)
-- [ESP32 PSRAM flash 8 MB](README_ESP32_PSRAM_8MB.md)
-- [ESP32 PSRAM flash 16 MB](README_ESP32_PSRAM_16MB.md)
-- [ESP32-S3 N8](README_ESP32S3.md)
-- [ESP32-S3 N8R2](README_ESP32S3_N8R2.md)
-- [ESP32-S3 N8R8](README_ESP32S3_N8R8.md)
-- [ESP32-S3 N16R8](README_ESP32S3_N16R8.md)
-- [Quy trình flash thủ công dùng chung](README_FLASH.md)
+## Có thể sử dụng ESP32 hoặc Loa PhicommR1 làm CLient Tương Ứng Theo Từng Thư Mục
 
 Lưu ý quan trọng: bootloader ESP32 dùng offset `0x1000`, còn bootloader ESP32-S3 dùng offset `0x0000`. Không dùng chung offset giữa hai dòng chip.
 
@@ -19,12 +8,65 @@ WebUI có thể chọn khởi chạy kết nối máy chủ VBot hoặc chạy �
 
 Client ESP32 cho `Streaming.py` khi server đặt `connection_protocol = "socket"`.
 
+- [Hướng dẫn flash fimware Client](README_FLASH.md)
+- [Trang Chính VBot Assistant (Loa Chủ)](https://github.com/marion001/VBot_Offline)
+## Chọn và nhập liệu đúng theo bảng sau khi nạp bằng Espressif Flash Download Tool
+
+| Environment | Chip | Flash | PSRAM | bootloader.bin | partitions.bin | firmware.bin | littlefs.bin |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `esp32` | ESP32 | 4 MB | Không | `0x1000` | `0x8000` | `0x10000` | `0x350000` |
+| `esp32-psram` | ESP32 | 4 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x350000` |
+| `esp32-wrover` | ESP32-WROVER | 4 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x350000` |
+| `esp32-psram-8mb` | ESP32 | 8 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32-psram-16mb` | ESP32 | 16 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x810000` |
+| `esp32-wakenet` | ESP32 | 16 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
+| `esp32s3` | ESP32-S3 | 8 MB | Không | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r2` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r2-wakenet` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
+| `esp32s3-n8r8` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r8-wakenet` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
+| `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` |
+| `esp32s3-n16r8-wakenet` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
+| `Bluetooth_ESP32_RECEIVER` | ESP32 | 4 MB | Không | `0x1000` | `0x8000` | `0x10000` | Không dùng *(boot_app0: `0xE000`)* |
+
+## Module Thu Âm Thanh Bluetooth A2DP (ESP32 Thường)
+
+Dành riêng cho việc nâng cấp loa VBot Client thành một chiếc loa Bluetooth thông minh cao cấp. Firmware và hướng dẫn nạp được đóng gói độc lập tại thư mục [Bluetooth_ESP32_RECEIVER](Bluetooth_ESP32_RECEIVER/):
+
+* **Âm thanh số thuần túy qua I2S**: Nhận luồng Bluetooth Stereo 44.1kHz và truyền trực tiếp sang ESP32-S3 qua **I2S Slave RX** mà không qua DAC trung gian, chống nhiễu tuyệt đối.
+* **Giao tiếp hai chiều qua UART (115200 baud)**:
+  * Tự động nhận Tên Bluetooth từ cấu hình WebUI của ESP32-S3 (`cname`).
+  * Tự động bật/tắt Bluetooth theo cài đặt trên WebUI / NVS của ESP32-S3.
+  * Tự động nhận diện và đọc tên thiết bị kết nối (**Peer Device Name** như iPhone, Android, PC...) qua Bluetooth GAP.
+  * Đồng bộ Metadata bài hát (**Title, Artist, Album**) sang ESP32-S3 để hiển thị lên WebUI và Home Assistant.
+  * Nhận lệnh điều khiển `PLAY`, `PAUSE`, `NEXT`, `PREV`, `DISCONNECT` từ phím bấm cứng, WebUI VBot hoặc các Automation/Dashboard của Home Assistant.
+* **Cơ chế chuyển tiếp Zero-Collision**:
+  * Khi nhạc tạm dừng (>800ms im lặng), ESP32-S3 tự động ngắt I2S Slave RX, trả lại cổng I2S_NUM_1 cho Microphone INMP441 và WakeNet ("VBot ơi") hoạt động bình thường.
+  * Khi nhạc phát lại, tự động chuyển DAC Loa sang 44.1kHz Stereo mượt mà.
+
+### Sơ đồ nối dây giữa ESP32 Thường và ESP32-S3
+
+| Tín hiệu | ESP32 Thường (A2DP Master) | ESP32-S3 (VBot Client) | Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **I2S BCLK** | **GPIO 14** | **GPIO 14** | Xung bit clock I2S |
+| **I2S WS (LRCK)** | **GPIO 21** | **GPIO 21** | Xung chọn kênh L/R |
+| **I2S DATA OUT** | **GPIO 22** | **GPIO 47 (DIN)** | Dữ liệu âm thanh PCM |
+| **UART TX** | **GPIO 17 (TX2)** | **GPIO 2 (RX)** | ESP32 gửi metadata & trạng thái |
+| **UART RX** | **GPIO 16 (RX2)** | **GPIO 1 (TX)** | ESP32 nhận cấu hình & điều khiển |
+| **GND** | **GND** | **GND** | **Bắt buộc nối chung GND** |
+| **Nguồn cấp** | **5V (VIN)** | **5V (VIN)** | Khuyên dùng nguồn 5V chung 2A-3A |
+
 ## Tính năng
 
-- **Nhận diện từ khóa đánh thức WakeNet9 On-Device (ESP32-S3 + PSRAM)**: Nhận diện giọng nói đánh thức hoàn toàn Offline tại biên, phản hồi tức thì 0ms, không tốn băng thông Wi-Fi và không cần máy chủ khi ở chế độ chờ.
-- **Tab WebUI riêng biệt `Cấu Hình Hotword WakeUP`**: Quản lý chế độ đánh thức, lựa chọn từ khóa đánh thức, bảng quản lý Hotword On-Device.
-- **Tải lên Hotword tùy chỉnh (.bin)**: Cho phép tải lên tối đa 5 Hotword tùy chỉnh lưu trong LittleFS. Tích hợp sẵn 18 mô hình WakeNet9 chính thức của Espressif và tool đóng gói `scripts/pack_custom_hotword.py`.
-- **Cơ chế bảo vệ Hotword an toàn**: 4 Hotword mặc định (*Hi Lily, Alexa, Sophia, Jarvis*) được khóa cố định; người dùng chỉ có thể xóa các Hotword do chính mình tải lên. Nếu xóa hotword đang dùng, hệ thống tự động chuyển về *Hi Lily*.
+- **Tab WebUI riêng `Bluetooth Control`**: Điều khiển phát/tạm dừng, bài tiếp theo/bài trước, ngắt kết nối, thanh trượt âm lượng, hiển thị tên loa Bluetooth, tên điện thoại đang kết nối và thông tin bài hát thời gian thực.
+- **Tab WebUI `Cấu Hình GPIO (LED, MIC, Bluetooth, Audio)`**: Cấu hình trực quan toàn bộ chân phần cứng (LED WS2812, Mic INMP441, DAC Loa MAX98357, nút bấm, rotary encoder, chân Bluetooth I2S & UART).
+- **Đồng bộ toàn diện MQTT Home Assistant**: Xuất bản tự động các cảm biến Bluetooth (`sensor/bluetooth_connection`, `sensor/bluetooth_device_name`, `sensor/bluetooth_playing`, `sensor/bluetooth_title`, `sensor/bluetooth_artist`, `sensor/bluetooth_album`, `sensor/bluetooth_enabled`) và entity `media_player` chuẩn Home Assistant.
+- **Nhận diện từ khóa đánh thức WakeNet9 On-Device (`esp32s3-n16r8-wakenet`)**: Xử lý nhận diện giọng nói đánh thức hoàn toàn Offline trên chip (~0ms), không tốn băng thông Wi-Fi và không phụ thuộc máy chủ khi ở trạng thái chờ.
+- **Tab WebUI riêng `Cấu Hình Hotword WakeUP` (dành riêng cho bản WakeNet)**: Tích hợp sẵn 4 từ khóa chuẩn (*Hi Lily, Alexa, Sophia, Jarvis*) và cho phép tải lên tối đa **5 từ khóa tùy chỉnh** (`.bin`) trực tiếp qua WebUI.
+- **Kho 18 mẫu Hotword WakeNet9 có sẵn**: Tải về miễn phí tại thư mục [ESP_WakeNet_Hotword_Sample](ESP_WakeNet_Hotword_Sample).
+- **Cơ chế bảo vệ Hotword an toàn**: 4 Hotword mặc định được lưu trên phân vùng Flash và khóa cố định; người dùng chỉ có thể xóa các Hotword do chính mình tải lên.
+- **Tùy chọn bản chuẩn (`esp32s3-n16r8`)**: Dành cho người dùng không cần WakeNet On-Device, tối ưu dung lượng phân vùng LittleFS lên trọn vẹn 8MB cho WebUI và các file tài nguyên âm thanh.
+
 - WiFiManager captive portal, tự reconnect WiFi và mở lại AP cấu hình khi mất WiFi.
 - WebUI chạy bằng ESPAsyncWebServer, cấu hình GPIO, WebSocket server, working mode, âm lượng, gain mic, log serial, LED WS2812, I2S mic INMP441, I2S DAC/MAX98357.
 - INMP441 có thể chọn kênh mic Left/Right trong WebUI, mặc định dùng Left (L).
@@ -49,86 +91,6 @@ Client ESP32 cho `Streaming.py` khi server đặt `connection_protocol = "socket
 - 4 nút: Mic, Volume +, Volume -, WakeUP.
 - Hiệu ứng LED: `LED_SPEAK`, `LED_THINK`, `LED_LOADING`, `LED_MUTE`, `LED_ERROR`, `LED_STARTUP`, `LED_PAUSE`, `LED_VOLUME`, `LED_OFF`.
 - FreeRTOS task riêng cho mic, WebSocket, DAC/audio, LED, button và WiFi reconnect.
-
-## Sơ đồ cấu trúc file
-
-```text
-esp32_vbot_client/
-├─ platformio.ini
-├─ partitions_vbot_ota.csv
-├─ partitions_vbot_ota_16mb.csv
-├─ README.md
-├─ README_ESP32S3_N16R8.md
-├─ README_FLASH.md
-├─ audio_proxy_test_server.py
-├─ audio_proxy_test_requirements.txt
-├─ src/
-│  ├─ main.cpp
-│  ├─ vbot_wakenet.h
-│  └─ vbot_wakenet.cpp
-├─ lib/
-│  └─ esp_sr/           (Thư viện tĩnh và header WakeNet ESP-SR)
-├─ models/
-│  ├─ README.md         (Tài liệu chi tiết về WakeNet9)
-│  ├─ srmodels.bin      (Gói 4 model mặc định nạp vào phân vùng 0xC00000)
-│  └─ wakenet_bin_models/ (18 tệp .bin WakeNet9 chính thức để tải lên WebUI)
-├─ scripts/
-│  ├─ gzip_webui.py
-│  └─ pack_custom_hotword.py (Tool Python đóng gói hotword thành .bin)
-├─ data/
-│  ├─ index.html
-│  ├─ app.css
-│  ├─ app.js
-│  ├─ busy.html
-│  └─ sound/
-│     ├─ ding.mp3
-│     ├─ dong.mp3
-│     ├─ mic_off.mp3
-│     ├─ mic_on.mp3
-│     ├─ music_stops.mp3
-│     ├─ start_up.mp3
-│     └─ tut_tut.mp3
-└─ .pio/
-   ├─ littlefs_data/
-   │  ├─ index.html.gz
-   │  ├─ app.css.gz
-   │  ├─ app.js.gz
-   │  ├─ busy.html.gz
-   │  └─ sound/
-   └─ build/
-      └─ esp32/
-         ├─ firmware.bin
-         └─ littlefs.bin
-```
-
-## File gốc cần chỉnh sửa
-
-Chỉ sửa các file gốc trong thư mục `data/` và `src/`.
-
-WebUI:
-
-```text
-data/index.html
-data/app.css
-data/app.js
-data/busy.html
-```
-
-Âm thanh lưu trong LittleFS:
-
-```text
-data/sound/*.mp3
-```
-
-Firmware ESP32:
-
-```text
-src/main.cpp
-```
-
-Không sửa trực tiếp các file trong `.pio/littlefs_data/` hoặc `.pio/build/` vì đây là file build tự sinh.
-
-Thư mục `$PROJECT_DATA_DIR` nếu còn tồn tại trong project chỉ là thư mục cũ/không dùng trong cấu hình hiện tại. Theo `platformio.ini`, thư mục nguồn đúng là `data/`, thư mục staging đúng là `.pio/littlefs_data/`.
 
 ## Cơ chế `audio_proxy`
 
@@ -220,7 +182,7 @@ audio_proxy_test_requirements.txt
 Cách chạy server mẫu trên máy tính nội bộ:
 
 ```powershell
-cd C:\Users\PC-Tuyen\Desktop\esp32_vbot_client
+cd C:\Users\PC-Tuyen\Desktop\VBot_ToiUu\esp32_vbot_client
 python -m pip install -r audio_proxy_test_requirements.txt
 python audio_proxy_test_server.py --host 0.0.0.0 --port 5000
 ```
@@ -241,353 +203,6 @@ http://<IP_may_chay_proxy>:5000/audio_proxy?url=
 ```
 
 Sau đó tích `Sử dụng URL API stream đã nhập`, lưu cấu hình và khởi động lại ESP32.
-
-## Quy trình nén WebUI `.gz`
-
-`platformio.ini` đang cấu hình:
-
-```ini
-[platformio]
-data_dir = .pio/littlefs_data
-default_envs = esp32
-
-[env]
-extra_scripts =
-  pre:scripts/gzip_webui.py
-
-[env:esp32]
-board = esp32dev
-
-[env:esp32-psram]
-board = esp32dev
-build_flags = ${env.build_flags} -DBOARD_HAS_PSRAM ...
-
-[env:esp32-wrover]
-board = freenove_esp32_wrover
-
-[env:esp32s3]
-board = esp32-s3-devkitc-1
-
-[env:esp32s3-n8r2]
-board = esp32-s3-devkitc-1
-board_build.partitions = partitions_vbot_ota_8mb.csv
-board_build.flash_size = 8MB
-board_build.psram_type = qspi
-
-[env:esp32s3-n8r8]
-board = esp32-s3-devkitc-1
-board_build.partitions = partitions_vbot_ota_8mb.csv
-board_build.flash_size = 8MB
-board_build.psram_type = opi
-
-[env:esp32s3-n16r8]
-board = esp32-s3-devkitc-1
-board_build.partitions = partitions_vbot_ota_16mb.csv
-board_build.flash_size = 16MB
-board_build.psram_type = opi
-```
-
-Vì vậy mỗi lần chạy lệnh PlatformIO như `run`, `buildfs`, `upload`, hoặc `uploadfs`, script `scripts/gzip_webui.py` sẽ tự chạy trước.
-
-Script này làm các việc sau:
-
-- Xóa và tạo lại thư mục `.pio/littlefs_data/`.
-- Đọc file gốc từ `data/`.
-- Tự nén các file `.html`, `.css`, `.js` thành `.gz`.
-- Copy các file khác, ví dụ `.mp3`, sang LittleFS staging.
-
-Bạn không cần chạy thêm lệnh gzip thủ công.
-
-## Build firmware
-
-Chạy khi sửa code firmware, ví dụ `src/main.cpp`.
-
-Chọn đúng môi trường build theo phần cứng:
-
-```text
-esp32             = ESP32 thường, dual-core, không PSRAM
-esp32-psram       = ESP32 thường dual-core có PSRAM, generic esp32dev
-esp32-wrover      = ESP32-WROVER / board ESP32 có PSRAM kiểu WROVER
-esp32-psram-8mb   = ESP32 dual-core có PSRAM và flash 8MB
-esp32-psram-16mb  = ESP32 dual-core có PSRAM và flash 16MB
-esp32s3           = ESP32-S3 N8 không PSRAM
-esp32s3-n8r2      = ESP32-S3 8MB flash + 2MB QSPI PSRAM
-esp32s3-n8r8      = ESP32-S3 8MB flash + 8MB OPI PSRAM
-esp32s3-n16r8     = ESP32-S3 16MB flash + 8MB OPI PSRAM (Target ESP32S3_N16R8 - Bản chuẩn, 8MB LittleFS)
-esp32s3-n16r8-wakenet = ESP32-S3 16MB flash + 8MB OPI PSRAM (Target ESP32S3_N16R8_WakeNet - Tích hợp WakeNet9 On-Device Hotword)
-```
-
-```powershell
-cd C:\Users\PC-Tuyen\Desktop\esp32_vbot_client
-
-#Lệnh Build toàn bộ device được hỗ trợ:
-Lệnh build FW toàn bộ cho các device:
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -e esp32-psram -e esp32-wrover -e esp32-psram-8mb -e esp32-psram-16mb -e esp32s3 -e esp32s3-n8r2 -e esp32s3-n8r8 -e esp32s3-n16r8 -e esp32s3-n16r8-wakenet
-
-Lệnh build FS toàn bộ cho các device:
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -e esp32-psram -e esp32-wrover -e esp32-psram-8mb -e esp32-psram-16mb -e esp32s3 -e esp32s3-n8r2 -e esp32s3-n8r8 -e esp32s3-n16r8 -e esp32s3-n16r8-wakenet -t buildfs
-
-
-# ESP32 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32
-
-# ESP32 thường có PSRAM
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram
-
-# ESP32 WROVER
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-wrover
-
-# ESP32 thường có PSRAM + flash 8MB / 16MB
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-8mb
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-16mb
-
-# ESP32-S3 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3
-
-# ESP32-S3 N8R2
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r2
-
-# ESP32-S3 N8R8
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r8
-
-# ESP32-S3 N16R8 (Bản chuẩn)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8
-
-# ESP32-S3 N16R8 WakeNet (On-Device Hotword)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet
-```
-
-File firmware sau build nằm tại:
-
-```text
-.pio/build/esp32/firmware.bin
-.pio/build/esp32-psram/firmware.bin
-.pio/build/esp32-wrover/firmware.bin
-.pio/build/esp32-psram-8mb/firmware.bin
-.pio/build/esp32-psram-16mb/firmware.bin
-.pio/build/esp32s3/firmware.bin
-.pio/build/esp32s3-n8r2/firmware.bin
-.pio/build/esp32s3-n8r8/firmware.bin
-.pio/build/esp32s3-n16r8/firmware.bin
-.pio/build/esp32s3-n16r8-wakenet/firmware.bin
-```
-
-## Build filesystem LittleFS
-
-Chạy khi sửa WebUI trong `data/*.html`, `data/*.css`, `data/*.js` hoặc file âm thanh trong `data/sound/`.
-
-```powershell
-cd C:\Users\PC-Tuyen\Desktop\esp32_vbot_client
-
-# ESP32 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -t buildfs
-
-# ESP32 thường có PSRAM
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram -t buildfs
-
-# ESP32 WROVER
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-wrover -t buildfs
-
-# ESP32 thường có PSRAM + flash 8MB / 16MB
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-8mb -t buildfs
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-16mb -t buildfs
-
-# ESP32-S3 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3 -t buildfs
-
-# ESP32-S3 N8R2
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r2 -t buildfs
-
-# ESP32-S3 N8R8
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r8 -t buildfs
-
-# ESP32-S3 N16R8 (Bản chuẩn)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8 -t buildfs
-
-# ESP32-S3 N16R8 WakeNet (On-Device Hotword)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet -t buildfs
-```
-
-File LittleFS sau build nằm tại:
-
-```text
-.pio/build/esp32/littlefs.bin
-.pio/build/esp32-psram/littlefs.bin
-.pio/build/esp32-wrover/littlefs.bin
-.pio/build/esp32-psram-8mb/littlefs.bin
-.pio/build/esp32-psram-16mb/littlefs.bin
-.pio/build/esp32s3/littlefs.bin
-.pio/build/esp32s3-n8r2/littlefs.bin
-.pio/build/esp32s3-n8r8/littlefs.bin
-.pio/build/esp32s3-n16r8/littlefs.bin
-.pio/build/esp32s3-n16r8-wakenet/littlefs.bin
-```
-
-## Build và nạp trực tiếp firmware vào ESP32
-
-Chạy khi sửa firmware.
-
-```powershell
-cd C:\Users\PC-Tuyen\Desktop\esp32_vbot_client
-
-# ESP32 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -t upload --upload-port COM11
-
-# ESP32 thường có PSRAM
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram -t upload --upload-port COM11
-
-# ESP32 WROVER
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-wrover -t upload --upload-port COM11
-
-# ESP32 thường có PSRAM + flash 8MB / 16MB
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-8mb -t upload --upload-port COM11
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-16mb -t upload --upload-port COM11
-
-# ESP32-S3 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3 -t upload --upload-port COM11
-
-# ESP32-S3 N8R2
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r2 -t upload --upload-port COM11
-
-# ESP32-S3 N8R8
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r8 -t upload --upload-port COM11
-
-# ESP32-S3 N16R8 (Bản chuẩn)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8 -t upload --upload-port COM11
-
-# ESP32-S3 N16R8 WakeNet (On-Device Hotword)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet -t upload --upload-port COM11
-```
-
-## Build và nạp trực tiếp WebUI/LittleFS vào ESP32
-
-Chạy khi chỉ sửa WebUI hoặc âm thanh trong `data/`.
-
-```powershell
-cd C:\Users\PC-Tuyen\Desktop\esp32_vbot_client
-
-# ESP32 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -t uploadfs --upload-port COM11
-
-# ESP32 thường có PSRAM
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram -t uploadfs --upload-port COM11
-
-# ESP32 WROVER
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-wrover -t uploadfs --upload-port COM11
-
-# ESP32 thường có PSRAM + flash 8MB / 16MB
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-8mb -t uploadfs --upload-port COM11
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32-psram-16mb -t uploadfs --upload-port COM11
-
-# ESP32-S3 thường
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3 -t uploadfs --upload-port COM11
-
-# ESP32-S3 N8R2
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r2 -t uploadfs --upload-port COM11
-
-# ESP32-S3 N8R8
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n8r8 -t uploadfs --upload-port COM11
-
-# ESP32-S3 N16R8 (Bản chuẩn)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8 -t uploadfs --upload-port COM11
-
-# ESP32-S3 N16R8 WakeNet (On-Device Hotword)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet -t uploadfs --upload-port COM11
-```
-
-Lệnh `uploadfs` sẽ tự chạy `scripts/gzip_webui.py`, build LittleFS và nạp filesystem vào ESP32. Không cần chạy `buildfs` riêng trước đó nếu mục tiêu là nạp luôn.
-
-## Quy trình thường dùng
-
-Trong các ví dụ bên dưới đang dùng `-e esp32`. Nếu nạp cho board khác thì đổi sang env tương ứng, ví dụ `-e esp32-psram`, `-e esp32-wrover`, `-e esp32s3-n8r2`, `-e esp32s3-n8r8` hoặc `-e esp32s3-n16r8`.
-
-Sửa WebUI:
-
-```text
-1. Sửa file trong data/
-2. Chạy uploadfs
-3. Mở lại WebUI trên trình duyệt
-```
-
-Lệnh:
-
-```powershell
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -t uploadfs --upload-port COM11
-```
-
-Sửa firmware:
-
-```text
-1. Sửa src/main.cpp
-2. Chạy upload firmware
-3. ESP32 tự reset sau khi nạp
-```
-
-Lệnh:
-
-```powershell
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -t upload --upload-port COM11
-```
-
-Sửa cả firmware và WebUI:
-
-```powershell
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -t upload --upload-port COM11
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32 -t uploadfs --upload-port COM11
-```
-
-## Hướng dẫn Build và Nạp chi tiết cho ESP32-S3 N16R8 WakeNet
-
-Bo mạch **ESP32-S3 N16R8 WakeNet** sử dụng môi trường PlatformIO `esp32s3-n16r8-wakenet` và bảng phân vùng 16MB chuyên dụng (`partitions_vbot_ota_16mb_wakenet.csv`) có thêm phân vùng `model` tại offset **`0xC00000`** dành riêng cho các mô hình WakeNet9.
-
-### 1. Build Firmware và Filesystem LittleFS
-
-```powershell
-cd C:\Users\PC-Tuyen\Desktop\esp32_vbot_client
-
-# Biên dịch Firmware (Target ESP32S3_N16R8_WakeNet)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet
-
-# Đóng gói Filesystem LittleFS (tự động nén gzip WebUI)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet -t buildfs
-```
-
-### 2. Nạp trực tiếp qua cổng COM (Ví dụ: COM6)
-
-```powershell
-# Nạp Firmware chính
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet -t upload --upload-port COM6
-
-# Nạp LittleFS (Giao diện WebUI & âm thanh)
-& "C:\Users\PC-Tuyen\.platformio\penv\Scripts\platformio.exe" run -e esp32s3-n16r8-wakenet -t uploadfs --upload-port COM6
-
-# Nạp phân vùng mô hình WakeNet9 mặc định (chỉ cần nạp 1 lần ban đầu hoặc khi cập nhật model mặc định)
-& "$env:USERPROFILE\.platformio\penv\Scripts\python.exe" "$env:USERPROFILE\.platformio\packages\tool-esptoolpy\esptool.py" --chip esp32s3 --port COM6 write_flash 0xC00000 models/srmodels.bin
-```
-
-### 3. Nạp trọn gói 1 lần toàn bộ phân vùng (Full Flash ban đầu)
-
-Khi nạp cho chip trắng hoặc muốn xóa toàn bộ và ghi từ đầu bằng `esptool.py`:
-
-```powershell
-& "$env:USERPROFILE\.platformio\penv\Scripts\python.exe" "$env:USERPROFILE\.platformio\packages\tool-esptoolpy\esptool.py" -p COM6 -b 921600 --before default_reset --after hard_reset --chip esp32s3 write_flash --flash_mode dio --flash_size 16MB --flash_freq 80m `
-  0x0000 .pio/build/esp32s3-n16r8-wakenet/bootloader.bin `
-  0x8000 .pio/build/esp32s3-n16r8-wakenet/partitions.bin `
-  0xe000 "$env:USERPROFILE\.platformio\packages\framework-arduinoespressif32\tools\partitions\boot_app0.bin" `
-  0x10000 .pio/build/esp32s3-n16r8-wakenet/firmware.bin `
-  0x810000 .pio/build/esp32s3-n16r8-wakenet/littlefs.bin `
-  0xc00000 models/srmodels.bin
-```
-
-### 4. Đóng gói mô hình từ khóa tùy chỉnh thành file `.bin`
-
-Nếu bạn có mô hình từ khóa WakeNet mới cần đóng gói thành 1 file `.bin` để người dùng tải lên qua WebUI:
-
-```powershell
-python scripts/pack_custom_hotword.py -d "duong_dan_thu_muc_model" -o "models/wakenet_bin_models/wn9_ten_model.bin" -n "wn9_ten_model"
-```
-
----
 
 ## Sau khi flash
 

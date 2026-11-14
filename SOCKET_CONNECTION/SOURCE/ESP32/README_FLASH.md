@@ -1,132 +1,107 @@
 # Hướng dẫn build và flash firmware
 
-## 1. Chọn đúng environment
+## Chọn và nhập liệu đúng theo bảng sau khi nạp bằng Espressif Flash Download Tool
 
-| Environment | Chip | Flash | PSRAM | LittleFS | Phân vùng WakeNet9 Model |
-|---|---|---:|---:|---:|:---:|
-| `esp32` | ESP32 | 4 MB | Không | `0x350000` | - |
-| `esp32-psram` | ESP32 | 4 MB | Có | `0x350000` | - |
-| `esp32-wrover` | ESP32-WROVER | 4 MB | Có | `0x350000` | - |
-| `esp32-psram-8mb` | ESP32 | 8 MB | Có | `0x610000` | - |
-| `esp32-psram-16mb` | ESP32 | 16 MB | Có | `0x810000` | - |
-| `esp32-wakenet` | ESP32 | 16 MB | Có | `0x810000` | `0xC00000` (`srmodels.bin`) |
-| `esp32-wrover-wakenet` | ESP32-WROVER | 16 MB | Có | `0x810000` | `0xC00000` (`srmodels.bin`) |
-| `esp32s3` | ESP32-S3 | 8 MB | Không | `0x610000` | - |
-| `esp32s3-n8r2` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x610000` | - |
-| `esp32s3-n8r2-wakenet` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x490000` | `0x670000` (`srmodels.bin`) |
-| `esp32s3-n8r8` | ESP32-S3 | 8 MB | 8 MB OPI | `0x610000` | - |
-| `esp32s3-n8r8-wakenet` | ESP32-S3 | 8 MB | 8 MB OPI | `0x490000` | `0x670000` (`srmodels.bin`) |
-| `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x810000` | - |
-| `esp32s3-n16r8-wakenet` | ESP32-S3 | 16 MB | 8 MB OPI | `0x810000` | `0xC00000` (`srmodels.bin`) |
+| Environment | Chip | Flash | PSRAM | bootloader.bin | partitions.bin | firmware.bin | littlefs.bin |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `esp32` | ESP32 | 4 MB | Không | `0x1000` | `0x8000` | `0x10000` | `0x350000` |
+| `esp32-psram` | ESP32 | 4 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x350000` |
+| `esp32-wrover` | ESP32-WROVER | 4 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x350000` |
+| `esp32-psram-8mb` | ESP32 | 8 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32-psram-16mb` | ESP32 | 16 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x810000` |
+| `esp32-wakenet` | ESP32 | 16 MB | Có | `0x1000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
+| `esp32s3` | ESP32-S3 | 8 MB | Không | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r2` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r2-wakenet` | ESP32-S3 | 8 MB | 2 MB QSPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
+| `esp32s3-n8r8` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x610000` |
+| `esp32s3-n8r8-wakenet` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
+| `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` |
+| `esp32s3-n16r8-wakenet` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
+| `Bluetooth_ESP32_RECEIVER` | ESP32 | 4 MB | Không | `0x1000` | `0x8000` | `0x10000` | Không dùng *(boot_app0: `0xE000`)* |
 
----
+## GPIO mặc định theo dòng chip
 
-## 2. GPIO mặc định theo dòng chip
+| Chức năng | ESP32 | ESP32-S3 | Ghi chú |
+|---|---:|---:|:---|
+| LED WS2812 | 23 | 48 | Hiệu ứng LED RGB |
+| Nút Mic | 32 | 41 | Bật/Tắt Mic |
+| Nút Volume+ | 33 | 40 | Tăng âm lượng |
+| Nút Volume- | 18 | 39 | Giảm âm lượng |
+| Nút WakeUp | 19 | 42 | Đánh thức thủ công |
+| Rotary CLK / DT / SW | 32 / 33 / 19 | 41 / 40 / 42 | Chiết áp xoay âm lượng |
+| Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 18 / 17 / 8 | INMP441 Microphone (Kênh L) |
+| MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 | 15 / 16 / 7 | I2S DAC Loa |
+| Bluetooth I2S RX (BCLK / WS / DIN) | 14 / 21 / 47 | 14 / 21 / 47 | Nhận luồng nhạc A2DP từ ESP32 thường |
+| Bluetooth UART (TX / RX) | 17 / 16 (ESP32 Thường) | 1 (TX) / 2 (RX) (ESP32-S3) | UART metadata, trạng thái & điều khiển |
 
-| Chức năng | ESP32 | ESP32-S3 |
-|---|---:|---:|
-| LED WS2812 | 23 | 48 |
-| Nút Mic | 32 | 41 |
-| Nút Volume+ | 33 | 40 |
-| Nút Volume- | 18 | 39 |
-| Nút WakeUp | 19 | 42 |
-| Rotary CLK / DT / SW | 32 / 33 / 19 | 41 / 40 / 42 |
-| Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 5 / 4 / 6 |
-| MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 | 15 / 16 / 7 |
+Các nút được đấu giữa GPIO tương ứng và GND; firmware sử dụng `INPUT_PULLUP`. Không dùng GPIO22–37 cho ngoại vi trên ESP32-S3 N8R8/N16R8 vì các chân khả dụng trong vùng này có thể thuộc bus flash/OPI PSRAM.
 
-Các nút được đấu giữa GPIO tương ứng và GND; firmware sử dụng `INPUT_PULLUP`. Không dùng GPIO26–37 cho ngoại vi trên ESP32-S3 N8R8/N16R8 vì các chân này thuộc bus Flash và Octal PSRAM tốc độ cao nội bộ.
-
----
-
-## 3. Build bằng PlatformIO
-
-Thay `<env>` bằng environment trong bảng (ví dụ: `esp32s3-n8r2-wakenet`, `esp32s3-n8r8-wakenet`, `esp32s3-n16r8-wakenet`):
-
-```powershell
-pio run -e <env>
-pio run -e <env> -t buildfs
-```
-
-Các file kết quả nằm trong `.pio/build/<env>/`.
-
----
-
-## 4. Nạp trực tiếp bằng PlatformIO
-
-Đây là cách được khuyến nghị vì PlatformIO tự chọn đúng offset:
-
-```powershell
-pio run -e <env> -t erase --upload-port COM6
-pio run -e <env> -t upload --upload-port COM6
-pio run -e <env> -t uploadfs --upload-port COM6
-```
-
-Đổi `COM6` thành cổng COM thực tế.
-
-Đối với dòng có **WakeNet**, nạp thêm file mô hình WakeNet9 mặc định vào phân vùng tương ứng:
-- Cho **ESP32-S3 8MB WakeNet** (`esp32s3-n8r2-wakenet`, `esp32s3-n8r8-wakenet`):
-```powershell
-& "$env:USERPROFILE\.platformio\penv\Scripts\python.exe" "$env:USERPROFILE\.platformio\packages\tool-esptoolpy\esptool.py" --chip esp32s3 --port COM6 write_flash 0x670000 models/srmodels.bin
-```
-- Cho **ESP32-S3 16MB WakeNet** (`esp32s3-n16r8-wakenet`):
-```powershell
-& "$env:USERPROFILE\.platformio\penv\Scripts\python.exe" "$env:USERPROFILE\.platformio\packages\tool-esptoolpy\esptool.py" --chip esp32s3 --port COM6 write_flash 0xC00000 models/srmodels.bin
-```
-
----
-
-## 5. Nạp bằng Espressif Flash Download Tool
+## Nạp bằng Espressif Flash Download Tool
 
 Xóa toàn bộ flash trước khi đổi loại firmware hoặc khi gặp `Invalid image block`.
 
-### Cấu hình cho ESP32 thường (Flash 4MB):
+ESP32:
+
 ```text
 0x1000   bootloader.bin
 0x8000   partitions.bin
 0x10000  firmware.bin
-0x350000 littlefs.bin
+<offset LittleFS trong bảng>  littlefs.bin
 ```
 
-### Cấu hình cho ESP32-S3 N8 / N8R2 / N8R8 (Bản chuẩn không WakeNet, Flash 8MB):
+ESP32-S3 (Thông thường):
+
 ```text
 0x0000   bootloader.bin
 0x8000   partitions.bin
 0x10000  firmware.bin
-0x610000 littlefs.bin
+<offset LittleFS trong bảng>  littlefs.bin
 ```
 
-### Cấu hình cho ESP32-S3 N8R2 / N8R8 WakeNet (Flash 8MB, PSRAM QSPI/OPI):
-```text
-0x0000   bootloader.bin
-0x8000   partitions.bin
-0xe000   boot_app0.bin
-0x10000  firmware.bin
-0x490000 littlefs.bin
-0x670000 models/srmodels.bin
-```
+ESP32-S3 N16R8 WakeNet (16MB Flash, On-Device Hotword):
 
-### Cấu hình cho ESP32-S3 N16R8 WakeNet (Flash 16MB, PSRAM 8MB OPI):
 ```text
 0x0000    bootloader.bin
 0x8000    partitions.bin
 0xe000    boot_app0.bin
 0x10000   firmware.bin
 0x810000  littlefs.bin
-0xC00000  models/srmodels.bin
+0xc00000  srmodels.bin
 ```
 
-> [!IMPORTANT]
-> - Bootloader ESP32 dùng offset `0x1000`.
-> - Bootloader ESP32-S3 dùng offset `0x0000` (Không ghi bootloader S3 tại `0x1000`).
-> - Phân vùng `srmodels.bin`: `0x670000` cho bản 8MB Flash WakeNet, `0xC00000` cho bản 16MB Flash WakeNet.
+ESP32 WakeNet (16MB Flash + PSRAM, On-Device Hotword):
 
----
+```text
+0x1000    bootloader.bin
+0x8000    partitions.bin
+0xe000    boot_app0.bin
+0x10000   firmware.bin
+0x810000  littlefs.bin
+0xc00000  srmodels.bin
+```
 
-## 6. Khắc phục lỗi boot
+Bluetooth ESP32 RECEIVER (ESP32 Thường thu âm thanh Bluetooth):
+
+```text
+0x1000    bootloader.bin
+0x8000    partitions.bin
+0xe000    boot_app0.bin
+0x10000   firmware.bin
+```
+*(Chi tiết xem tại thư mục Bluetooth_ESP32_RECEIVER/README.md)*
+
+Bộ firmware của dự án gồm đúng bốn file ở trên. Vùng `otadata` tại `0xE000` được để trống khi nạp lần đầu; bootloader sẽ khởi động ứng dụng tại phân vùng `ota_0`. Không trộn file giữa các environment hoặc giữa ESP32 và ESP32-S3.
+
+Trong Flash Download Tool, chọn đúng chip, flash size và flash mode. Các cấu hình S3 có PSRAM trong dự án dùng `QIO` cho flash; N8R8/N16R8 dùng OPI PSRAM.
+
+## Khắc phục lỗi boot
 
 Nếu log có `Invalid image block, can't boot`:
+
 1. Xác nhận đúng chip và environment.
-2. Xóa toàn bộ flash trước khi nạp (`pio run -e <env> -t erase`).
+2. Xóa toàn bộ flash.
 3. Kiểm tra offset bootloader: ESP32 là `0x1000`, ESP32-S3 là `0x0000`.
 4. Build lại toàn bộ file từ cùng một environment.
-5. Giảm tốc độ upload (baud rate) nếu kết nối chập chờn.
+5. Giảm tốc độ upload nếu kết nối không ổn định.
+
+`FramingError` xuất hiện trong lúc bo reset thường chỉ là hệ quả của vòng lặp khởi động.

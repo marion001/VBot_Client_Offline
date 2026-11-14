@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 import gzip
 import shutil
@@ -20,13 +21,15 @@ def bundled_index_bytes(source: Path) -> bytes:
     html = source.read_text(encoding="utf-8")
     css = (SOURCE_DATA_DIR / "app.css").read_text(encoding="utf-8")
     javascript = (SOURCE_DATA_DIR / "app.js").read_text(encoding="utf-8")
-    html = html.replace(
-        '<link rel="stylesheet" href="/webui/app.css?v=20260911-1">',
-        f"<style>\n{css}\n</style>",
+    html = re.sub(
+        r'<link\s+rel="stylesheet"\s+href="/webui/app\.css[^"]*">',
+        lambda _: f"<style>\n{css}\n</style>",
+        html,
     )
-    html = html.replace(
-        '<script src="/webui/app.js?v=20260911-1"></script>',
-        f"<script>\n{javascript}\n</script>",
+    html = re.sub(
+        r'<script\s+src="/webui/app\.js[^"]*"></script>',
+        lambda _: f"<script>\n{javascript}\n</script>",
+        html,
     )
     if "/webui/app.css" in html or "/webui/app.js" in html:
         raise RuntimeError("Không thể nhúng app.css/app.js vào index.html")

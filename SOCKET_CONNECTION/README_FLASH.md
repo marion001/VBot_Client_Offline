@@ -17,19 +17,22 @@
 | `esp32s3-n8r8-wakenet` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
 | `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` |
 | `esp32s3-n16r8-wakenet` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
+| `Bluetooth_ESP32_RECEIVER` | ESP32 | 4 MB | Không | `0x1000` | `0x8000` | `0x10000` | Không dùng *(boot_app0: `0xE000`)* |
 
 ## GPIO mặc định theo dòng chip
 
-| Chức năng | ESP32 | ESP32-S3 |
-|---|---:|---:|
-| LED WS2812 | 23 | 48 |
-| Nút Mic | 32 | 41 |
-| Nút Volume+ | 33 | 40 |
-| Nút Volume- | 18 | 39 |
-| Nút WakeUp | 19 | 42 |
-| Rotary CLK / DT / SW | 32 / 33 / 19 | 41 / 40 / 42 |
-| Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 5 / 4 / 6 |
-| MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 | 15 / 16 / 7 |
+| Chức năng | ESP32 | ESP32-S3 | Ghi chú |
+|---|---:|---:|:---|
+| LED WS2812 | 23 | 48 | Hiệu ứng LED RGB |
+| Nút Mic | 32 | 41 | Bật/Tắt Mic |
+| Nút Volume+ | 33 | 40 | Tăng âm lượng |
+| Nút Volume- | 18 | 39 | Giảm âm lượng |
+| Nút WakeUp | 19 | 42 | Đánh thức thủ công |
+| Rotary CLK / DT / SW | 32 / 33 / 19 | 41 / 40 / 42 | Chiết áp xoay âm lượng |
+| Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 18 / 17 / 8 | INMP441 Microphone (Kênh L) |
+| MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 | 15 / 16 / 7 | I2S DAC Loa |
+| Bluetooth I2S RX (BCLK / WS / DIN) | 14 / 21 / 47 | 14 / 21 / 47 | Nhận luồng nhạc A2DP từ ESP32 thường |
+| Bluetooth UART (TX / RX) | 17 / 16 (ESP32 Thường) | 1 (TX) / 2 (RX) (ESP32-S3) | UART metadata, trạng thái & điều khiển |
 
 Các nút được đấu giữa GPIO tương ứng và GND; firmware sử dụng `INPUT_PULLUP`. Không dùng GPIO22–37 cho ngoại vi trên ESP32-S3 N8R8/N16R8 vì các chân khả dụng trong vùng này có thể thuộc bus flash/OPI PSRAM.
 
@@ -68,14 +71,24 @@ ESP32-S3 N16R8 WakeNet (16MB Flash, On-Device Hotword):
 
 ESP32 WakeNet (16MB Flash + PSRAM, On-Device Hotword):
 
-`	ext
+```text
 0x1000    bootloader.bin
 0x8000    partitions.bin
 0xe000    boot_app0.bin
 0x10000   firmware.bin
 0x810000  littlefs.bin
 0xc00000  srmodels.bin
-`
+```
+
+Bluetooth ESP32 RECEIVER (ESP32 Thường thu âm thanh Bluetooth):
+
+```text
+0x1000    bootloader.bin
+0x8000    partitions.bin
+0xe000    boot_app0.bin
+0x10000   firmware.bin
+```
+*(Chi tiết xem tại thư mục Bluetooth_ESP32_RECEIVER/README.md)*
 
 Bộ firmware của dự án gồm đúng bốn file ở trên. Vùng `otadata` tại `0xE000` được để trống khi nạp lần đầu; bootloader sẽ khởi động ứng dụng tại phân vùng `ota_0`. Không trộn file giữa các environment hoặc giữa ESP32 và ESP32-S3.
 

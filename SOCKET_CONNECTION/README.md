@@ -27,9 +27,40 @@ Client ESP32 cho `Streaming.py` khi server đặt `connection_protocol = "socket
 | `esp32s3-n8r8-wakenet` | ESP32-S3 | 8 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x490000` *(srmodels: `0x670000`, boot_app0: `0xE000`)* |
 | `esp32s3-n16r8` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` |
 | `esp32s3-n16r8-wakenet` | ESP32-S3 | 16 MB | 8 MB OPI | `0x0000` | `0x8000` | `0x10000` | `0x810000` *(srmodels: `0xC00000`, boot_app0: `0xE000`)* |
+| `Bluetooth_ESP32_RECEIVER` | ESP32 | 4 MB | Không | `0x1000` | `0x8000` | `0x10000` | Không dùng *(boot_app0: `0xE000`)* |
+
+## Module Thu Âm Thanh Bluetooth A2DP (ESP32 Thường)
+
+Dành riêng cho việc nâng cấp loa VBot Client thành một chiếc loa Bluetooth thông minh cao cấp. Firmware và hướng dẫn nạp được đóng gói độc lập tại thư mục [Bluetooth_ESP32_RECEIVER](Bluetooth_ESP32_RECEIVER/):
+
+* **Âm thanh số thuần túy qua I2S**: Nhận luồng Bluetooth Stereo 44.1kHz và truyền trực tiếp sang ESP32-S3 qua **I2S Slave RX** mà không qua DAC trung gian, chống nhiễu tuyệt đối.
+* **Giao tiếp hai chiều qua UART (115200 baud)**:
+  * Tự động nhận Tên Bluetooth từ cấu hình WebUI của ESP32-S3 (`cname`).
+  * Tự động bật/tắt Bluetooth theo cài đặt trên WebUI / NVS của ESP32-S3.
+  * Tự động nhận diện và đọc tên thiết bị kết nối (**Peer Device Name** như iPhone, Android, PC...) qua Bluetooth GAP.
+  * Đồng bộ Metadata bài hát (**Title, Artist, Album**) sang ESP32-S3 để hiển thị lên WebUI và Home Assistant.
+  * Nhận lệnh điều khiển `PLAY`, `PAUSE`, `NEXT`, `PREV`, `DISCONNECT` từ phím bấm cứng, WebUI VBot hoặc các Automation/Dashboard của Home Assistant.
+* **Cơ chế chuyển tiếp Zero-Collision**:
+  * Khi nhạc tạm dừng (>800ms im lặng), ESP32-S3 tự động ngắt I2S Slave RX, trả lại cổng I2S_NUM_1 cho Microphone INMP441 và WakeNet ("VBot ơi") hoạt động bình thường.
+  * Khi nhạc phát lại, tự động chuyển DAC Loa sang 44.1kHz Stereo mượt mà.
+
+### Sơ đồ nối dây giữa ESP32 Thường và ESP32-S3
+
+| Tín hiệu | ESP32 Thường (A2DP Master) | ESP32-S3 (VBot Client) | Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **I2S BCLK** | **GPIO 14** | **GPIO 14** | Xung bit clock I2S |
+| **I2S WS (LRCK)** | **GPIO 21** | **GPIO 21** | Xung chọn kênh L/R |
+| **I2S DATA OUT** | **GPIO 22** | **GPIO 47 (DIN)** | Dữ liệu âm thanh PCM |
+| **UART TX** | **GPIO 17 (TX2)** | **GPIO 2 (RX)** | ESP32 gửi metadata & trạng thái |
+| **UART RX** | **GPIO 16 (RX2)** | **GPIO 1 (TX)** | ESP32 nhận cấu hình & điều khiển |
+| **GND** | **GND** | **GND** | **Bắt buộc nối chung GND** |
+| **Nguồn cấp** | **5V (VIN)** | **5V (VIN)** | Khuyên dùng nguồn 5V chung 2A-3A |
 
 ## Tính năng
 
+- **Tab WebUI riêng `Bluetooth Control`**: Điều khiển phát/tạm dừng, bài tiếp theo/bài trước, ngắt kết nối, thanh trượt âm lượng, hiển thị tên loa Bluetooth, tên điện thoại đang kết nối và thông tin bài hát thời gian thực.
+- **Tab WebUI `Cấu Hình GPIO (LED, MIC, Bluetooth, Audio)`**: Cấu hình trực quan toàn bộ chân phần cứng (LED WS2812, Mic INMP441, DAC Loa MAX98357, nút bấm, rotary encoder, chân Bluetooth I2S & UART).
+- **Đồng bộ toàn diện MQTT Home Assistant**: Xuất bản tự động các cảm biến Bluetooth (`sensor/bluetooth_connection`, `sensor/bluetooth_device_name`, `sensor/bluetooth_playing`, `sensor/bluetooth_title`, `sensor/bluetooth_artist`, `sensor/bluetooth_album`, `sensor/bluetooth_enabled`) và entity `media_player` chuẩn Home Assistant.
 - **Nhận diện từ khóa đánh thức WakeNet9 On-Device (`esp32s3-n16r8-wakenet`)**: Xử lý nhận diện giọng nói đánh thức hoàn toàn Offline trên chip (~0ms), không tốn băng thông Wi-Fi và không phụ thuộc máy chủ khi ở trạng thái chờ.
 - **Tab WebUI riêng `Cấu Hình Hotword WakeUP` (dành riêng cho bản WakeNet)**: Tích hợp sẵn 4 từ khóa chuẩn (*Hi Lily, Alexa, Sophia, Jarvis*) và cho phép tải lên tối đa **5 từ khóa tùy chỉnh** (`.bin`) trực tiếp qua WebUI.
 - **Kho 18 mẫu Hotword WakeNet9 có sẵn**: Tải về miễn phí tại thư mục [ESP_WakeNet_Hotword_Sample](ESP_WakeNet_Hotword_Sample).

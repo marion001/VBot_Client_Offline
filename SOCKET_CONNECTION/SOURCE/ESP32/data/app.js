@@ -29,12 +29,13 @@ const buttonActiveLevels=[
   ['high','Chạm Mức Cao (GPIO chạm 3.3V)']
 ];
 const wakeActions=[
+  ['none','Không làm gì / Mặc định'],
+  ['stop_audio','Dừng phát âm thanh'],
   ['restart','Khởi động lại ESP'],
   ['clean_all','Đặt lại dữ liệu cấu hình Config và WiFi'],
-  ['reset_wifi','Đặt lại cấu hình WiFi'],
   ['reset_nvs','Đặt lại cấu hình Config'],
-  ['stop_audio','Dừng phát âm thanh'],
-  ['toggle_mic','Bật / Tắt Mic']
+  ['toggle_mic','Bật / Tắt Mic'],
+  ['reset_wifi','Đặt lại cấu hình WiFi']
 ];
 const ledEffects=['LED_SPEAK','LED_THINK','LED_LOADING','LED_MUTE','LED_ERROR','LED_SOCKET_ERROR','LED_STARTUP','LED_PAUSE','LED_VOLUME','LED_OFF'];
 
@@ -106,8 +107,8 @@ function renderConfig(){
   const c=state.config;
   const isS3=String(state.status?.chip_target||'').startsWith('ESP32S3');
   const gpioDefaults=isS3
-    ? {mbclk:5,mws:4,mdin:6,dbclk:15,dlrc:16,ddout:7,pled:48,bmic:41,bup:40,bdn:39,bwake:42,rclk:41,rdt:40,rsw:42}
-    : {mbclk:14,mws:13,mdin:34,dbclk:27,dlrc:26,ddout:25,pled:23,bmic:32,bup:33,bdn:18,bwake:19,rclk:32,rdt:33,rsw:19};
+    ? {mbclk:5,mws:4,mdin:6,dbclk:15,dlrc:16,ddout:7,pled:48,bmic:41,bup:40,bdn:39,bwake:42,rclk:41,rdt:40,rsw:42,btsl_bclk:14,btsl_ws:21,btsl_din:47,btsl_tx:1,btsl_rx:2}
+    : {mbclk:14,mws:13,mdin:34,dbclk:27,dlrc:26,ddout:25,pled:23,bmic:32,bup:33,bdn:18,bwake:19,rclk:32,rdt:33,rsw:19,btsl_bclk:14,btsl_ws:13,btsl_din:35,btsl_tx:1,btsl_rx:3};
   const h=[];
   h.push(tableBlock('Cấu Hình Máy Chủ Socket VBot',[
     select('startupmode','Chế độ khởi chạy',startupModes,c.client.startup_mode||'vbot_server','Không sử dụng: ESP32 không khởi tạo Mic và không kết nối WebSocket; WebUI, MQTT, mDNS, phát âm thanh, nút nhấn, LED và OTA vẫn hoạt động.'),
@@ -266,6 +267,12 @@ function renderConfig(){
   h.push(tableBlock('Cấu Hình mDNS',[
     check('mdns','Cho phép các thiết bị trong mạng LAN phát hiện ESP32 VBot Client',c.network?.mdns_enabled!==false)
   ]));
+  h.push(tableBlock('Cấu Hình Phát Nhạc Không Dây DLNA / UPnP',[
+    check('dlnaen','Kích hoạt DLNA MediaRenderer (Phát nhạc từ Zing MP3, Spotify, NhacCuaTui, BubbleUPnP, Windows Cast to Device qua WiFi)',c.network?.dlna_enabled!==false)
+  ]));
+  h.push(tableBlock('Cấu Hình Apple AirPlay Receiver (iPhone / iPad / Mac)',[
+    check('airplayen','Kích hoạt Apple AirPlay (Tự động xuất hiện trong Trung tâm điều khiển / Control Center của iPhone, iPad, Mac để phát nhạc không dây)',c.network?.airplay_enabled!==false)
+  ]));
   const customApiUrl=state.status?.ip?`http://${state.status.ip}`:location.origin;
   h.push(tableBlock('Cấu Hình MQTT',[
     check('mqen','Kích Hoạt MQTT',c.mqtt?.active||false),
@@ -288,6 +295,14 @@ function renderConfig(){
     input('dlrc','LRC/WS',c.i2s_dac.lrc,'number','',String(gpioDefaults.dlrc)),
     input('ddout','DIN',c.i2s_dac.dout,'number','',String(gpioDefaults.ddout))
   ]));
+  const btSlaveTable = tableBlock('Cấu Hình Nhận Bluetooth I2S & UART Slave (Từ ESP32 Thường)',[
+    check('btsl_en','Kích hoạt nhận Bluetooth từ ESP32 thường',c.bt_slave?.enabled!==false,'Khi bật, ESP32-S3 sẽ kích hoạt luồng nhận tín hiệu âm thanh I2S từ ESP32 thường để phát ra loa và nháy LED WS2812.'),
+    input('btsl_bclk','BCLK / Bit Clock GPIO',c.bt_slave?.bclk??gpioDefaults.btsl_bclk,'number','',String(gpioDefaults.btsl_bclk),'Chân nhận xung nhịp Bit Clock từ ESP32 thường.'),
+    input('btsl_ws','WS / LRCK GPIO',c.bt_slave?.ws??gpioDefaults.btsl_ws,'number','',String(gpioDefaults.btsl_ws),'Chân nhận xung nhịp Word Select từ ESP32 thường (Tránh trùng với GPIO15 của DAC).'),
+    input('btsl_din','DIN / Data In GPIO',c.bt_slave?.din??gpioDefaults.btsl_din,'number','',String(gpioDefaults.btsl_din),'Chân nhận dữ liệu PCM từ ESP32 thường (Tránh trùng với GPIO16 của DAC).'),
+    input('btsl_tx','TX GPIO (Điều Khiển S3 -> ESP32)',c.bt_slave?.tx??gpioDefaults.btsl_tx,'number','',String(gpioDefaults.btsl_tx),'Chân TX UART của ESP32-S3 gửi lệnh điều khiển sang RX2 (GPIO16) của ESP32 thường (Mặc định: GPIO 1).'),
+    input('btsl_rx','RX GPIO (Metadata ESP32 -> S3)',c.bt_slave?.rx??gpioDefaults.btsl_rx,'number','',String(gpioDefaults.btsl_rx),'Chân RX UART của ESP32-S3 nhận Tên bài hát/Ca sĩ từ TX2 (GPIO17) của ESP32 thường (Mặc định: GPIO 2).')
+  ]);
   const speakEffects = [
     ['0', 'Mặc định'],
     ['1', 'Nháy theo nhạc (Audio VU Meter)'],
@@ -304,6 +319,12 @@ function renderConfig(){
     ['1', 'Thở dịu nhẹ (Breathe)'],
     ['2', 'Sao chổi xoay tròn (Spinning Comet)']
   ];
+  const errorEffects = [
+    ['0', 'Thở dịu nhẹ (Breathe)'],
+    ['1', 'Mặc định (Sáng toàn bộ LED)'],
+    ['2', 'Chớp tắt cảnh báo (Strobe/Blink)'],
+    ['3', 'Sao chổi xoay tròn (Spinning Comet)']
+  ];
   h.push(tableBlock('Cấu Hình LED WS2812',[
     check('leden','Kích Hoạt',c.led.active),
     input('pled','LED GPIO',c.led.gpio,'number','',String(gpioDefaults.pled)),
@@ -313,13 +334,22 @@ function renderConfig(){
     select('lthkef','Hiệu ứng LED khi đánh thức',thinkEffects,String(c.led.think_effect??0)),
     color('lthink','Màu LED khi đánh thức',c.led.think_color),
     select('lmuteef','Hiệu ứng LED khi Mic bị tắt',muteEffects,String(c.led.mute_effect??0)),
-    color('lmute','Màu LED khi Mic bị tắt',c.led.mute_color)
+    color('lmute','Màu LED khi Mic bị tắt',c.led.mute_color),
+    select('lerref','Hiệu ứng LED báo lỗi mất kết nối máy chủ',errorEffects,String(c.led.error_effect??0)),
+    color('lerrclr','Màu LED báo lỗi mất kết nối máy chủ',c.led.error_color||'#FF2814')
   ]));
   h.push(tableBlock('Cấu Hình Nút Nhấn / Rotary Encoder',[
     //section('Cấu Hình Chế Độ Nút Nhấn'),
     check('btnen','Kích Hoạt',c.button.active),
     select('inputmode','Chế độ sử dụng nút nhấn',inputModes,c.button.input_mode||'button'),
-    select('wla','Hành động nhấn giữ WakeUP / Rotary SW',wakeActions,c.button.wakeup_long_action),
+    select('wla','Hành động nhấn giữ WakeUP / Rotary SW',wakeActions,c.button.wakeup_long_action||'stop_audio'),
+    select('wda','Hành động nhấn đúp WakeUP / Rotary SW',wakeActions,c.button.wakeup_double_action||'none'),
+    select('mla','Hành động nhấn giữ Mic',wakeActions,c.button.mic_long_action||'none'),
+    select('mda','Hành động nhấn đúp Mic',wakeActions,c.button.mic_double_action||'none'),
+    select('vupla','Hành động nhấn giữ Volume+',wakeActions,c.button.vol_up_long_action||'none'),
+    select('vupda','Hành động nhấn đúp Volume+',wakeActions,c.button.vol_up_double_action||'none'),
+    select('vdnla','Hành động nhấn giữ Volume-',wakeActions,c.button.vol_down_long_action||'none'),
+    select('vdnda','Hành động nhấn đúp Volume-',wakeActions,c.button.vol_down_double_action||'none'),
     input('bsdelay','Thời gian trễ ổn định khi khởi động ms',c.button.startup_delay_ms??3000,'number','min="0" max="10000"','3000'),
     input('bdbp','Thời gian khi nhấn (debounce) ms',c.button.press_debounce_ms,'number','min="10" max="1000"','50'),
     input('bdbr','Thời gian khi thả (debounce) ms',c.button.release_debounce_ms,'number','min="10" max="1000"','50'),
@@ -341,8 +371,8 @@ function renderConfig(){
     check('logs','Hiển thị logs ra Serial (Baud rate 115200)',c.logs.serial)
   ]));
   const defaults=isS3
-    ? [['Mic','WS 4 · SCK 5 · SD 6'],['MAX98357','DIN 7 · BCLK 15 · LRC 16'],['LED','GPIO48'],['Button','Wake 42 · Vol- 39 · Vol+ 40 · Mic 41']]
-    : [['Mic','WS 13 · SCK 14 · SD 34'],['MAX98357','DIN 25 · BCLK 27 · LRC 26'],['LED','GPIO23'],['Button','Mic 32 · Vol+ 33 · Vol- 18 · Wake 19']];
+    ? [['Mic (GPIO Mặc Định)','WS 4 · SCK 5 · SD 6'],['MAX98357 (GPIO Mặc Định)','DIN 7 · BCLK 15 · LRC 16'],['Bluetooth I2S & UART (Mặc Định)','BCLK 14 · WS 21 · DIN 47 · TX 1 · RX 2'],['LED (GPIO Mặc Định)','GPIO48'],['Button (GPIO Mặc Định)','Wake 42 · Vol- 39 · Vol+ 40 · Mic 41']]
+    : [['Mic (GPIO Mặc Định)','WS 13 · SCK 14 · SD 34'],['MAX98357 (GPIO Mặc Định)','DIN 25 · BCLK 27 · LRC 26'],['Bluetooth I2S & UART (Mặc Định)','BCLK 14 · WS 13 · DIN 35 · TX 1 · RX 3'],['LED (GPIO Mặc Định)','GPIO23'],['Button (GPIO Mặc Định)','Mic 32 · Vol+ 33 · Vol- 18 · Wake 19']];
   document.getElementById('configMount').innerHTML=`<section class="config-shell">
     <div class="config-title"><h2>Cấu hình thiết bị</h2><span>${isS3?'ESP32-S3':'ESP32'} · Thay đổi được áp dụng sau khi khởi động lại</span></div>
     <ul class="nav nav-tabs" role="tablist">
@@ -350,7 +380,8 @@ function renderConfig(){
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgAudio" type="button">Âm thanh</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgHotword" type="button">Cấu Hình Hotword WakeUP</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgNetwork" type="button">Mạng & MQTT</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgGpio" type="button">GPIO</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgGpio" type="button">Cấu Hình GPIO (LED, MIC, Bluetooth, Audio)</button></li>
+      <li class="nav-item"><button id="tabBtControlBtn" class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgBtControl" type="button"><i class="bi bi-bluetooth"></i> Bluetooth Control</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgLed" type="button"><i class="bi bi-lightbulb"></i> LED Effects Control</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfgSystem" type="button">Hệ thống</button></li>
     </ul>
@@ -358,9 +389,53 @@ function renderConfig(){
       <div class="tab-pane fade show active" id="cfgServer">${h[0]}</div>
       <div class="tab-pane fade" id="cfgAudio">${h[1]}</div>
       <div class="tab-pane fade" id="cfgHotword">${h[2]}</div>
-      <div class="tab-pane fade" id="cfgNetwork">${h[3]}${h[4]}</div>
-      <div class="tab-pane fade" id="cfgGpio"><div class="gpio-guide">${defaults.map(x=>`<div class="gpio-chip"><strong>${esc(x[0])}</strong><br>${esc(x[1])}</div>`).join('')}</div><div id="gpioValidation"></div>${h[5]}${h[6]}${h[7]}${h[8]}</div>
-      <div class="tab-pane fade" id="cfgSystem">${h[9]}</div>
+      <div class="tab-pane fade" id="cfgNetwork">${h[3]}${h[4]}${h[5]}${h[6]}</div>
+      <div class="tab-pane fade" id="cfgGpio"><div class="gpio-guide">${defaults.map(x=>`<div class="gpio-chip"><strong>${esc(x[0])}</strong><br>${esc(x[1])}</div>`).join('')}</div><div id="gpioValidation"></div>${h[7]}${h[8]}${btSlaveTable}${h[9]}${h[10]}</div>
+      <div class="tab-pane fade" id="cfgBtControl">
+        <section class="led-control-card">
+          <div class="led-control-heading">
+            <div>
+              <h3><i class="bi bi-bluetooth text-primary"></i> Điều Khiển Nhạc Bluetooth</h3>
+              <p>Điều khiển phát nhạc, chuyển bài và kết nối với ESP32 thường qua giao tiếp UART & I2S.</p>
+            </div>
+            <button id="refreshBtBtn" type="button" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Làm mới</button>
+          </div>
+          
+          <div class="card mb-3 p-3 bg-light border-0 shadow-sm">
+            <div class="row align-items-center">
+              <div class="col-md-7">
+                <div class="mb-2"><strong class="text-secondary">Trạng thái phát:</strong> <span id="btStatusBadge" class="badge bg-secondary">Chưa kết nối</span></div>
+                <div class="mb-2"><strong class="text-secondary">Thiết bị đang kết nối:</strong> <span id="btPeerDevice" class="badge bg-success">Chưa có thiết bị nào</span></div>
+                <div class="mb-2"><strong class="text-secondary">Tên Bluetooth của loa:</strong> <span id="btDeviceName" class="badge bg-primary">--</span></div>
+                <div class="mb-1"><strong class="text-secondary">Bài hát:</strong> <span id="btTrackTitle" class="fw-bold text-primary">--</span></div>
+                <div class="mb-1"><strong class="text-secondary">Ca sĩ:</strong> <span id="btTrackArtist" class="text-muted">--</span></div>
+                <div><strong class="text-secondary">Album:</strong> <span id="btTrackAlbum" class="text-muted">--</span></div>
+              </div>
+              <div class="col-md-5 text-md-end mt-3 mt-md-0">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="sendBtCommand('DISCONNECT')"><i class="bi bi-x-circle"></i> Ngắt kết nối</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 justify-content-center my-3">
+            <button type="button" class="btn btn-outline-secondary px-3 py-2" onclick="sendBtCommand('PREV')"><i class="bi bi-skip-start-fill"></i> Bài trước</button>
+            <button type="button" class="btn btn-primary px-4 py-2" onclick="sendBtCommand('PLAY')"><i class="bi bi-play-fill"></i> Phát</button>
+            <button type="button" class="btn btn-warning px-4 py-2" onclick="sendBtCommand('PAUSE')"><i class="bi bi-pause-fill"></i> Tạm dừng</button>
+            <button type="button" class="btn btn-outline-secondary px-3 py-2" onclick="sendBtCommand('NEXT')"><i class="bi bi-skip-end-fill"></i> Bài tiếp theo</button>
+          </div>
+          <div id="btControlMsg" class="small text-center text-muted mb-3" role="status"></div>
+
+          <div class="card p-3 border-0 bg-white shadow-sm mt-3">
+            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-info-circle text-info"></i> Cơ Chế Hoạt Động & Đồng Bộ Home Assistant</h6>
+            <ul class="small text-muted mb-0 ps-3">
+              <li><strong>Liên chip UART & I2S:</strong> ESP32-S3 điều khiển ESP32 thường qua UART 2 chiều (GPIO 1 & 2), đồng thời nhận âm thanh Stereo 44.1kHz qua I2S Slave (GPIO 14, 21, 47).</li>
+              <li><strong>Tự động nhường Mic:</strong> Khi người dùng gọi "VBot ơi" hoặc VBot xử lý câu lệnh, âm thanh Bluetooth tự động tạm nhường và phục hồi lại ngay sau khi rảnh.</li>
+              <li><strong>Đồng bộ Home Assistant:</strong> Đầy đủ các thực thể <code>media_player</code>, trạng thái bài hát, ca sĩ, tên thiết bị kết nối và các nút Play, Pause, Next, Prev được đồng bộ tức thì qua MQTT.</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+      <div class="tab-pane fade" id="cfgSystem">${h[11]}</div>
       <div class="tab-pane fade" id="cfgLed">
         <section class="led-control-card">
           <div class="led-control-heading"><div><h3>LED Effects Control</h3><p>Điều khiển màu và hiệu ứng LED WS2812 của ESP32 Client.</p></div><button id="refreshLedControlBtn" type="button" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Làm mới</button></div>
@@ -474,6 +549,7 @@ function validateGpioUi(){
   if(enabled('leden'))pins.push(['pled','LED WS2812',get('pled'),'out']);
   if(!standalone)pins.push(['mbclk','Mic SCK',get('mbclk'),'out'],['mws','Mic WS',get('mws'),'out'],['mdin','Mic SD',get('mdin'),'in']);
   pins.push(['dbclk','DAC BCLK',get('dbclk'),'out'],['dlrc','DAC LRC',get('dlrc'),'out'],['ddout','DAC DIN',get('ddout'),'out']);
+  if(enabled('btsl_en'))pins.push(['btsl_bclk','Bluetooth BCLK',get('btsl_bclk'),'in'],['btsl_ws','Bluetooth WS',get('btsl_ws'),'in'],['btsl_din','Bluetooth DIN',get('btsl_din'),'in']);
   if(enabled('btnen')){
     if(rotary)pins.push(['rclk','Rotary CLK',get('rclk'),'pullup'],['rdt','Rotary DT',get('rdt'),'pullup'],['rsw','Rotary SW',get('rsw'),'pullup']);
     else {
@@ -570,6 +646,7 @@ function bindForms(){
     tab.classList.add('active');
     document.querySelector(tab.dataset.bsTarget)?.classList.add('show','active');
     if(tab.dataset.bsTarget==='#cfgLed')refreshLedControl();
+    if(tab.dataset.bsTarget==='#cfgBtControl')window.refreshBtInfo();
   }));
   document.querySelectorAll('input[type=color][data-sync]').forEach(p=>{const t=document.querySelector(`input[name="${p.dataset.sync}"]`);if(t){p.addEventListener('input',()=>t.value=p.value.toUpperCase());t.addEventListener('input',()=>{if(/^#[0-9a-fA-F]{6}$/.test(t.value))p.value=t.value;});}});
   bindPostForms();
@@ -579,12 +656,13 @@ function bindForms(){
     const updateTtsCount=()=>{const bytes=new TextEncoder().encode(ttsInput.value).length;const invalid=bytes>240;ttsCount.textContent=`${bytes} / 240 byte UTF-8`;ttsCount.classList.toggle('text-danger',invalid);ttsCount.classList.toggle('text-muted',!invalid);ttsInput.setCustomValidity(invalid?'Nội dung TTS vượt quá 240 byte UTF-8':'');};
     ttsInput.addEventListener('input',updateTtsCount);updateTtsCount();
   }
-  const gpioFields=['startupmode','leden','btnen','inputmode','btnlevel','pled','mbclk','mws','mdin','dbclk','dlrc','ddout','bmic','bup','bdn','bwake','rclk','rdt','rsw'];
+  const gpioFields=['startupmode','leden','btnen','inputmode','btnlevel','pled','mbclk','mws','mdin','dbclk','dlrc','ddout','bmic','bup','bdn','bwake','rclk','rdt','rsw','btsl_bclk','btsl_ws','btsl_din','btsl_tx','btsl_rx'];
   gpioFields.forEach(n=>{const el=document.querySelector(`[name=${n}]`);if(el){el.addEventListener('input',()=>{updateInputModeUi();validateGpioUi();});el.addEventListener('change',()=>{updateInputModeUi();validateGpioUi();});}});
   updateInputModeUi();validateGpioUi();
   const hwSelect=document.querySelector('[name=hotword_mode]');
   if(hwSelect)hwSelect.addEventListener('change',updateHotwordModeUi);
   updateHotwordModeUi();
+  document.getElementById('refreshBtBtn')?.addEventListener('click',()=>window.refreshBtInfo());
   document.getElementById('refreshLedControlBtn')?.addEventListener('click',()=>refreshLedControl(true));
   document.getElementById('ledPowerBtn')?.addEventListener('click',toggleLedControl);
   document.getElementById('ledControlColor')?.addEventListener('input',()=>{
@@ -777,5 +855,83 @@ window.deleteCustomHotword = async function(slot, name) {
     alert("Lỗi kết nối: " + err.message);
   }
 };
+
+window.sendBtCommand = async function(action) {
+  const msgEl = document.getElementById('btControlMsg');
+  if (msgEl) msgEl.textContent = `Đang gửi lệnh ${action}...`;
+  try {
+    const params = new URLSearchParams();
+    params.append('action', action);
+    const res = await fetch('/api/bt/cmd', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: params
+    });
+    const data = await res.json();
+    if (msgEl) {
+      msgEl.textContent = data.message || `Lệnh ${action} đã thực hiện.`;
+      setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
+    }
+    setTimeout(window.refreshBtInfo, 500);
+  } catch (err) {
+    if (msgEl) msgEl.textContent = `Lỗi gửi lệnh: ${err.message}`;
+  }
+};
+
+window.refreshBtInfo = async function() {
+  try {
+    const res = await fetch('/VBot_Client_Info');
+    const data = await res.json();
+    if (data && data.bluetooth_slave) {
+      const bt = data.bluetooth_slave;
+      const statusBadge = document.getElementById('btStatusBadge');
+      const trackTitle = document.getElementById('btTrackTitle');
+      const trackArtist = document.getElementById('btTrackArtist');
+      const trackAlbum = document.getElementById('btTrackAlbum');
+      const devName = document.getElementById('btDeviceName');
+      const peerDev = document.getElementById('btPeerDevice');
+      
+      if (statusBadge) {
+        if (bt.status === 'PLAYING') {
+          statusBadge.className = 'badge bg-success';
+          statusBadge.textContent = 'Đang phát nhạc';
+        } else if (bt.status === 'PAUSED') {
+          statusBadge.className = 'badge bg-warning text-dark';
+          statusBadge.textContent = 'Tạm dừng';
+        } else if (bt.connected) {
+          statusBadge.className = 'badge bg-info text-dark';
+          statusBadge.textContent = 'Đã kết nối';
+        } else {
+          statusBadge.className = 'badge bg-secondary';
+          statusBadge.textContent = 'Chưa kết nối';
+        }
+      }
+      if (trackTitle) trackTitle.textContent = bt.title || '--';
+      if (trackArtist) trackArtist.textContent = bt.artist || '--';
+      if (trackAlbum) trackAlbum.textContent = bt.album || '--';
+      if (devName) devName.textContent = bt.name || '--';
+      if (peerDev) {
+        if (bt.peer_device && bt.peer_device.length > 0) {
+          peerDev.className = 'badge bg-success';
+          peerDev.textContent = bt.peer_device;
+        } else if (bt.connected) {
+          peerDev.className = 'badge bg-info text-dark';
+          peerDev.textContent = 'Thiết bị Bluetooth (Không rõ tên)';
+        } else {
+          peerDev.className = 'badge bg-secondary';
+          peerDev.textContent = 'Chưa có thiết bị nào';
+        }
+      }
+    }
+  } catch (e) {}
+};
+
+// Tự động làm mới thông tin Bluetooth khi mở tab
+setInterval(() => {
+  const tab = document.getElementById('cfgBtControl');
+  if (tab && tab.classList.contains('active')) {
+    window.refreshBtInfo();
+  }
+}, 2500);
 
 boot();

@@ -1,4 +1,4 @@
 {
-  "build_date": "12/11/2026",
-  "description": "Phiên bản 12/11/2026: Bổ sung cấu hình nhấn giữ và nhấn đúp cho toàn bộ nút nhấn, hiệu ứng LED đa sắc cầu vồng nháy theo nhạc (Spectrum VU Meter), cấu hình hiệu ứng và màu LED báo lỗi mất kết nối máy chủ, tối ưu ổn định I2S audio và giao diện WebUI."
+  "build_date": "14/11/2026",
+  "description": "Phiên bản 14/11/2026: Bổ sung tính năng nhận Bluetooth I2S Slave và điều khiển Bluetooth từ ESP32 thường, tab điều khiển Bluetooth Control trên WebUI, đồng bộ trạng thái/tên thiết bị kết nối/metadata bài hát lên Home Assistant qua MQTT, tối ưu chuyển đổi I2S DAC/Mic mượt mà khi Play/Pause, và cấu hình GPIO đầy đủ."
 }
