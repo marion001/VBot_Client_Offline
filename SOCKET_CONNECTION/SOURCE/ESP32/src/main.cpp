@@ -71,10 +71,10 @@ static constexpr int I2S_DMA_BUFFER_LENGTH = 256;
 #if VBOT_WAKENET_SUPPORTED
 static constexpr uint32_t MIC_TASK_STACK = 10240;
 #else
-static constexpr uint32_t MIC_TASK_STACK = 4096;
+static constexpr uint32_t MIC_TASK_STACK = 6144;
 #endif
-static constexpr uint32_t WEBSOCKET_TASK_STACK = 5120;
-static constexpr uint32_t DAC_TASK_STACK = 5120;
+static constexpr uint32_t WEBSOCKET_TASK_STACK = 8192;
+static constexpr uint32_t DAC_TASK_STACK = 8192;
 // FastLED trên ESP32-S3 cần nhiều stack hơn ESP32 thường. Stack 2048 có thể làm
 // core chạy LED rơi vào panic/double exception trước khi setup() hoàn tất, sau
 // đó TG1WDT reset toàn hệ thống mà chưa kịp in Guru Meditation/backtrace.
@@ -516,10 +516,25 @@ class AudioOutputVBotAEC : public AudioOutputI2S {
 private:
   int16_t aecChunk[128];
   size_t aecChunkCount = 0;
+  bool isFlushing = false;
+  int currentHz = 44100;
+  uint32_t resampleStep = 23795; // (16000 << 16) / 44100
+  uint32_t resamplePhase = 0;
 public:
   AudioOutputVBotAEC(int port = 0, int output_mode = EXTERNAL_I2S, int dma_buf_count = 8, int use_apll = APLL_DISABLE)
     : AudioOutputI2S(port, output_mode, dma_buf_count, use_apll) {}
   
+  virtual bool SetRate(int hz) override {
+    currentHz = hz;
+    if (hz > 0) {
+      resampleStep = (uint32_t)(((uint64_t)16000 << 16) / (uint32_t)hz);
+    } else {
+      resampleStep = 65536;
+    }
+    resamplePhase = 0;
+    return AudioOutputI2S::SetRate(hz);
+  }
+
   virtual bool ConsumeSample(int16_t sample[2]) override {
     int32_t s0 = abs((int32_t)sample[0]);
     int32_t s1 = abs((int32_t)sample[1]);
@@ -527,12 +542,24 @@ public:
     if (p > currentAudioPeak) {
       currentAudioPeak = p;
     }
-    if (vbot_aec_is_active()) {
+    if (!isFlushing && vbot_aec_is_active()) {
       int16_t mono = (int16_t)(((int32_t)sample[0] + (int32_t)sample[1]) / 2);
-      aecChunk[aecChunkCount++] = mono;
-      if (aecChunkCount >= 128) {
-        vbot_aec_feed_ref(aecChunk, 128);
-        aecChunkCount = 0;
+      if (currentHz == 16000 || resampleStep == 65536) {
+        aecChunk[aecChunkCount++] = mono;
+        if (aecChunkCount >= 128) {
+          vbot_aec_feed_ref(aecChunk, 128);
+          aecChunkCount = 0;
+        }
+      } else if (resampleStep > 0) {
+        resamplePhase += resampleStep;
+        if (resamplePhase >= 65536) {
+          resamplePhase -= 65536;
+          aecChunk[aecChunkCount++] = mono;
+          if (aecChunkCount >= 128) {
+            vbot_aec_feed_ref(aecChunk, 128);
+            aecChunkCount = 0;
+          }
+        }
       }
     }
     return AudioOutputI2S::ConsumeSample(sample);
@@ -543,11 +570,15 @@ public:
       vbot_aec_feed_ref(aecChunk, aecChunkCount);
       aecChunkCount = 0;
     }
+    isFlushing = true;
     AudioOutputI2S::flush();
+    isFlushing = false;
   }
 
   virtual bool stop() override {
     aecChunkCount = 0;
+    resamplePhase = 0;
+    isFlushing = false;
     return AudioOutputI2S::stop();
   }
 };
@@ -3290,6 +3321,10 @@ static bool queueGoogleTranslateTts(const String &input) {
 
 static bool stopAudioPlayback(bool clearSuspendedAudio = true) {
   vbotPlaybackPending = false;
+  if (audioIdle() && (!audioQueue || uxQueueMessagesWaiting(audioQueue) == 0)) {
+    return true;
+  }
+  clearPendingAudioCommands();
   AudioCommand cmd = {};
   cmd.type = AUDIO_CMD_STOP;
   cmd.clearSuspendedAudio = clearSuspendedAudio;
@@ -3543,6 +3578,8 @@ static void dacTask(void *) {
       else if (cmd.type == AUDIO_CMD_SET_VOLUME) {
         if (mp3Out) mp3Out->SetGain((float)cfg.volume / 100.0f);
         vbot_bt_slave_set_volume(cfg.volume);
+        vbot_airplay_set_volume(cfg.volume);
+        vbot_dlna_set_volume(cfg.volume);
       }
       //Dừng âm thanh đang phát, bao gồm MP3 và PCM
       else if (cmd.type == AUDIO_CMD_STOP) {
@@ -3864,7 +3901,7 @@ static void websocketTask(void *) {
     if (wakeSkipRequest && wsReady) {
       wakeSkipRequest = false;
       if (!cfg.micEnabled) temporaryMicEnabled = true;
-      stopAudioPlayback(true);
+      if (!audioIdle()) stopAudioPlayback(true);
       ws.sendTXT("Skip_WakeUP");
       recording = true;
       recordingDurationMs = 8000U;
@@ -4598,6 +4635,11 @@ static void onAirPlayPlay() {
 
 static void onAirPlayStop() {
   UART_LOG("[AirPlay] Dừng phát từ iPhone / Mac.");
+  lockMediaState();
+  currentMqttMediaTitle = "";
+  currentMqttMediaCover = "";
+  unlockMediaState();
+  mqttStateDirty = true;
   stopAudioPlayback(true);
   resumeMicAfterAudio();
   vTaskDelay(pdMS_TO_TICKS(15));
@@ -5090,6 +5132,10 @@ static void initWeb() {
     sendCorsJsonResult(request, 200, true, "Đã gửi cấu hình GPIO sang ESP32 thường. Chip đang khởi động lại...");
   });
   web.on("/stop_audio", HTTP_POST, [](AsyncWebServerRequest *request) {
+    if (vbot_airplay_is_active()) {
+      vbot_airplay_disconnect();
+    }
+    vbot_dlna_set_state("STOPPED");
     if (!stopAudioPlaybackWithFeedback(true)) {
       sendJsonResult(request, 503, false, "Không thể đưa lệnh dừng vào hàng đợi audio");
       return;
@@ -5628,6 +5674,8 @@ static void applyVolumeDelta(int delta) {
   uint8_t volume = cfg.volume;
   unlockCfg();
   vbot_bt_slave_set_volume(volume);
+  vbot_airplay_set_volume(volume);
+  vbot_dlna_set_volume(volume);
   volumeSaveValue = volume;
   volumeSaveAtMs = millis() + VOLUME_SAVE_DELAY_MS;
   volumeSavePending = true;
@@ -6176,7 +6224,9 @@ static void publishMqttState(bool force = false) {
 
   JsonDocument media;
   bool vbotPlaying = !audioIdle();
-  bool playing = vbotPlaying || btStreaming;
+  bool airplayStreaming = vbot_airplay_is_streaming();
+  bool airplayActive = vbot_airplay_is_active();
+  bool playing = vbotPlaying || btStreaming || airplayStreaming;
   String mediaTitle;
   String mediaCover;
   String mediaAudioUrl;
@@ -6184,7 +6234,10 @@ static void publishMqttState(bool force = false) {
   uint8_t ttsStateValue;
   uint32_t ttsUpdatedAt;
   lockMediaState();
-  if (btActive) {
+  if (airplayActive) {
+    currentMqttMediaTitle = "Apple AirPlay Audio";
+    currentMqttMediaCover = "";
+  } else if (btActive) {
     if (btInfo.title[0]) {
       currentMqttMediaTitle = String(btInfo.title);
       if (btInfo.artist[0]) {
@@ -6206,7 +6259,11 @@ static void publishMqttState(bool force = false) {
   ttsUpdatedAt = googleTtsUpdatedAtMs;
   unlockMediaState();
 
-  if (btStreaming) {
+  if (airplayStreaming) {
+    media["state"] = "playing";
+  } else if (airplayActive) {
+    media["state"] = "paused";
+  } else if (btStreaming) {
     media["state"] = "playing";
   } else if (btPaused) {
     media["state"] = "paused";
@@ -6216,25 +6273,43 @@ static void publishMqttState(bool force = false) {
     media["state"] = "idle";
   }
 
-  media["title"] = btActive
-    ? (mediaTitle.length() ? mediaTitle : "Bluetooth Audio")
-    : (vbotPlaying ? (mediaTitle.length() ? mediaTitle : "Âm thanh VBot ESP32") : "");
-  if (btActive) {
+  if (airplayActive) {
+    media["title"] = "Apple AirPlay Audio";
+    media["artist"] = "AirPlay 1 Stream";
+    media["album"] = "Apple Device";
+    media["connected_device"] = "Apple Device (AirPlay)";
+    media["source"] = "AirPlay";
+    media["source_kind"] = "airplay";
+    media["cover"] = String("http://") + cfg.serverHost + "/assets/img/logo.png";
+  } else if (btActive) {
+    media["title"] = mediaTitle.length() ? mediaTitle : "Bluetooth Audio";
     media["artist"] = btInfo.artist;
     media["album"] = btInfo.album;
     media["connected_device"] = btInfo.peerDevice;
+    media["source"] = "Bluetooth";
+    media["source_kind"] = "bluetooth";
+    media["cover"] = (btActive || vbotPlaying)
+        ? (mediaCover.length() ? mediaCover : String("http://") + cfg.serverHost + "/assets/img/logo.png")
+        : "";
+  } else if (vbotPlaying) {
+    media["title"] = mediaTitle.length() ? mediaTitle : "Âm thanh VBot ESP32";
+    media["source"] = "App VBot";
+    media["source_kind"] = "vbot";
+    media["cover"] = mediaCover.length() ? mediaCover : String("http://") + cfg.serverHost + "/assets/img/logo.png";
+  } else {
+    media["title"] = "";
+    media["source"] = "Không phát";
+    media["source_kind"] = "none";
+    media["cover"] = "";
   }
+
   media["media_url"] = vbotPlaying ? mediaAudioUrl : "";
-  media["cover"] = (btActive || vbotPlaying)
-      ? (mediaCover.length()
-        ? mediaCover
-        : String("http://") + cfg.serverHost + "/assets/img/logo.png")
-    : "";
-  media["source"] = btActive ? "Bluetooth" : (vbotPlaying ? "App VBot" : "Không phát");
-  media["source_kind"] = btActive ? "bluetooth" : (vbotPlaying ? "vbot" : "none");
   media["position"] = 0;
   media["duration"] = 0;
   media["volume"] = cfg.volume;
+  media["volume_level"] = (float)cfg.volume / 100.0f;
+  media["is_volume_muted"] = (cfg.volume == 0);
+  media["muted"] = (cfg.volume == 0);
   String mediaPayload;
   serializeJson(media, mediaPayload);
   mqttPublish("media_player/state", mediaPayload);
@@ -6256,10 +6331,15 @@ static void publishMqttState(bool force = false) {
 
 static void mqttSetVolume(int value) {
   lockCfg();
+  if (value == 0 && cfg.volume > 0) {
+    preMuteVolume = cfg.volume;
+  }
   cfg.volume = constrain(value, 0, 100);
   uint8_t volume = cfg.volume;
   unlockCfg();
   vbot_bt_slave_set_volume(volume);
+  vbot_airplay_set_volume(volume);
+  vbot_dlna_set_volume(volume);
   volumeSaveValue = volume;
   volumeSaveAtMs = millis() + VOLUME_SAVE_DELAY_MS;
   volumeSavePending = true;
@@ -6426,36 +6506,114 @@ static void mqttMessageCallback(char *topicRaw, uint8_t *payloadRaw, unsigned in
     }
   } else if (topicValue.endsWith("/script/media_control/set")) {
     if (payload.equalsIgnoreCase("STOP")) {
+      if (vbot_airplay_is_active()) vbot_airplay_disconnect();
+      vbot_dlna_set_state("STOPPED");
       if (vbot_bt_slave_is_streaming()) vbot_bt_slave_send_cmd("PAUSE");
       if (!stopAudioPlayback(true)) LOG("Không thể đưa lệnh MQTT dừng media vào hàng đợi audio.");
       mqttStateDirty = true;
     } else if (payload.equalsIgnoreCase("PAUSE")) {
+      if (vbot_airplay_is_active()) vbot_airplay_suspend();
+      vbot_dlna_set_state("PAUSED_PLAYBACK");
       if (vbot_bt_slave_is_streaming()) vbot_bt_slave_send_cmd("PAUSE");
       else stopAudioPlayback(false);
       mqttStateDirty = true;
     } else if (payload.equalsIgnoreCase("RESUME") || payload.equalsIgnoreCase("PLAY")) {
+      if (vbot_airplay_is_suspended()) vbot_airplay_resume();
+      if (strlen(vbot_dlna_get_uri()) > 0 && audioIdle()) {
+        vbot_dlna_set_state("PLAYING");
+        playMp3Url(vbot_dlna_get_uri(), false, LED_SPEAK);
+      }
       BtSlaveInfo btInfo = vbot_bt_slave_get_info();
       if (btInfo.connected) {
         vbot_bt_slave_send_cmd("PLAY");
       }
       mqttStateDirty = true;
-    }
-    else {
-      if (!hardwareGpioValid) {
-        LOG("Bỏ qua lệnh MQTT phát media vì GPIO đang ở chế độ an toàn.");
-        return;
-      }
+    } else if (payload.equalsIgnoreCase("MUTE")) {
+      lockCfg();
+      if (cfg.volume > 0) preMuteVolume = cfg.volume;
+      unlockCfg();
+      mqttSetVolume(0);
+    } else if (payload.equalsIgnoreCase("UNMUTE")) {
+      mqttSetVolume(preMuteVolume > 0 ? preMuteVolume : 50);
+    } else if (payload.equalsIgnoreCase("NEXT")) {
+      BtSlaveInfo btInfo = vbot_bt_slave_get_info();
+      if (btInfo.connected) vbot_bt_slave_send_cmd("NEXT");
+      mqttStateDirty = true;
+    } else if (payload.equalsIgnoreCase("PREV") || payload.equalsIgnoreCase("PREVIOUS")) {
+      BtSlaveInfo btInfo = vbot_bt_slave_get_info();
+      if (btInfo.connected) vbot_bt_slave_send_cmd("PREV");
+      mqttStateDirty = true;
+    } else {
       JsonDocument command;
       DeserializationError error = deserializeJson(command, payload);
       if (!error) {
-        const char *url = command["media_link"] | "";
-        if (validAudioUrl(url)) {
-          lockMediaState();
-          currentMqttMediaTitle = String(command["media_name"] | "");
-          currentMqttMediaCover = String(command["media_cover"] | "");
-          unlockMediaState();
-          if (!playMp3Url(url)) LOG("Không thể đưa lệnh MQTT media vào hàng đợi audio.");
-        } else logInvalidMqttPayload(topicValue, payload);
+        const char *action = command["action"] | command["command"] | "";
+        if (strcasecmp(action, "stop") == 0) {
+          if (vbot_airplay_is_active()) vbot_airplay_disconnect();
+          vbot_dlna_set_state("STOPPED");
+          if (vbot_bt_slave_is_streaming()) vbot_bt_slave_send_cmd("PAUSE");
+          stopAudioPlayback(true);
+          mqttStateDirty = true;
+        } else if (strcasecmp(action, "pause") == 0) {
+          if (vbot_airplay_is_active()) vbot_airplay_suspend();
+          vbot_dlna_set_state("PAUSED_PLAYBACK");
+          if (vbot_bt_slave_is_streaming()) vbot_bt_slave_send_cmd("PAUSE");
+          else stopAudioPlayback(false);
+          mqttStateDirty = true;
+        } else if (strcasecmp(action, "play") == 0 || strcasecmp(action, "resume") == 0) {
+          if (vbot_airplay_is_suspended()) vbot_airplay_resume();
+          if (strlen(vbot_dlna_get_uri()) > 0 && audioIdle()) {
+            vbot_dlna_set_state("PLAYING");
+            playMp3Url(vbot_dlna_get_uri(), false, LED_SPEAK);
+          }
+          BtSlaveInfo btInfo = vbot_bt_slave_get_info();
+          if (btInfo.connected) vbot_bt_slave_send_cmd("PLAY");
+          mqttStateDirty = true;
+        } else if (strcasecmp(action, "mute") == 0) {
+          lockCfg();
+          if (cfg.volume > 0) preMuteVolume = cfg.volume;
+          unlockCfg();
+          mqttSetVolume(0);
+        } else if (strcasecmp(action, "unmute") == 0) {
+          mqttSetVolume(preMuteVolume > 0 ? preMuteVolume : 50);
+        } else if (strcasecmp(action, "volume_mute") == 0) {
+          bool isMuted = command["is_volume_muted"] | true;
+          if (isMuted) {
+            lockCfg();
+            if (cfg.volume > 0) preMuteVolume = cfg.volume;
+            unlockCfg();
+            mqttSetVolume(0);
+          } else {
+            mqttSetVolume(preMuteVolume > 0 ? preMuteVolume : 50);
+          }
+        } else if (strcasecmp(action, "set_volume") == 0 || !command["volume"].isNull()) {
+          int v = command["volume"] | 0;
+          mqttSetVolume(v);
+        } else if (!command["volume_level"].isNull()) {
+          float vl = command["volume_level"] | 0.0f;
+          mqttSetVolume((int)round(vl * 100.0f));
+        } else if (strcasecmp(action, "next") == 0) {
+          BtSlaveInfo btInfo = vbot_bt_slave_get_info();
+          if (btInfo.connected) vbot_bt_slave_send_cmd("NEXT");
+          mqttStateDirty = true;
+        } else if (strcasecmp(action, "previous") == 0 || strcasecmp(action, "prev") == 0) {
+          BtSlaveInfo btInfo = vbot_bt_slave_get_info();
+          if (btInfo.connected) vbot_bt_slave_send_cmd("PREV");
+          mqttStateDirty = true;
+        } else {
+          if (!hardwareGpioValid) {
+            LOG("Bỏ qua lệnh MQTT phát media vì GPIO đang ở chế độ an toàn.");
+            return;
+          }
+          const char *url = command["media_link"] | "";
+          if (validAudioUrl(url)) {
+            lockMediaState();
+            currentMqttMediaTitle = String(command["media_name"] | "");
+            currentMqttMediaCover = String(command["media_cover"] | "");
+            unlockMediaState();
+            if (!playMp3Url(url)) LOG("Không thể đưa lệnh MQTT media vào hàng đợi audio.");
+          } else logInvalidMqttPayload(topicValue, payload);
+        }
       } else {
         logInvalidMqttPayload(topicValue, payload);
       }
@@ -6528,9 +6686,46 @@ static void mqttMessageCallback(char *topicRaw, uint8_t *payloadRaw, unsigned in
       mqttSetVolume(0);
     } else if (payload.equalsIgnoreCase("unmute")) {
       mqttSetVolume(preMuteVolume > 0 ? preMuteVolume : 50);
+    } else if (payload.startsWith("{")) {
+      JsonDocument doc;
+      DeserializationError err = deserializeJson(doc, payload);
+      if (!err) {
+        const char *act = doc["action"] | doc["command"] | "";
+        if (strcasecmp(act, "mute") == 0) {
+          lockCfg();
+          if (cfg.volume > 0) preMuteVolume = cfg.volume;
+          unlockCfg();
+          mqttSetVolume(0);
+        } else if (strcasecmp(act, "unmute") == 0) {
+          mqttSetVolume(preMuteVolume > 0 ? preMuteVolume : 50);
+        } else if (strcasecmp(act, "volume_mute") == 0) {
+          bool isMuted = doc["is_volume_muted"] | true;
+          if (isMuted) {
+            lockCfg();
+            if (cfg.volume > 0) preMuteVolume = cfg.volume;
+            unlockCfg();
+            mqttSetVolume(0);
+          } else {
+            mqttSetVolume(preMuteVolume > 0 ? preMuteVolume : 50);
+          }
+        } else if (!doc["volume"].isNull()) {
+          int v = doc["volume"].as<int>();
+          mqttSetVolume(v);
+        } else if (!doc["volume_level"].isNull()) {
+          float vl = doc["volume_level"].as<float>();
+          mqttSetVolume((int)round(vl * 100.0f));
+        }
+      } else {
+        logInvalidMqttPayload(topicValue, payload);
+      }
     } else {
-      logInvalidMqttPayload(topicValue, payload);
-      return;
+      float vVal;
+      if (parseMqttNumber(payload, vVal)) {
+        mqttSetVolume((int)round(vVal));
+      } else {
+        logInvalidMqttPayload(topicValue, payload);
+        return;
+      }
     }
   } else if (topicValue.endsWith("/script/button_control/set")) {
     if (!hardwareGpioValid) {

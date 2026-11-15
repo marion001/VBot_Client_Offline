@@ -32,6 +32,8 @@ static volatile bool s_airplaySuspended = false;
 static AirPlayCallbacks airplayCallbacks;
 static String airplayFriendlyName = "VBot Speaker";
 static volatile int airplayCurrentVolume = 60;
+static volatile int s_activeClientSock = -1;
+static volatile bool s_forceDisconnect = false;
 static TaskHandle_t rtspTaskHandle = nullptr;
 static TaskHandle_t audioUdpTaskHandle = nullptr;
 static TaskHandle_t audioDecodeTaskHandle = nullptr;
@@ -802,6 +804,8 @@ void vbot_airplay_set_name(const char *friendlyName) {
 
 // Xử lý một kết nối RTSP từ iPhone / Mac
 static void handleRtspClient(int clientSock) {
+  s_activeClientSock = clientSock;
+  s_forceDisconnect = false;
   struct sockaddr_in peerAddr;
   socklen_t peerLen = sizeof(peerAddr);
   if (getpeername(clientSock, (struct sockaddr*)&peerAddr, &peerLen) == 0) {
@@ -813,6 +817,7 @@ static void handleRtspClient(int clientSock) {
   if (!rxBuf || !txBuf) {
     if (rxBuf) free(rxBuf);
     if (txBuf) free(txBuf);
+    if (s_activeClientSock == clientSock) s_activeClientSock = -1;
     close(clientSock);
     return;
   }
@@ -826,8 +831,9 @@ static void handleRtspClient(int clientSock) {
   tv.tv_usec = 0;
   setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-  while (airplayRunning) {
+  while (airplayRunning && !s_forceDisconnect) {
     int rxLen = recv(clientSock, rxBuf, 4095, 0);
+    if (s_forceDisconnect) break;
     if (rxLen < 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
         // Socket timeout định kỳ, iPhone vẫn đang giữ kết nối (ví dụ khi khóa màn hình)
@@ -1187,7 +1193,21 @@ static void handleRtspClient(int clientSock) {
 
   free(rxBuf);
   free(txBuf);
+  if (s_activeClientSock == clientSock) {
+    s_activeClientSock = -1;
+  }
   close(clientSock);
+  if (airplayStreaming || hasAesKey) {
+    airplayStreaming = false;
+    s_clientTimingPort = 0;
+    s_clientControlPort = 0;
+    s_needRebuffer = true;
+    s_rawPacketRing.reset();
+    s_audioRingBuf.reset();
+    vbot_airplay_uninstall_i2s();
+    if (airplayCallbacks.onStop) airplayCallbacks.onStop();
+    hasAesKey = false;
+  }
 }
 
 // Task lắng nghe RTSP Server trên cổng 7000
@@ -1868,7 +1888,7 @@ bool vbot_airplay_is_suspended() {
 }
 
 bool vbot_airplay_is_active() {
-  return airplayStreaming;
+  return airplayStreaming || (s_activeClientSock >= 0) || hasAesKey;
 }
 
 bool vbot_airplay_is_streaming() {
@@ -1877,4 +1897,28 @@ bool vbot_airplay_is_streaming() {
 
 int vbot_airplay_get_volume() {
   return airplayCurrentVolume;
+}
+
+void vbot_airplay_set_volume(int vol) {
+  airplayCurrentVolume = constrain(vol, 0, 100);
+}
+
+void vbot_airplay_disconnect() {
+  s_forceDisconnect = true;
+  int sock = s_activeClientSock;
+  s_activeClientSock = -1;
+  if (sock >= 0) {
+    shutdown(sock, SHUT_RDWR);
+    close(sock);
+  }
+  airplayStreaming = false;
+  s_clientTimingPort = 0;
+  s_clientControlPort = 0;
+  s_needRebuffer = true;
+  s_rawPacketRing.reset();
+  s_audioRingBuf.reset();
+  vbot_airplay_uninstall_i2s();
+  if (airplayCallbacks.onStop) airplayCallbacks.onStop();
+  hasAesKey = false;
+  Serial.println("[AirPlay] Đã ngắt kết nối phiên AirPlay theo yêu cầu (DISCONNECT).");
 }

@@ -57,6 +57,12 @@ bool vbot_airplay_is_active();
 // Lấy âm lượng hiện tại từ AirPlay (0-100)
 int vbot_airplay_get_volume();
 
+// Đặt âm lượng cho AirPlay (0-100, 0 là Mute)
+void vbot_airplay_set_volume(int vol);
+
+// Chủ động ngắt kết nối phiên AirPlay đang kết nối (đóng socket RTSP để iPhone trở về loa máy)
+void vbot_airplay_disconnect();
+
 // Cài đặt/Gỡ bỏ driver I2S cho AirPlay (Stereo 44.1kHz 16-bit)
 bool vbot_airplay_install_i2s();
 void vbot_airplay_uninstall_i2s();

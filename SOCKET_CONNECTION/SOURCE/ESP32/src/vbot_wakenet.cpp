@@ -479,9 +479,12 @@ bool vbot_aec_init() {
   if (aecHandle) return true;
 
   if (!aecRefBuffer) {
-    aecRefBuffer = (int16_t*)heap_caps_malloc(AEC_RING_BUFFER_SIZE * sizeof(int16_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    aecRefBuffer = (int16_t*)heap_caps_malloc(AEC_RING_BUFFER_SIZE * sizeof(int16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     if (!aecRefBuffer) {
-      Serial.println("[AEC] Không đủ bộ nhớ PSRAM cho bộ đệm tham chiếu AEC.");
+      aecRefBuffer = (int16_t*)heap_caps_malloc(AEC_RING_BUFFER_SIZE * sizeof(int16_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    }
+    if (!aecRefBuffer) {
+      Serial.println("[AEC] Không đủ bộ nhớ cho bộ đệm tham chiếu AEC.");
       return false;
     }
     memset(aecRefBuffer, 0, AEC_RING_BUFFER_SIZE * sizeof(int16_t));
@@ -583,7 +586,7 @@ void vbot_aec_process(const int16_t *mic_in, int16_t *clean_out) {
     return;
   }
 
-  int16_t refFrame[AEC_FRAME_SAMPLES];
+  static int16_t refFrame[AEC_FRAME_SAMPLES];
   bool haveRef = false;
   if (aecMutex && xSemaphoreTake(aecMutex, 0) == pdTRUE) {
     if (aecRefCount >= AEC_FRAME_SAMPLES) {
