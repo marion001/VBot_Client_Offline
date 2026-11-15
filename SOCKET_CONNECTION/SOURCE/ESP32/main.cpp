@@ -2570,6 +2570,10 @@ static void ledTask(void *) {
       lastStaticEffect = (LedEffect)255;
     }
     LedEffect effect = ledEffect;
+    if (wsReady && effect == LED_SOCKET_ERROR) {
+      effect = idleLedEffect();
+      ledEffect = effect;
+    }
     if (!audioIdle() && !volumeLedActive) {
       effect = LED_SPEAK;
     } else if (!wsReady && audioIdle() && (effect == LED_OFF || effect == LED_SPEAK)) {
@@ -3864,16 +3868,15 @@ static void wsEvent(WStype_t type, uint8_t *payload, size_t length) {
   switch (type) {
     case WStype_CONNECTED:
       ws.resetPendingMicFrame();
-      wsReady = false;
       wsBackpressureSinceMs = 0;
       wsForceReconnectAtMs = 0;
       pendingPcmBinary = false;
       pendingPcmMeta.clear();
       if (micQueue) xQueueReset(micQueue);
       LOG("Đã kết nối WebSocket");
+      wsReady = true;
       setLedEffect(idleLedEffect());
       sendClientConfig();
-      wsReady = true;
       break;
     case WStype_DISCONNECTED:
       ws.resetPendingMicFrame();
