@@ -1356,7 +1356,7 @@ static void vbot_airplay_control_task(void *param) {
   uint16_t resendRequestSeq = 1;
 
   while (airplayRunning) {
-    ulTaskNotifyTake(pdTRUE, 0); // Clear any pending notify from pop()
+    ulTaskNotifyTake(pdTRUE, 0); // Xóa notify dồn từ pop()
 
     // 0. Ưu tiên kiểm tra và gửi ngay retransmit request nếu có gói cần gửi lại
     uint16_t missingFirst = 0;
@@ -1378,27 +1378,43 @@ static void vbot_airplay_control_task(void *param) {
              (struct sockaddr*)&resendDest, sizeof(resendDest));
     }
 
-    // 1. Nhận trên cổng Control (6001): Sync packets (0xd4) hoặc Retransmitted audio (0xd6)
-    struct sockaddr_in fromAddr;
-    socklen_t fromLen = sizeof(fromAddr);
-    int len = recvfrom(ctrlSock, buf, sizeof(buf), 0, (struct sockaddr*)&fromAddr, &fromLen);
-    if (len > 0) {
-      if (buf[1] == 0xd6 && len > 16) {
-        // Gói audio gửi lại từ iPhone qua kênh control: bỏ 4 bytes header đầu
-        if (s_rawPacketRing.push(buf + 4, len - 4, true)) {
-          if (audioDecodeTaskHandle) xTaskNotifyGive(audioDecodeTaskHandle);
+    // 1 & 2. Dùng select() giám sát đồng thời cả ctrlSock và timingSock
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(ctrlSock, &readfds);
+    FD_SET(timingSock, &readfds);
+    int maxFd = (ctrlSock > timingSock ? ctrlSock : timingSock) + 1;
+
+    struct timeval selTv;
+    selTv.tv_sec = 0;
+    selTv.tv_usec = 20000; // 20ms timeout để CPU Core 0 nghỉ ngơi nhường cho AsyncTCP và WebUI
+    int selRet = select(maxFd, &readfds, NULL, NULL, &selTv);
+
+    if (selRet > 0) {
+      if (FD_ISSET(ctrlSock, &readfds)) {
+        struct sockaddr_in fromAddr;
+        socklen_t fromLen = sizeof(fromAddr);
+        int len = recvfrom(ctrlSock, buf, sizeof(buf), 0, (struct sockaddr*)&fromAddr, &fromLen);
+        if (len > 0) {
+          if (buf[1] == 0xd6 && len > 16) {
+            // Gói audio gửi lại từ iPhone qua kênh control: bỏ 4 bytes header đầu
+            if (s_rawPacketRing.push(buf + 4, len - 4, true)) {
+              if (audioDecodeTaskHandle) xTaskNotifyGive(audioDecodeTaskHandle);
+            }
+          }
         }
       }
-    }
-
-    // 2. Nhận trên cổng Timing (6002):
-    fromLen = sizeof(fromAddr);
-    len = recvfrom(timingSock, buf, sizeof(buf), 0, (struct sockaddr*)&fromAddr, &fromLen);
-    if (len >= (int)sizeof(AirPlayTimingPacket)) {
-      if (buf[1] == 0xd2) {
-        // iPhone gửi timing request tới chúng ta -> trả lời timing reply 0xd3
-        buf[1] = 0xd3;
-        sendto(timingSock, buf, len, 0, (struct sockaddr*)&fromAddr, fromLen);
+      if (FD_ISSET(timingSock, &readfds)) {
+        struct sockaddr_in fromAddr;
+        socklen_t fromLen = sizeof(fromAddr);
+        int len = recvfrom(timingSock, buf, sizeof(buf), 0, (struct sockaddr*)&fromAddr, &fromLen);
+        if (len >= (int)sizeof(AirPlayTimingPacket)) {
+          if (buf[1] == 0xd2) {
+            // iPhone gửi timing request tới chúng ta -> trả lời timing reply 0xd3
+            buf[1] = 0xd3;
+            sendto(timingSock, buf, len, 0, (struct sockaddr*)&fromAddr, fromLen);
+          }
+        }
       }
     }
 
@@ -1779,13 +1795,13 @@ bool vbot_airplay_init(const char *friendlyName, const AirPlayCallbacks &callbac
     0
   );
 
-  // 4. Chạy UDP Ingest Task trên Core 0 (ưu tiên 6 cực cao, hấp thụ gói tức thì không rớt)
+  // 4. Chạy UDP Ingest Task trên Core 0 (ưu tiên 5 cao, hấp thụ gói tức thì không rớt)
   xTaskCreatePinnedToCore(
     vbot_audio_udp_task,
     "vbot_airplay_udp",
     8192,
     NULL,
-    6,
+    5,
     &audioUdpTaskHandle,
     0 // Chạy trên Core 0 chung với WiFi Stack để không có độ trễ cross-core
   );

@@ -134,13 +134,44 @@ static void uninstallSlaveI2s() {
 
 // Chuyển cấu hình xung clock của DAC Loa sang 44.1kHz Stereo
 static bool prepareDacForBluetooth() {
-  esp_err_t err = i2s_set_clk(BT_DAC_I2S_PORT, 44100, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_STEREO);
-  if (err != ESP_OK) {
-    Serial.printf("[BT-Slave] Không thể set clock DAC sang 44.1kHz Stereo: %d\n", err);
+  if (s_dacBclk < 0 || s_dacLrc < 0 || s_dacDout < 0) {
+    Serial.println("[BT-Slave] Chưa cấu hình chân I2S DAC!");
     return false;
   }
+
+  // Thử set clock nếu driver đã được cài đặt
+  esp_err_t err = i2s_set_clk(BT_DAC_I2S_PORT, 44100, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_STEREO);
+  if (err != ESP_OK) {
+    // Nếu driver chưa cài hoặc lỗi, gỡ và cài đặt mới hoàn chỉnh
+    i2s_driver_uninstall(BT_DAC_I2S_PORT);
+    i2s_config_t dacConfig = {};
+    dacConfig.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX);
+    dacConfig.sample_rate = 44100;
+    dacConfig.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+    dacConfig.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT;
+    dacConfig.communication_format = I2S_COMM_FORMAT_STAND_I2S;
+    dacConfig.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
+    dacConfig.dma_buf_count = 8;
+    dacConfig.dma_buf_len = 512;
+    dacConfig.use_apll = false;
+    dacConfig.tx_desc_auto_clear = true;
+
+    i2s_pin_config_t pinConfig = {};
+    pinConfig.bck_io_num = s_dacBclk;
+    pinConfig.ws_io_num = s_dacLrc;
+    pinConfig.data_out_num = s_dacDout;
+    pinConfig.data_in_num = I2S_PIN_NO_CHANGE;
+
+    err = i2s_driver_install(BT_DAC_I2S_PORT, &dacConfig, 0, NULL);
+    if (err != ESP_OK) {
+      Serial.printf("[BT-Slave] Lỗi cài đặt I2S DAC: %d\n", err);
+      return false;
+    }
+    i2s_set_pin(BT_DAC_I2S_PORT, &pinConfig);
+  }
+  i2s_zero_dma_buffer(BT_DAC_I2S_PORT);
   s_dacInstalled = true;
-  Serial.printf("[BT-Slave] >> Đã chuyển DAC Loa sang 44.1kHz Stereo.\n");
+  Serial.println("[BT-Slave] >> Đã chuẩn bị DAC Loa 44.1kHz Stereo thành công.");
   return true;
 }
 

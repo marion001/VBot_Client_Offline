@@ -956,11 +956,48 @@ public:
   size_t _fillBuffer(uint8_t *buffer, size_t maxLen) override { return file.read(buffer, maxLen); }
 };
 
+static uint8_t *s_cachedIndexHtmlGz = nullptr;
+static size_t s_cachedIndexHtmlGzLen = 0;
+
 static void sendLittleFsFile(AsyncWebServerRequest *request, const char *path, const char *contentType, bool cache = true) {
   markWebUiActive();
   String gzPath = String(path) + ".gz";
   bool gzExists = LittleFS.exists(gzPath);
   if (clientAcceptsGzip(request) && gzExists) {
+    if (strcmp(path, "/index.html") == 0) {
+      if (!s_cachedIndexHtmlGz) {
+        File file = LittleFS.open(gzPath, "r");
+        if (file) {
+          size_t sz = file.size();
+          uint8_t *buf = nullptr;
+          if (psramFound()) {
+            buf = (uint8_t*)ps_malloc(sz);
+          } else if (ESP.getFreeHeap() > 90000) {
+            buf = (uint8_t*)malloc(sz);
+          }
+          if (buf) {
+            if (file.read(buf, sz) == sz) {
+              s_cachedIndexHtmlGz = buf;
+              s_cachedIndexHtmlGzLen = sz;
+            } else {
+              free(buf);
+            }
+          }
+          file.close();
+        }
+      }
+      if (s_cachedIndexHtmlGz) {
+        AsyncWebServerResponse *response = request->beginResponse(200, contentType, s_cachedIndexHtmlGz, s_cachedIndexHtmlGzLen);
+        if (!response) {
+          request->send(503, CONTENT_TEXT, "Không đủ RAM để mở WebUI.");
+          return;
+        }
+        response->addHeader("Content-Encoding", "gzip");
+        response->addHeader("Cache-Control", cache ? "private, no-cache" : "no-store");
+        request->send(response);
+        return;
+      }
+    }
     File file = LittleFS.open(gzPath, "r");
     auto *response = new (std::nothrow) LightFileResponse(std::move(file), contentType, true, cache);
     if (!response) {
@@ -1065,6 +1102,7 @@ static String effectiveAudioProxyUrl(const char *url) {
   if (!useCustomProxy && original.indexOf("/audio_proxy") >= 0) return original;
   if (isDirectVBotServerAudioUrl(original)) return original;
   if (isDirectHttpAudioFileUrl(original)) return original;
+  if (!useCustomProxy && !wsReady) return original;
 
   String streamApi = useCustomProxy ? custom : streamApiBaseUrl();
   if (!validStreamApiUrl(streamApi)) return original;
@@ -1893,6 +1931,11 @@ static void setLedEffect(LedEffect effect) {
   ledEffect = effect;
 }
 
+static inline LedEffect idleLedEffect() {
+  if (!wsReady) return LED_SOCKET_ERROR;
+  return micActive() ? LED_OFF : LED_MUTE;
+}
+
 static bool ledEffectFromString(const String &name, LedEffect &effect) {
   String value = name;
   value.trim();
@@ -2527,6 +2570,8 @@ static void ledTask(void *) {
     LedEffect effect = ledEffect;
     if ((vbot_airplay_is_streaming() || vbot_bt_slave_is_streaming()) && !volumeLedActive) {
       effect = LED_SPEAK;
+    } else if (!wsReady && (effect == LED_OFF || effect == LED_SPEAK)) {
+      effect = LED_SOCKET_ERROR;
     }
     ManualLedState manual = manualLedSnapshot();
     if (manual.on && (effect == LED_OFF || effect == LED_MUTE)) {
@@ -2675,7 +2720,7 @@ static void stopMp3(bool keepSilentDac) {
   mp3Out = nullptr;
   if (startupAudioPlaying) {
     startupAudioPlaying = false;
-    if (!recording) setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+    if (!recording) setLedEffect(idleLedEffect());
   }
   if (keepSilentDac) installSilentDac();
 }
@@ -3223,16 +3268,18 @@ static bool audioIdle() {
 }
 
 static bool isVBotAssistantBusy() {
-  if (recording) return true;
-  if (!waitingToWake) return true;
-  if (wakeSkipRequest) return true;
   if (otaUpdateActive) return true;
   if (pcmPlaybackActive) return true;
   if (audioOpening) return true;
   if (mp3 && mp3->isRunning()) return true;
   if (vbotPlaybackPending) return true;
-  if (pendingAutoContinue) return true;
   if (startupAudioPlaying) return true;
+  if (wsReady) {
+    if (recording) return true;
+    if (!waitingToWake) return true;
+    if (wakeSkipRequest) return true;
+    if (pendingAutoContinue) return true;
+  }
   return false;
 }
 
@@ -3255,9 +3302,9 @@ static bool playMp3FilePath(const char *path, bool autoContinueAfter, LedEffect 
   return queued;
 }
 
-static bool playMp3Url(const char *url, bool autoContinueAfter = false, LedEffect playLedEffect = LED_SPEAK) {
+static bool playMp3Url(const char *url, bool autoContinueAfter = false, LedEffect playLedEffect = LED_SPEAK, bool directPlay = false) {
   if (!validAudioUrl(url)) return false;
-  String playableUrl = effectiveAudioProxyUrl(url);
+  String playableUrl = directPlay ? String(url) : effectiveAudioProxyUrl(url);
   AudioCommand cmd = {};
   cmd.autoContinueAfter = autoContinueAfter;
   cmd.playLedEffect = playLedEffect;
@@ -3271,11 +3318,12 @@ static bool playMp3Url(const char *url, bool autoContinueAfter = false, LedEffec
     cmd.speakLed = !isDefaultSoundUrl(playableUrl.c_str());
     // Chỉ giữ URL gốc trong queue. URL proxy lồng nhau có thể nở rất dài sau
     // percent-encoding và từng bị cắt ở 319 byte trước khi DAC xử lý.
-    if (strlen(url) >= sizeof(cmd.url)) {
-      LOGF("URL âm thanh quá dài (%u/%u byte)", (unsigned)strlen(url), (unsigned)(sizeof(cmd.url) - 1));
+    const char *urlToQueue = directPlay ? playableUrl.c_str() : url;
+    if (strlen(urlToQueue) >= sizeof(cmd.url)) {
+      LOGF("URL âm thanh quá dài (%u/%u byte)", (unsigned)strlen(urlToQueue), (unsigned)(sizeof(cmd.url) - 1));
       return false;
     }
-    strlcpy(cmd.url, url, sizeof(cmd.url));
+    strlcpy(cmd.url, urlToQueue, sizeof(cmd.url));
   }
   vbotPlaybackPending = true;
   bool queued = queueAudioCommand(cmd);
@@ -3631,7 +3679,7 @@ static void dacTask(void *) {
     if (!pendingAutoContinue && !wakeSkipRequest && !recording && (!mp3 || !mp3->isRunning()) && !pcmPlaybackRecentlyActive()
         && !vbot_airplay_is_streaming() && !vbot_bt_slave_is_streaming()
         && (ledEffect == LED_SPEAK || ledEffect == LED_STARTUP) && deadlineReached(testLedUntilMs)) {
-      setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+      setLedEffect(idleLedEffect());
     }
     vTaskDelay(pdMS_TO_TICKS(2));
   }
@@ -3741,12 +3789,12 @@ static void handleJsonMessage(uint8_t *payload, size_t length) {
       if (validAudioUrl(tts)) {
         setLedEffect(LED_SPEAK);
       } else {
-        setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+        setLedEffect(idleLedEffect());
       }
       playMp3Url(audioUrl);
     } else {
       if (!pcmPlaybackRecentlyActive() && uxQueueMessagesWaiting(audioQueue) == 0) {
-        setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+        setLedEffect(idleLedEffect());
       }
     }
     return;
@@ -3764,7 +3812,7 @@ static void handleJsonMessage(uint8_t *payload, size_t length) {
       playMp3Url(validAudioUrl(tts) ? tts : status, cfg.conversationMode);
     } else {
       if (!pcmPlaybackRecentlyActive() && uxQueueMessagesWaiting(audioQueue) == 0) {
-        setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+        setLedEffect(idleLedEffect());
       }
       if (cfg.conversationMode) {
         // Phản hồi main_processing có thể là PCM raw. Chờ DAC phát hết hàng đợi
@@ -3804,7 +3852,7 @@ static void handleJsonMessage(uint8_t *payload, size_t length) {
     } else {
       playMp3Url(dongFeedbackUrl().c_str());
     }
-    setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+    setLedEffect(idleLedEffect());
   }
 }
 
@@ -3822,7 +3870,7 @@ static void wsEvent(WStype_t type, uint8_t *payload, size_t length) {
       pendingPcmMeta.clear();
       if (micQueue) xQueueReset(micQueue);
       LOG("Đã kết nối WebSocket");
-      setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+      setLedEffect(idleLedEffect());
       sendClientConfig();
       wsReady = true;
       break;
@@ -3836,8 +3884,11 @@ static void wsEvent(WStype_t type, uint8_t *payload, size_t length) {
       recordingDeadlineMs = 0;
       waitingToWake = true;
       pendingAutoContinue = false;
+      wakeSkipRequest = false;
       stopRecordingRequested = false;
       restoreTemporaryMic();
+      vbot_airplay_resume();
+      vbot_bt_slave_resume();
       if (!wsForceReconnectAtMs) wsForceReconnectAtMs = millis() + WS_RECONNECT_INTERVAL_MS;
       LOGF("WebSocket chưa kết nối; thử lại sau %u giây", (unsigned)(WS_RECONNECT_INTERVAL_MS / 1000));
       setLedEffect(LED_SOCKET_ERROR);
@@ -3898,18 +3949,25 @@ static void websocketTask(void *) {
       stopRecordingRequested = false;
       ws.sendTXT("stop");
     }
-    if (wakeSkipRequest && wsReady) {
-      wakeSkipRequest = false;
-      if (!cfg.micEnabled) temporaryMicEnabled = true;
-      if (!audioIdle()) stopAudioPlayback(true);
-      ws.sendTXT("Skip_WakeUP");
-      recording = true;
-      recordingDurationMs = 8000U;
-      recordingDeadlineMs = millis() + recordingDurationMs;
-      waitingToWake = false;
-      pendingAutoContinue = false;
-      LOG("Đã gửi lệnh đánh thức, đang thu âm thanh...");
-      setLedEffect(LED_THINK);
+    if (wakeSkipRequest) {
+      if (wsReady) {
+        wakeSkipRequest = false;
+        if (!cfg.micEnabled) temporaryMicEnabled = true;
+        if (!audioIdle()) stopAudioPlayback(true);
+        ws.sendTXT("Skip_WakeUP");
+        recording = true;
+        recordingDurationMs = 8000U;
+        recordingDeadlineMs = millis() + recordingDurationMs;
+        waitingToWake = false;
+        pendingAutoContinue = false;
+        LOG("Đã gửi lệnh đánh thức, đang thu âm thanh...");
+        setLedEffect(LED_THINK);
+      } else {
+        wakeSkipRequest = false;
+        pendingAutoContinue = false;
+        vbot_airplay_resume();
+        vbot_bt_slave_resume();
+      }
     }
     if (recording && !audioIdle() && recordingDeadlineMs != 0) {
       // Giữ nguyên thời lượng thu âm cho tới khi phát xong status_audio (ding/wakeup_reply)
@@ -4467,17 +4525,14 @@ static void handlePlayUrlRequest(AsyncWebServerRequest *request) {
 }
 
 static bool webUiWorkBusy() {
-  bool localAudioBusy = (mp3 && mp3->isRunning()) || pcmPlaybackActive || audioOpening;
-  return recording || localAudioBusy || otaUpdateActive || fsMaintenanceActive ||
-         (audioQueue && uxQueueMessagesWaiting(audioQueue) > 0);
+  return recording || otaUpdateActive || fsMaintenanceActive;
 }
 
 static const char *webUiBusyReason() {
   if (otaUpdateActive) return "ota_active";
   if (fsMaintenanceActive) return "filesystem_maintenance";
   if (recording) return "recording";
-  if (!audioIdle()) return "audio_playing";
-  return "audio_queued";
+  return "busy";
 }
 
 static void sendWebUiUnavailable(AsyncWebServerRequest *request, const char *reason, int code = 503) {
@@ -4586,21 +4641,21 @@ static void onDlnaPlay(const char *url, const char *title) {
   mqttStateDirty = true;
   stopAudioPlayback(true);
   setLedEffect(LED_SPEAK);
-  playMp3Url(url, false, LED_SPEAK);
+  playMp3Url(url, false, LED_SPEAK, true);
 }
 
 static void onDlnaStop() {
   UART_LOG("[DLNA] Dừng phát từ thiết bị cast.");
   dlnaPlayStartedAtMs = 0;
   stopAudioPlayback(true);
-  setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+  setLedEffect(idleLedEffect());
 }
 
 static void onDlnaPause() {
   UART_LOG("[DLNA] Tạm dừng phát từ thiết bị cast.");
   dlnaPlayStartedAtMs = 0;
   stopAudioPlayback(true);
-  setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+  setLedEffect(idleLedEffect());
 }
 
 static void onDlnaVolume(int vol) {
@@ -4646,7 +4701,7 @@ static void onAirPlayStop() {
   installSilentDac();
   vbot_bt_slave_resume();
   if (!isVBotAssistantBusy()) {
-    setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+    setLedEffect(idleLedEffect());
   }
 }
 
@@ -5600,7 +5655,7 @@ static void initWeb() {
       mqttStateDirty = true;
       if (!recording && waitingToWake && !wakeSkipRequest) {
         resumeMicAfterAudio();
-        setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+        setLedEffect(idleLedEffect());
       }
     };
     btCb.onPeak = [](uint16_t peak) {
@@ -5722,7 +5777,7 @@ static void micShortPress() {
   } else {
     if (localMicOffAvailable) playMp3FilePath("/sound/mic_off.mp3");
   }
-  setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+  setLedEffect(idleLedEffect());
 }
 
 static void micLongPress() {
@@ -5731,7 +5786,7 @@ static void micLongPress() {
     restoreTemporaryMic();
     stopAudioPlaybackWithFeedback();
     mqttStateDirty = true;
-    setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+    setLedEffect(idleLedEffect());
     LOG("Phát hiện nhấn giữ mic: dừng âm thanh và quay lại trạng thái chờ được đánh thức.");
     return;
   }
@@ -5778,7 +5833,7 @@ static bool executeConfiguredButtonAction(const char *actionName, const char *bu
       vbot_airplay_suspend();
     }
     mqttStateDirty = true;
-    setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+    setLedEffect(idleLedEffect());
     LOGF("%s: Dừng phát âm thanh", buttonDesc ? buttonDesc : "Nút nhấn");
     return true;
   }
@@ -5843,7 +5898,7 @@ static void wakeLongPress() {
   restoreTemporaryMic();
   stopAudioPlaybackWithFeedback();
   mqttStateDirty = true;
-  setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+  setLedEffect(idleLedEffect());
   LOG("Phát hiện nhấn giữ nút WakeUP: dừng âm thanh đang phát");
 }
 
@@ -6521,7 +6576,7 @@ static void mqttMessageCallback(char *topicRaw, uint8_t *payloadRaw, unsigned in
       if (vbot_airplay_is_suspended()) vbot_airplay_resume();
       if (strlen(vbot_dlna_get_uri()) > 0 && audioIdle()) {
         vbot_dlna_set_state("PLAYING");
-        playMp3Url(vbot_dlna_get_uri(), false, LED_SPEAK);
+        playMp3Url(vbot_dlna_get_uri(), false, LED_SPEAK, true);
       }
       BtSlaveInfo btInfo = vbot_bt_slave_get_info();
       if (btInfo.connected) {
@@ -6564,7 +6619,7 @@ static void mqttMessageCallback(char *topicRaw, uint8_t *payloadRaw, unsigned in
           if (vbot_airplay_is_suspended()) vbot_airplay_resume();
           if (strlen(vbot_dlna_get_uri()) > 0 && audioIdle()) {
             vbot_dlna_set_state("PLAYING");
-            playMp3Url(vbot_dlna_get_uri(), false, LED_SPEAK);
+            playMp3Url(vbot_dlna_get_uri(), false, LED_SPEAK, true);
           }
           BtSlaveInfo btInfo = vbot_bt_slave_get_info();
           if (btInfo.connected) vbot_bt_slave_send_cmd("PLAY");
@@ -7051,14 +7106,16 @@ void setup() {
   } else {
     wsReady = false;
     recording = false;
-    waitingToWake = false;
+    waitingToWake = true;
+    vbot_airplay_resume();
+    vbot_bt_slave_resume();
     LOG("Chế độ khởi chạy độc lập: bỏ qua Mic và kết nối WebSocket tới máy chủ VBot.");
   }
   if (hardwareGpioValid && cfg.startupSoundEnabled && localStartupAvailable) {
     setLedEffect(LED_STARTUP);
     playMp3FilePath("/sound/start_up.mp3", false, LED_STARTUP, true);
   } else {
-    setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+    setLedEffect(idleLedEffect());
   }
 
   // Chỉ cho hiệu ứng FastLED chạy sau khi WiFiManager, I2S, LittleFS và WebUI
