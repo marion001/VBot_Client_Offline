@@ -25,7 +25,7 @@ Nút mặc định: WakeUp `GPIO42`, Volume- `GPIO39`, Volume+ `GPIO40`, Mic `GP
 |---|---:|
 | LED WS2812 | 48 |
 | Nút Mic / Volume+ / Volume- / WakeUp | 41 / 40 / 39 / 42 |
-| Rotary CLK / DT / SW | 32 / 33 / 19 |
+| Rotary CLK / DT / SW | 41 / 40 / 42 |
 | Mic INMP441 SCK/BCLK / WS / SD | 5 / 4 / 6 |
 | MAX98357 BCLK / LRC / DIN | 15 / 16 / 7 |
 

@@ -29,7 +29,7 @@
 | Nút Volume- | 18 | 39 | Giảm âm lượng |
 | Nút WakeUp | 19 | 42 | Đánh thức thủ công |
 | Rotary CLK / DT / SW | 32 / 33 / 19 | 41 / 40 / 42 | Chiết áp xoay âm lượng |
-| Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 18 / 17 / 8 | INMP441 Microphone (Kênh L) |
+| Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 5 / 4 / 6 | INMP441 Microphone (Kênh L) |
 | MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 | 15 / 16 / 7 | I2S DAC Loa |
 | Bluetooth I2S (BCLK / WS / DIN) | 26 / 25 / 22 (ESP32 Thường TX) | 14 / 21 / 47 (ESP32-S3 RX) | Nhận luồng nhạc A2DP từ ESP32 thường |
 | Bluetooth UART (TX / RX) | 17 / 16 (ESP32 Thường) | 1 (TX) / 2 (RX) (ESP32-S3) | UART metadata, trạng thái & điều khiển |
