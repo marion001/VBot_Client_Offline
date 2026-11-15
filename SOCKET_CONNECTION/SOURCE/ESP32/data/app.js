@@ -267,12 +267,16 @@ function renderConfig(){
   h.push(tableBlock('Cấu Hình mDNS',[
     check('mdns','Cho phép các thiết bị trong mạng LAN phát hiện ESP32 VBot Client',c.network?.mdns_enabled!==false)
   ]));
-  h.push(tableBlock('Cấu Hình Phát Nhạc Không Dây DLNA / UPnP',[
-    check('dlnaen','Kích hoạt DLNA MediaRenderer (Phát nhạc từ Zing MP3, Spotify, NhacCuaTui, BubbleUPnP, Windows Cast to Device qua WiFi)',c.network?.dlna_enabled!==false)
-  ]));
-  h.push(tableBlock('Cấu Hình Apple AirPlay Receiver (iPhone / iPad / Mac)',[
-    check('airplayen','Kích hoạt Apple AirPlay (Tự động xuất hiện trong Trung tâm điều khiển / Control Center của iPhone, iPad, Mac để phát nhạc không dây)',c.network?.airplay_enabled!==false)
-  ]));
+  if (c.network?.dlna_supported !== false) {
+    h.push(tableBlock('Cấu Hình Phát Nhạc Không Dây DLNA / UPnP',[
+      check('dlnaen','Kích hoạt DLNA MediaRenderer (Phát nhạc từ Zing MP3, Spotify, NhacCuaTui, BubbleUPnP, Windows Cast to Device qua WiFi)',c.network?.dlna_enabled!==false)
+    ]));
+  }
+  if (c.network?.airplay_supported !== false) {
+    h.push(tableBlock('Cấu Hình Apple AirPlay Receiver (iPhone / iPad / Mac)',[
+      check('airplayen','Kích hoạt Apple AirPlay (Tự động xuất hiện trong Trung tâm điều khiển / Control Center của iPhone, iPad, Mac để phát nhạc không dây)',c.network?.airplay_enabled!==false)
+    ]));
+  }
   const customApiUrl=state.status?.ip?`http://${state.status.ip}`:location.origin;
   h.push(tableBlock('Cấu Hình MQTT',[
     check('mqen','Kích Hoạt MQTT',c.mqtt?.active||false),

@@ -1,3 +1,4 @@
+#if defined(BOARD_HAS_PSRAM)
 /*
  * ALAC (Apple Lossless Audio Codec) decoder
  * Copyright (c) 2005 David Hammerton
@@ -1234,4 +1235,5 @@ alac_file *alac_create(int samplesize, int numchannels)
 
     return newfile;
 }
+#endif
 

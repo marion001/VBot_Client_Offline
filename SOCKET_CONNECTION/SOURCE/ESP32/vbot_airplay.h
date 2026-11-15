@@ -9,6 +9,15 @@
 
 #include <Arduino.h>
 
+#if defined(BOARD_HAS_PSRAM)
+#define VBOT_AIRPLAY_SUPPORTED 1
+#else
+#define VBOT_AIRPLAY_SUPPORTED 0
+#endif
+
+// Kiểm tra xem phần cứng chip có hỗ trợ AirPlay không (Yêu cầu PSRAM)
+bool vbot_airplay_is_supported();
+
 typedef void (*AirPlayPlayCallback)();
 typedef void (*AirPlayStopCallback)();
 typedef void (*AirPlayVolumeCallback)(int volume);

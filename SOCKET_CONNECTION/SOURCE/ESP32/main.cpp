@@ -237,8 +237,16 @@ struct AppConfig {
   bool startupSoundEnabled = true;
   bool serialLogs = true;
   bool mdnsEnabled = true;
-  bool dlnaEnabled = true;    // DLNA / UPnP MediaRenderer (Mặc định bật để phát nhạc từ điện thoại/PC)
-  bool airplayEnabled = true; // Apple AirPlay Receiver (Mặc định bật để hiện trong Control Center iPhone)
+#if VBOT_DLNA_SUPPORTED
+  bool dlnaEnabled = true;    // DLNA / UPnP MediaRenderer (Mặc định bật trên chip hỗ trợ)
+#else
+  bool dlnaEnabled = false;   // Tắt trên chip không hỗ trợ (ESP32 Thường)
+#endif
+#if VBOT_AIRPLAY_SUPPORTED
+  bool airplayEnabled = true; // Apple AirPlay Receiver (Yêu cầu PSRAM)
+#else
+  bool airplayEnabled = false; // Tắt trên chip không có PSRAM
+#endif
   bool nsEnabled = false;
   bool agcEnabled = false;
   int agcGain = 12;
@@ -1348,8 +1356,16 @@ static void loadConfig() {
   cfg.startupSoundEnabled = prefs.getBool("bootsnd", cfg.startupSoundEnabled);
   cfg.serialLogs = prefs.getBool("logs", cfg.serialLogs);
   cfg.mdnsEnabled = prefs.getBool("mdns", cfg.mdnsEnabled);
+#if VBOT_DLNA_SUPPORTED
   cfg.dlnaEnabled = prefs.getBool("dlnaen", cfg.dlnaEnabled);
+#else
+  cfg.dlnaEnabled = false;
+#endif
+#if VBOT_AIRPLAY_SUPPORTED
   cfg.airplayEnabled = prefs.getBool("airplayen", cfg.airplayEnabled);
+#else
+  cfg.airplayEnabled = false;
+#endif
   cfg.btSlaveEnabled = prefs.getBool("btsl_en", cfg.btSlaveEnabled);
   cfg.btSlaveBclk = prefs.getInt("btsl_bclk", cfg.btSlaveBclk);
   cfg.btSlaveWs = prefs.getInt("btsl_ws", cfg.btSlaveWs);
@@ -1715,7 +1731,9 @@ static void fillConfigJson(JsonObject doc) {
   doc["system"]["dfs_enabled"] = cfg.dfsEnabled;
   doc["network"]["mdns_enabled"] = cfg.mdnsEnabled;
   doc["network"]["dlna_enabled"] = cfg.dlnaEnabled;
+  doc["network"]["dlna_supported"] = (bool)VBOT_DLNA_SUPPORTED;
   doc["network"]["airplay_enabled"] = cfg.airplayEnabled;
+  doc["network"]["airplay_supported"] = (bool)VBOT_AIRPLAY_SUPPORTED;
   doc["mqtt"]["active"] = cfg.mqttEnabled;
   doc["mqtt"]["host"] = cfg.mqttHost;
   doc["mqtt"]["port"] = cfg.mqttPort;
@@ -5603,6 +5621,7 @@ static void initWeb() {
       UART_LOG("OTA THẤT BẠI; thiết bị không restart và firmware hiện tại được giữ lại.");
     }
   });
+#if VBOT_DLNA_SUPPORTED
   if (cfg.dlnaEnabled) {
     DlnaCallbacks dlnaCb;
     dlnaCb.onPlay = onDlnaPlay;
@@ -5611,6 +5630,8 @@ static void initWeb() {
     dlnaCb.onVolume = onDlnaVolume;
     vbot_dlna_init(web, strlen(cfg.clientName) > 0 ? cfg.clientName : cfg.mqttClientName, dlnaCb);
   }
+#endif
+#if VBOT_AIRPLAY_SUPPORTED
   if (cfg.airplayEnabled) {
     AirPlayCallbacks airplayCb;
     airplayCb.onPlay = onAirPlayPlay;
@@ -5624,6 +5645,7 @@ static void initWeb() {
     vbot_airplay_set_dac_pins(cfg.dacBclk, cfg.dacLrc, cfg.dacDout);
     vbot_airplay_init(strlen(cfg.clientName) > 0 ? cfg.clientName : cfg.mqttClientName, airplayCb);
   }
+#endif
   // Khởi tạo nhận âm thanh Bluetooth I2S Slave từ ESP32 thường
   if (cfg.btSlaveEnabled) {
     BtSlaveCallbacks btCb;
@@ -6879,9 +6901,11 @@ static void setupMdns() {
   MDNS.addServiceTxt("vbot-assistant", "tcp", "board", VBOT_BUILD_TARGET);
   MDNS.addServiceTxt("vbot-assistant", "tcp", "build_target", VBOT_BUILD_TARGET);
   mdnsStarted = true;
-  if (cfg.airplayEnabled) {
+#if VBOT_AIRPLAY_SUPPORTED
+  if (cfg.airplayEnabled && vbot_airplay_is_running()) {
     vbot_airplay_register_mdns();
   }
+#endif
 }
 
 static void mqttSubscribePaced(const char *suffix) {

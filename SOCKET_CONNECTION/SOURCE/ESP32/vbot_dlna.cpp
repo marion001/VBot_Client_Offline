@@ -6,6 +6,8 @@
 //Email: VBot.Assistant@gmail.com
 
 #include "vbot_dlna.h"
+
+#if VBOT_DLNA_SUPPORTED
 #include <WiFi.h>
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
@@ -735,3 +737,21 @@ const char* vbot_dlna_get_title() {
 const char* vbot_dlna_get_uri() {
   return dlnaCurrentUri.c_str();
 }
+
+bool vbot_dlna_is_supported() {
+  return true;
+}
+
+#else
+
+bool vbot_dlna_is_supported() { return false; }
+bool vbot_dlna_init(AsyncWebServer&, const char*, const DlnaCallbacks&) { return false; }
+void vbot_dlna_stop() {}
+bool vbot_dlna_is_running() { return false; }
+void vbot_dlna_set_state(const char*) {}
+void vbot_dlna_set_volume(int) {}
+int vbot_dlna_get_volume() { return 100; }
+const char* vbot_dlna_get_title() { return ""; }
+const char* vbot_dlna_get_uri() { return ""; }
+
+#endif

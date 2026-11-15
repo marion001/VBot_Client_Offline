@@ -10,6 +10,15 @@
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(BOARD_HAS_PSRAM)
+#define VBOT_DLNA_SUPPORTED 1
+#else
+#define VBOT_DLNA_SUPPORTED 0
+#endif
+
+// Kiểm tra xem chip có hỗ trợ DLNA không (Tắt trên ESP32 thường)
+bool vbot_dlna_is_supported();
+
 typedef void (*DlnaPlayCallback)(const char *url, const char *title);
 typedef void (*DlnaStopCallback)();
 typedef void (*DlnaPauseCallback)();

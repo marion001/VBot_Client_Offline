@@ -6,6 +6,8 @@
 //Email: VBot.Assistant@gmail.com
 
 #include "vbot_airplay.h"
+
+#if VBOT_AIRPLAY_SUPPORTED
 #include "airplay_rsa_key.h"
 #include <WiFi.h>
 #include <lwip/sockets.h>
@@ -1938,3 +1940,29 @@ void vbot_airplay_disconnect() {
   hasAesKey = false;
   Serial.println("[AirPlay] Đã ngắt kết nối phiên AirPlay theo yêu cầu (DISCONNECT).");
 }
+
+bool vbot_airplay_is_supported() {
+  return psramFound();
+}
+
+#else
+
+bool vbot_airplay_is_supported() { return false; }
+void vbot_airplay_set_dac_pins(int8_t, int8_t, int8_t) {}
+bool vbot_airplay_init(const char*, const AirPlayCallbacks&) { return false; }
+void vbot_airplay_stop() {}
+void vbot_airplay_register_mdns() {}
+void vbot_airplay_set_name(const char*) {}
+void vbot_airplay_suspend() {}
+void vbot_airplay_resume() {}
+bool vbot_airplay_is_suspended() { return false; }
+bool vbot_airplay_is_running() { return false; }
+bool vbot_airplay_is_streaming() { return false; }
+bool vbot_airplay_is_active() { return false; }
+int vbot_airplay_get_volume() { return 100; }
+void vbot_airplay_set_volume(int) {}
+void vbot_airplay_disconnect() {}
+bool vbot_airplay_install_i2s() { return false; }
+void vbot_airplay_uninstall_i2s() {}
+
+#endif
