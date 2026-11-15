@@ -31,7 +31,7 @@
 | Rotary CLK / DT / SW | 32 / 33 / 19 | 41 / 40 / 42 | Chiết áp xoay âm lượng |
 | Mic SCK/BCLK / WS / SD | 14 / 13 / 34 | 5 / 4 / 6 | INMP441 Microphone (Kênh L) |
 | MAX98357 BCLK / LRC / DIN | 27 / 26 / 25 | 15 / 16 / 7 | I2S DAC Loa |
-| Bluetooth I2S (BCLK / WS / DIN) | 26 / 25 / 22 (ESP32 Thường TX) | 14 / 21 / 47 (ESP32-S3 RX) | Nhận luồng nhạc A2DP từ ESP32 thường |
+| Bluetooth I2S RX (BCLK / WS / DIN) | 26 / 25 / 22 | 14 / 21 / 47 | Nhận luồng nhạc A2DP từ ESP32 thường (Master TX -> S3 Slave RX) |
 | Bluetooth UART (TX / RX) | 17 / 16 (ESP32 Thường) | 1 (TX) / 2 (RX) (ESP32-S3) | UART metadata, trạng thái & điều khiển |
 
 Các nút được đấu giữa GPIO tương ứng và GND; firmware sử dụng `INPUT_PULLUP`. Không dùng GPIO22–37 cho ngoại vi trên ESP32-S3 N8R8/N16R8 vì các chân khả dụng trong vùng này có thể thuộc bus flash/OPI PSRAM.
@@ -67,17 +67,6 @@ ESP32-S3 N16R8 WakeNet (16MB Flash, On-Device Hotword):
 0x10000   firmware.bin
 0x810000  littlefs.bin
 0xc00000  srmodels.bin
-```
-
-ESP32-S3 N8R2 / N8R8 WakeNet (8MB Flash, On-Device Hotword):
-
-```text
-0x0000    bootloader.bin
-0x8000    partitions.bin
-0xe000    boot_app0.bin
-0x10000   firmware.bin
-0x490000  littlefs.bin
-0x670000  srmodels.bin
 ```
 
 ESP32 WakeNet (16MB Flash + PSRAM, On-Device Hotword):

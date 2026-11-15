@@ -41,8 +41,7 @@ Dành riêng cho việc nâng cấp loa VBot Client thành một chiếc loa Blu
   * Đồng bộ Metadata bài hát (**Title, Artist, Album**) sang ESP32-S3 để hiển thị lên WebUI và Home Assistant.
   * Nhận lệnh điều khiển `PLAY`, `PAUSE`, `NEXT`, `PREV`, `DISCONNECT` từ phím bấm cứng, WebUI VBot hoặc các Automation/Dashboard của Home Assistant.
 * **Cơ chế chuyển tiếp Zero-Collision**:
-  * Khi người dùng tạm dừng nhạc (Pause/Stop) trên điện thoại hoặc ngắt kết nối, ESP32-S3 tự động ngắt I2S Slave RX, trả lại cổng I2S_NUM_1 cho Microphone INMP441 và WakeNet ("VBot ơi") hoạt động bình thường. Luồng phát âm thanh được giữ liền mạch qua các nốt lặng và đoạn chuyển bài hát.
-  * Hỗ trợ cấu hình động toàn bộ chân GPIO của ESP32 Thường trực tiếp qua Tab WebUI riêng **Cấu Hình GPIO Bluetooth ESP32**.
+  * Khi nhạc tạm dừng (>800ms im lặng), ESP32-S3 tự động ngắt I2S Slave RX, trả lại cổng I2S_NUM_1 cho Microphone INMP441 và WakeNet ("VBot ơi") hoạt động bình thường.
   * Khi nhạc phát lại, tự động chuyển DAC Loa sang 44.1kHz Stereo mượt mà.
 
 ### Sơ đồ nối dây giữa ESP32 Thường và ESP32-S3
@@ -54,8 +53,14 @@ Dành riêng cho việc nâng cấp loa VBot Client thành một chiếc loa Blu
 | **I2S DATA OUT** | **GPIO 22** | **GPIO 47 (DIN)** | Dữ liệu âm thanh PCM từ ESP32 sang S3 |
 | **UART TX** | **GPIO 17 (TX2)** | **GPIO 2 (RX)** | ESP32 gửi metadata & trạng thái sang S3 |
 | **UART RX** | **GPIO 16 (RX2)** | **GPIO 1 (TX)** | ESP32 nhận cấu hình & điều khiển từ S3 |
-| **GND** | **GND** | **GND** | **Bắt buộc nối chung GND** |
+| **GND** | **GND** | **GND** | **Bắt buộc nối chung Mass (GND)** |
 | **Nguồn cấp** | **5V (VIN)** | **5V (VIN)** | Khuyên dùng nguồn 5V chung 2A-3A |
+
+### 4 Nút Bấm Cứng Vật Lý Trên ESP32 Thường (Nối GPIO với GND):
+- **Nút 1 (GPIO 32)**: Nhấn nhả $\rightarrow$ **Play / Pause**; Nhấn giữ $\rightarrow$ **Ngắt kết nối** Bluetooth (Disconnect).
+- **Nút 2 (GPIO 33)**: Nhấn nhả $\rightarrow$ **Next** bài; Nhấn đúp $\rightarrow$ **Phát lại từ đầu** bài hiện tại; Nhấn giữ $\rightarrow$ **Tăng âm lượng**.
+- **Nút 3 (GPIO 27)**: Nhấn nhả $\rightarrow$ **Previous** bài; Nhấn đúp $\rightarrow$ **Phát lại từ đầu** bài hiện tại; Nhấn giữ $\rightarrow$ **Giảm âm lượng**.
+- **Nút 4 (GPIO 13)**: Nhấn nhả $\rightarrow$ **Đồng bộ trạng thái** sang ESP32-S3; Nhấn giữ > 2 giây $\rightarrow$ **Khởi động lại ESP32**.
 
 ## Tính năng
 

@@ -2543,6 +2543,8 @@ static void showBreatheEffect(uint16_t step, CRGB color) {
   FastLED.show();
 }
 
+static bool audioIdle();
+
 static void ledTask(void *) {
   uint16_t step = 0;
   LedEffect lastStaticEffect = (LedEffect)255;
@@ -2568,9 +2570,9 @@ static void ledTask(void *) {
       lastStaticEffect = (LedEffect)255;
     }
     LedEffect effect = ledEffect;
-    if ((vbot_airplay_is_streaming() || vbot_bt_slave_is_streaming()) && !volumeLedActive) {
+    if (!audioIdle() && !volumeLedActive) {
       effect = LED_SPEAK;
-    } else if (!wsReady && (effect == LED_OFF || effect == LED_SPEAK)) {
+    } else if (!wsReady && audioIdle() && (effect == LED_OFF || effect == LED_SPEAK)) {
       effect = LED_SOCKET_ERROR;
     }
     ManualLedState manual = manualLedSnapshot();
@@ -3676,8 +3678,7 @@ static void dacTask(void *) {
       wakeSkipRequest = true;
       setLedEffect(LED_THINK);
     }
-    if (!pendingAutoContinue && !wakeSkipRequest && !recording && (!mp3 || !mp3->isRunning()) && !pcmPlaybackRecentlyActive()
-        && !vbot_airplay_is_streaming() && !vbot_bt_slave_is_streaming()
+    if (!pendingAutoContinue && !wakeSkipRequest && !recording && audioIdle()
         && (ledEffect == LED_SPEAK || ledEffect == LED_STARTUP) && deadlineReached(testLedUntilMs)) {
       setLedEffect(idleLedEffect());
     }

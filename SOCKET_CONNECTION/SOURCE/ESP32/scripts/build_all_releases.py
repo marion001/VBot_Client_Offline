@@ -16,37 +16,58 @@ ENV_MAP = [
 ]
 
 PROJECT_DIR = Path(r"C:\Users\PC-Tuyen\Desktop\esp32_vbot_client")
+BT_PROJECT_DIR = Path(r"C:\Users\PC-Tuyen\Desktop\esp32_a2dp_master")
 RELEASE_BASE = Path(r"C:\Users\PC-Tuyen\Desktop\VBot_Client_Offline\SOCKET_CONNECTION")
 PIO_EXE = r"C:\Users\PC-Tuyen\.platformio\penv\Scripts\pio.exe"
 
 def run_cmd(cmd, cwd=PROJECT_DIR):
-    print(f"\n>>> Running: {' '.join(cmd)}")
+    print(f"\n>>> Running: {' '.join(str(c) for c in cmd)} (in {cwd})")
     res = subprocess.run(cmd, cwd=cwd)
     if res.returncode != 0:
         print(f"FAILED with code {res.returncode}")
         sys.exit(res.returncode)
 
-def main():
-    # 1. Sync source files
+def sync_sources():
+    print("\n--- Syncing source code to VBot_Client_Offline ---")
     src_dest = RELEASE_BASE / "SOURCE" / "ESP32"
     src_dest.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(PROJECT_DIR / "src" / "main.cpp", src_dest / "main.cpp")
-    shutil.copy2(PROJECT_DIR / "src" / "vbot_wakenet.cpp", src_dest / "vbot_wakenet.cpp")
-    shutil.copy2(PROJECT_DIR / "src" / "vbot_wakenet.h", src_dest / "vbot_wakenet.h")
-    shutil.copy2(PROJECT_DIR / "src" / "vbot_dlna.cpp", src_dest / "vbot_dlna.cpp")
-    shutil.copy2(PROJECT_DIR / "src" / "vbot_dlna.h", src_dest / "vbot_dlna.h")
-    shutil.copy2(PROJECT_DIR / "data" / "app.js", src_dest / "app.js")
-    shutil.copy2(PROJECT_DIR / "data" / "index.html", src_dest / "index.html")
-    print("Source files copied to release SOURCE/ESP32/")
+    (src_dest / "src").mkdir(parents=True, exist_ok=True)
+    (src_dest / "data").mkdir(parents=True, exist_ok=True)
 
-    # 2. Build each environment
+    # 1. Sync src/ files
+    for f in (PROJECT_DIR / "src").iterdir():
+        if f.is_file():
+            shutil.copy2(f, src_dest / "src" / f.name)
+            shutil.copy2(f, src_dest / f.name)
+
+    # 2. Sync data/ files
+    for f in (PROJECT_DIR / "data").iterdir():
+        if f.is_file():
+            shutil.copy2(f, src_dest / "data" / f.name)
+            shutil.copy2(f, src_dest / f.name)
+
+    # 3. Sync config files
+    shutil.copy2(PROJECT_DIR / "platformio.ini", src_dest / "platformio.ini")
+    for p in PROJECT_DIR.glob("partitions*.csv"):
+        shutil.copy2(p, src_dest / p.name)
+
+    # 4. Sync Bluetooth ESP32 receiver sources
+    bt_dest = RELEASE_BASE / "Bluetooth_ESP32_RECEIVER"
+    bt_src_dest = bt_dest / "src"
+    bt_src_dest.mkdir(parents=True, exist_ok=True)
+    for f in (BT_PROJECT_DIR / "src").iterdir():
+        if f.is_file():
+            shutil.copy2(f, bt_src_dest / f.name)
+    shutil.copy2(BT_PROJECT_DIR / "platformio.ini", bt_dest / "platformio.ini")
+    print("Source files synchronized successfully!")
+
+def build_esp_clients():
     for pio_env, rel_dir in ENV_MAP:
         print(f"\n=======================================================")
         print(f"BUILDING {pio_env} -> {rel_dir}")
         print(f"=======================================================")
-        # Build firmware and filesystem
-        run_cmd([PIO_EXE, "run", "-e", pio_env])
-        run_cmd([PIO_EXE, "run", "-e", pio_env, "-t", "buildfs"])
+        run_cmd([PIO_EXE, "run", "-e", pio_env], cwd=PROJECT_DIR)
+        run_cmd([PIO_EXE, "run", "-e", pio_env, "-t", "buildfs"], cwd=PROJECT_DIR)
 
         build_dir = PROJECT_DIR / ".pio" / "build" / pio_env
         firmware_bin = build_dir / "firmware.bin"
@@ -57,6 +78,8 @@ def main():
 
         if firmware_bin.exists():
             shutil.copy2(firmware_bin, dest_bin_dir / "firmware.bin")
+            if rel_dir == "ESP32S3_N16R8_WakeNet":
+                shutil.copy2(firmware_bin, RELEASE_BASE / rel_dir / "firmware.bin")
             print(f"Copied firmware.bin -> {dest_bin_dir}")
         else:
             print(f"ERROR: {firmware_bin} does not exist!")
@@ -69,7 +92,54 @@ def main():
             print(f"ERROR: {littlefs_bin} does not exist!")
             sys.exit(1)
 
-    print("\nALL 9 ESP TARGETS BUILT AND SYNCED SUCCESSFULLY!")
+def update_version_jsons():
+    import json
+    print("\n--- Updating Version.json for all release targets ---")
+    desc = (
+        "Phiên bản 15/11/2026: Tối ưu hoá toàn diện âm thanh Apple AirPlay 1, "
+        "khử triệt để bão gửi lại gói tin (retransmit storm) khi khóa màn hình iOS, "
+        "khắc phục hiện tượng tụt/hẫng âm thanh DTIM sleep; tự do phát nhạc độc lập "
+        "qua Bluetooth, AirPlay, DLNA mượt mà ngay cả khi mất kết nối máy chủ VBot; "
+        "tự động hiển thị lại LED mất kết nối socket khi dừng phát nhạc mà chưa kết nối lại máy chủ; "
+        "tối ưu WebUI tốc độ cao, mở trang quản trị cực mượt và không bị lag/treo hay chặn busy khi đang phát nhạc; "
+        "tự động nhường và khôi phục mượt mà I2S DAC/Mic khi tương tác Trợ lý ảo VBot, và tắt log debug AirPlay cho bản phát hành chính thức."
+    )
+    for _, rel_dir in ENV_MAP:
+        v_file = RELEASE_BASE / rel_dir / "Version.json"
+        data = {
+            "build_date": "15/11/2026",
+            "description": desc
+        }
+        with open(v_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"Updated {v_file}")
+
+def build_bluetooth_receiver():
+    print(f"\n=======================================================")
+    print(f"BUILDING Bluetooth_ESP32_RECEIVER (esp32_a2dp_master)")
+    print(f"=======================================================")
+    run_cmd([PIO_EXE, "run", "-e", "esp32dev"], cwd=BT_PROJECT_DIR)
+
+    build_dir = BT_PROJECT_DIR / ".pio" / "build" / "esp32dev"
+    dest_bin_dir = RELEASE_BASE / "Bluetooth_ESP32_RECEIVER" / "bin"
+    dest_bin_dir.mkdir(parents=True, exist_ok=True)
+
+    for bin_name in ["firmware.bin", "bootloader.bin", "partitions.bin"]:
+        p = build_dir / bin_name
+        if p.exists():
+            shutil.copy2(p, dest_bin_dir / bin_name)
+            print(f"Copied {bin_name} -> {dest_bin_dir}")
+        else:
+            print(f"WARNING: {p} not found!")
+
+def main():
+    sync_sources()
+    update_version_jsons()
+    build_esp_clients()
+    build_bluetooth_receiver()
+    print("\n=======================================================")
+    print("SUCCESS: ALL 10 ESP TARGETS COMPILED & SYNCED TO RELEASE!")
+    print("=======================================================")
 
 if __name__ == "__main__":
     main()
