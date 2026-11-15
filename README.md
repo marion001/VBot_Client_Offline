@@ -18,7 +18,7 @@ Hệ thống Client thông minh dành riêng cho **VBot Assistant (Loa Chủ)**,
 
 ---
 
-## 2. Các Tính Năng Nổi Bật (Phiên bản 14/11/2026)
+## 2. Các Tính Năng Nổi Bật (Phiên bản 15/11/2026)
 
 1. **Module Thu Bluetooth A2DP & Điều Khiển Toàn Diện**:
    - Nhận nhạc chất lượng cao từ điện thoại/PC qua ESP32 thường, truyền tín hiệu số PCM sang ESP32-S3 qua **I2S Slave RX** (44.1kHz Stereo).
@@ -28,15 +28,18 @@ Hệ thống Client thông minh dành riêng cho **VBot Assistant (Loa Chủ)**,
    - Tab WebUI riêng **Cấu Hình GPIO Bluetooth ESP32**: Cấu hình động toàn bộ chân I2S Master, UART và 4 nút bấm cứng cho chip ESP32 Thường trực tiếp từ WebUI của ESP32-S3 qua kết nối UART mà không cần nạp lại code.
 
 2. **Kết Nối Âm Thanh Không Dây Đa Nền Tảng (Apple AirPlay 1 & DLNA / UPnP)**:
-   - **Apple AirPlay 1 (AirTunes Receiver)**:
+   - **Apple AirPlay 1 (AirTunes Receiver) - Bản Tối Ưu Toàn Diện**:
      - Tự động xuất hiện trong **Trung tâm điều khiển (Control Center)** của iPhone, iPad, Mac và các ứng dụng phát nhạc của Apple qua giao thức mDNS Bonjour (`_raop._tcp`, `_airplay._tcp`).
      - Truyền phát âm thanh chuẩn kỹ thuật số không nén (ALAC/PCM 44.1kHz 16-bit Stereo) với độ trung thực cao.
+     - **Khử triệt để bão gói gửi lại (Retransmission Storm Elimination)**: Thuật toán lọc dải sequence ngăn chặn việc gửi trùng lặp hàng trăm yêu cầu retransmit, chống nghẽn sóng Wi-Fi 2.4GHz.
+     - **Tương thích hoàn hảo với chế độ DTIM Sleep khi khóa màn hình iPhone**: Tối ưu bộ đệm jitter 512 gói và thời gian chờ thích ứng lên tới 280ms, loại bỏ hoàn toàn hiện tượng tụt hay giật âm thanh khi khóa màn hình iOS.
+     - **Chuyển giao thông minh (Zero Collision)**: Tự động nhường quyền I2S DAC và Mic khi người dùng gọi "VBot ơi" hoặc bấm nút Wakeup; tự động khôi phục phát nhạc và bơm đầy lại bộ đệm tức thì (~2s) khi Trợ lý ảo kết thúc hội thoại.
      - Đồng bộ thanh trượt âm lượng 2 chiều giữa thiết bị Apple và loa VBot, nháy LED hiệu ứng theo nhạc.
    - **DLNA / UPnP MediaRenderer (DMR)**:
      - Tự động nhận diện trên mạng Wi-Fi cục bộ (LAN) qua giao thức SSDP Discovery.
      - Tương thích hoàn hảo với các thiết bị Android, Windows PC ("Cast to Device"), Smart TV, NAS và Home Assistant (BubbleUPnP, MusicBee, Windows Media Player, v.v.).
      - Hỗ trợ phát trực tiếp các định dạng âm thanh phổ biến: MP3, AAC, FLAC, WAV kèm đầy đủ lệnh điều khiển Play, Pause, Stop, tua bài và Volume.
-   - **Cơ chế nhường quyền thông minh (Zero Collision)**: Tự động tạm ngưng hoặc hạ âm lượng AirPlay/DLNA khi người dùng gọi "VBot ơi" hoặc khi VBot phản hồi, sau đó tự khôi phục lại khi rảnh.
+   - **Tùy chọn Bật/Tắt Độc Lập**: Cho phép kích hoạt hoặc tắt riêng biệt từng dịch vụ AirPlay / DLNA trực tiếp trên WebUI.
 
 3. **Nhận Diện Giọng Nói Offline (WakeNet9 On-Device)**:
    - Xử lý nhận diện từ khóa đánh thức hoàn toàn Offline (~0ms độ trễ), không tốn băng thông Wi-Fi và hoạt động độc lập khi ở trạng thái chờ.

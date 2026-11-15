@@ -2,12 +2,14 @@
 #define __ALAC__DECOMP_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef struct alac_file alac_file;
 
 alac_file *alac_create(int samplesize, int numchannels);
 void alac_decode_frame(alac_file *alac,
                        unsigned char *inbuffer,
+                       size_t inbuffer_size,
                        void *outbuffer, int *outputsize);
 void alac_set_info(alac_file *alac, char *inputbuffer);
 void alac_allocate_buffers(alac_file *alac);
@@ -18,6 +20,9 @@ struct alac_file
     unsigned char *input_buffer;
     int input_buffer_bitaccumulator; /* used so we can do arbitary
                                         bit reads */
+    size_t input_buffer_size;
+    size_t input_bits_read;
+    int input_overflow;
 
     int samplesize;
     int numchannels;
@@ -38,6 +43,7 @@ struct alac_file
 
   /* stuff from setinfo */
   uint32_t setinfo_max_samples_per_frame; /* 0x1000 = 4096 */    /* max samples per frame? */
+  uint32_t allocated_samples;
   uint8_t setinfo_7a; /* 0x00 */
   uint8_t setinfo_sample_size; /* 0x10 */
   uint8_t setinfo_rice_historymult; /* 0x28 */

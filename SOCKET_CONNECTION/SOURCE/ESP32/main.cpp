@@ -45,7 +45,7 @@
 
 #define VBOT_I2S_COMM_FORMAT I2S_COMM_FORMAT_STAND_I2S
 
-static const char *VBOT_CLIENT_VERSION = "14/11/2026";
+static const char *VBOT_CLIENT_VERSION = "15/11/2026";
 static constexpr uint16_t DEFAULT_VBOT_API_PORT = 5002;
 #ifndef VBOT_BUILD_TARGET
 #define VBOT_BUILD_TARGET "ESP32"
@@ -626,6 +626,7 @@ volatile bool pcmTxInstalled = false;
 static uint32_t currentPcmSampleRate = 16000;
 volatile bool micRxInstalled = false;
 volatile bool pcmPlaybackActive = false;
+volatile bool vbotPlaybackPending = false;
 volatile bool audioOpening = false;
 volatile bool startupAudioPlaying = false;
 volatile bool micSuspendedForAudio = false;
@@ -2581,7 +2582,7 @@ static void suspendMicForAudio();
 static void resumeMicAfterAudio();
 
 static void installSilentDac() {
-  if (vbot_airplay_is_streaming() || vbot_bt_slave_is_streaming()) return;
+  if (vbot_airplay_is_active() || vbot_airplay_is_streaming() || vbot_bt_slave_is_streaming()) return;
   if (pcmTxInstalled && currentPcmSampleRate == 16000) {
     i2s_zero_dma_buffer(PCM_I2S_PORT);
     return;
@@ -2625,6 +2626,7 @@ static void installSilentDac() {
 }
 
 static void stopMp3(bool keepSilentDac) {
+  vbotPlaybackPending = false;
   vbot_aec_set_playback_active(false);
   if (mp3Out) {
     mp3Out->SetGain(0.0f);
@@ -2991,6 +2993,8 @@ static void micTask(void *) {
       if (vbot_wakenet_is_running()) {
         if (vbot_wakenet_feed(cleanFrame, FRAME_SAMPLES)) {
           LOG("[WakeNet] Phát hiện từ khóa đánh thức!");
+          vbot_bt_slave_suspend();
+          vbot_airplay_suspend();
           if (!audioIdle()) {
             LOG("[Barge-In] Ngắt lời thành công khi loa đang phát! Dừng phát audio ngay lập tức.");
             stopAudioPlayback(true);
@@ -3071,6 +3075,7 @@ static void releaseAudioCommandResources(const AudioCommand &cmd) {
 }
 
 static void clearPendingAudioCommands() {
+  vbotPlaybackPending = false;
   if (!audioQueue) return;
   AudioCommand pending;
   while (xQueueReceive(audioQueue, &pending, 0) == pdTRUE) {
@@ -3191,12 +3196,12 @@ static bool isVBotAssistantBusy() {
   if (!waitingToWake) return true;
   if (wakeSkipRequest) return true;
   if (otaUpdateActive) return true;
+  if (pcmPlaybackActive) return true;
   if (audioOpening) return true;
   if (mp3 && mp3->isRunning()) return true;
-  if (pcmPlaybackActive) return true;
-  if (audioQueue && uxQueueMessagesWaiting(audioQueue) > 0) return true;
-  if (millis() - lastPcmPlaybackMs < 600) return true;
-  if (vbot_airplay_is_streaming()) return true;
+  if (vbotPlaybackPending) return true;
+  if (pendingAutoContinue) return true;
+  if (startupAudioPlaying) return true;
   return false;
 }
 
@@ -3204,6 +3209,7 @@ static bool isVBotAssistantBusy() {
 static bool playMp3FilePath(const char *path, bool autoContinueAfter, LedEffect playLedEffect, bool speakLed) {
   if (!path || !*path) return false;
   if (playLedEffect == LED_STARTUP && speakLed) startupAudioPlaying = true;
+  vbotPlaybackPending = true;
   AudioCommand cmd = {};
   cmd.type = AUDIO_CMD_MP3_FILE;
   cmd.speakLed = speakLed;
@@ -3211,7 +3217,10 @@ static bool playMp3FilePath(const char *path, bool autoContinueAfter, LedEffect 
   cmd.playLedEffect = playLedEffect;
   strlcpy(cmd.url, path, sizeof(cmd.url));
   bool queued = queueAudioCommand(cmd);
-  if (!queued && playLedEffect == LED_STARTUP && speakLed) startupAudioPlaying = false;
+  if (!queued) {
+    if (playLedEffect == LED_STARTUP && speakLed) startupAudioPlaying = false;
+    vbotPlaybackPending = false;
+  }
   return queued;
 }
 
@@ -3237,7 +3246,10 @@ static bool playMp3Url(const char *url, bool autoContinueAfter = false, LedEffec
     }
     strlcpy(cmd.url, url, sizeof(cmd.url));
   }
-  return queueAudioCommand(cmd);
+  vbotPlaybackPending = true;
+  bool queued = queueAudioCommand(cmd);
+  if (!queued) vbotPlaybackPending = false;
+  return queued;
 }
 
 static String googleTranslateTtsUrl(const char *text) {
@@ -3264,8 +3276,10 @@ static bool queueGoogleTranslateTts(const String &input) {
   // TTS là thông báo ưu tiên: bỏ các lệnh âm thanh chưa xử lý. Khi DAC nhận
   // lệnh này, startMp3Source() tự dừng nguồn đang phát trước khi mở proxy.
   clearPendingAudioCommands();
+  vbotPlaybackPending = true;
   bool queued = queueAudioCommand(cmd);
   if (!queued) {
+    vbotPlaybackPending = false;
     lockMediaState();
     googleTtsState = 3;
     googleTtsUpdatedAtMs = millis();
@@ -3275,6 +3289,7 @@ static bool queueGoogleTranslateTts(const String &input) {
 }
 
 static bool stopAudioPlayback(bool clearSuspendedAudio = true) {
+  vbotPlaybackPending = false;
   AudioCommand cmd = {};
   cmd.type = AUDIO_CMD_STOP;
   cmd.clearSuspendedAudio = clearSuspendedAudio;
@@ -3465,6 +3480,7 @@ static void dacTask(void *) {
           if (cmd.speakLed && !volumeLedActive && !recording) setLedEffect(cmd.playLedEffect);
           if (cmd.autoContinueAfter) pendingAutoContinue = true;
         } else {
+          vbotPlaybackPending = false;
           // Không để hội thoại mắc kẹt nếu URL/decoder MP3 lỗi. dacTask sẽ gửi
           // Skip_WakeUP khi audio đã idle, giống như sau khi phát thành công.
           pendingAutoContinue = cmd.autoContinueAfter;
@@ -3533,7 +3549,7 @@ static void dacTask(void *) {
         pcmPlaybackActive = false;
         vbot_aec_set_playback_active(false);
         pendingAutoContinue = false;
-        bool airplayActive = vbot_airplay_is_streaming();
+        bool airplayActive = vbot_airplay_is_active() || vbot_airplay_is_streaming();
         bool btSlaveActive = vbot_bt_slave_is_streaming();
         stopMp3(!airplayActive && !btSlaveActive);
         lockMediaState();
@@ -3646,6 +3662,8 @@ static void handleJsonMessage(uint8_t *payload, size_t length) {
     Serial.println();
   }
   if (!strcmp(process, "wake_word_detected")) {
+    vbot_bt_slave_suspend();
+    vbot_airplay_suspend();
     recording = true;
     recordingDurationMs = 8000U;
     recordingDeadlineMs = millis() + recordingDurationMs;
@@ -4554,6 +4572,7 @@ static void onDlnaVolume(int vol) {
 }
 
 static void onAirPlayPeak(uint16_t peak) {
+  if (isVBotAssistantBusy() || vbot_airplay_is_suspended()) return;
   if (peak > currentAudioPeak) {
     currentAudioPeak = peak;
   }
@@ -4566,11 +4585,15 @@ static void onAirPlayPlay() {
   currentMqttMediaCover = "";
   unlockMediaState();
   mqttStateDirty = true;
-  stopAudioPlayback(true);
-  vbot_bt_slave_suspend();
+  if (mp3 && mp3->isRunning()) {
+    stopAudioPlayback(true);
+  }
   uninstallPcmTx();
+  vbot_bt_slave_suspend();
   suspendMicForAudio();
-  setLedEffect(LED_SPEAK);
+  if (!isVBotAssistantBusy()) {
+    setLedEffect(LED_SPEAK);
+  }
 }
 
 static void onAirPlayStop() {
@@ -4580,7 +4603,9 @@ static void onAirPlayStop() {
   vTaskDelay(pdMS_TO_TICKS(15));
   installSilentDac();
   vbot_bt_slave_resume();
-  setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+  if (!isVBotAssistantBusy()) {
+    setLedEffect(micActive() ? LED_OFF : LED_MUTE);
+  }
 }
 
 static void onAirPlayVolume(int vol) {
@@ -5479,7 +5504,7 @@ static void initWeb() {
     dlnaCb.onStop = onDlnaStop;
     dlnaCb.onPause = onDlnaPause;
     dlnaCb.onVolume = onDlnaVolume;
-    vbot_dlna_init(web, cfg.mqttClientName, dlnaCb);
+    vbot_dlna_init(web, strlen(cfg.clientName) > 0 ? cfg.clientName : cfg.mqttClientName, dlnaCb);
   }
   if (cfg.airplayEnabled) {
     AirPlayCallbacks airplayCb;
@@ -5487,6 +5512,10 @@ static void initWeb() {
     airplayCb.onStop = onAirPlayStop;
     airplayCb.onVolume = onAirPlayVolume;
     airplayCb.onPeak = onAirPlayPeak;
+    airplayCb.isVBotBusy = isVBotAssistantBusy;
+    airplayCb.onResumeMic = []() {
+      resumeMicAfterAudio();
+    };
     vbot_airplay_set_dac_pins(cfg.dacBclk, cfg.dacLrc, cfg.dacDout);
     vbot_airplay_init(strlen(cfg.clientName) > 0 ? cfg.clientName : cfg.mqttClientName, airplayCb);
   }
@@ -5682,6 +5711,7 @@ static void wakeShortPress() {
   pendingAutoContinue = false;
   if (!cfg.micEnabled) temporaryMicEnabled = true;
   vbot_bt_slave_suspend();
+  vbot_airplay_suspend();
   stopAudioPlayback(true);
   wakeSkipRequest = true;
 }
@@ -5696,6 +5726,9 @@ static bool executeConfiguredButtonAction(const char *actionName, const char *bu
     if (vbot_bt_slave_is_streaming()) {
       vbot_bt_slave_send_cmd("CMD:PAUSE");
     }
+    if (vbot_airplay_is_streaming()) {
+      vbot_airplay_suspend();
+    }
     mqttStateDirty = true;
     setLedEffect(micActive() ? LED_OFF : LED_MUTE);
     LOGF("%s: Dừng phát âm thanh", buttonDesc ? buttonDesc : "Nút nhấn");
@@ -5705,6 +5738,9 @@ static bool executeConfiguredButtonAction(const char *actionName, const char *bu
     LOGF("%s: Bật/Tạm dừng Bluetooth", buttonDesc ? buttonDesc : "Nút nhấn");
     if (vbot_bt_slave_is_streaming()) {
       vbot_bt_slave_send_cmd("CMD:PAUSE");
+    }
+    if (vbot_airplay_is_streaming()) {
+      vbot_airplay_suspend();
     } else {
       vbot_bt_slave_send_cmd("CMD:PLAY");
     }

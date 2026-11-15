@@ -65,9 +65,11 @@ Dành riêng cho việc nâng cấp loa VBot Client thành một chiếc loa Blu
 
 ## Tính năng
 
-- **Hỗ trợ kết nối âm thanh không dây Apple AirPlay 1 (AirTunes Receiver)**:
+- **Hỗ trợ kết nối âm thanh không dây Apple AirPlay 1 (AirTunes Receiver) - Bản Tối Ưu Toàn Diện (15/11/2026)**:
   - Tự động quảng bá dịch vụ Bonjour mDNS (`_raop._tcp`, `_airplay._tcp`), hiển thị tức thì trên **Trung tâm điều khiển (Control Center)** của iPhone, iPad, Mac và các ứng dụng phát nhạc Apple Music, Spotify, YouTube Music.
   - Nhận luồng âm thanh kỹ thuật số không nén (ALAC/PCM 44.1kHz Stereo 16-bit), mang lại chất lượng âm thanh phòng thu vượt trội.
+  - **Khử triệt để bão gói gửi lại (Retransmission Storm Elimination)**: Thuật toán lọc dải sequence ngăn chặn việc gửi lặp hàng trăm yêu cầu retransmit, chống nghẽn sóng Wi-Fi 2.4GHz.
+  - **Chống tụt/hẫng âm thanh khi khóa màn hình iPhone (DTIM Power-Save Tolerance)**: Tối ưu bộ đệm raw 512 gói và thời gian chờ thích ứng tới 280ms, tương thích hoàn hảo với chu kỳ ngủ DTIM của iOS.
   - Hỗ trợ đồng bộ âm lượng 2 chiều giữa thiết bị Apple và loa VBot, hiển thị LED nhịp điệu theo bài hát.
   - Tự động nhường quyền thông minh: Tạm dừng hoặc giảm âm lượng AirPlay khi người dùng gọi "VBot ơi" và khôi phục mượt mà khi xử lý xong.
 - **Hỗ trợ kết nối âm thanh không dây DLNA / UPnP MediaRenderer (DMR)**:

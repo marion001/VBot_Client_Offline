@@ -13,12 +13,16 @@ typedef void (*AirPlayPlayCallback)();
 typedef void (*AirPlayStopCallback)();
 typedef void (*AirPlayVolumeCallback)(int volume);
 typedef void (*AirPlayPeakCallback)(uint16_t peak);
+typedef bool (*AirPlayIsBusyCallback)();
+typedef void (*AirPlayResumeMicCallback)();
 
 struct AirPlayCallbacks {
   AirPlayPlayCallback onPlay = nullptr;
   AirPlayStopCallback onStop = nullptr;
   AirPlayVolumeCallback onVolume = nullptr;
   AirPlayPeakCallback onPeak = nullptr;
+  AirPlayIsBusyCallback isVBotBusy = nullptr;
+  AirPlayResumeMicCallback onResumeMic = nullptr;
 };
 
 // Cấu hình chân phần cứng I2S DAC cho AirPlay
@@ -33,11 +37,22 @@ void vbot_airplay_stop();
 // Đăng ký lại mDNS khi WiFi kết nối lại
 void vbot_airplay_register_mdns();
 
+// Đổi tên hiển thị AirPlay (Friendly Name) theo Client Name
+void vbot_airplay_set_name(const char *friendlyName);
+
+// Tạm dừng / Tiếp tục phát nhạc AirPlay khi VBot Assistant bận
+void vbot_airplay_suspend();
+void vbot_airplay_resume();
+bool vbot_airplay_is_suspended();
+
 // Kiểm tra xem AirPlay có đang chạy không
 bool vbot_airplay_is_running();
 
 // Kiểm tra xem iPhone có đang kết nối/phát nhạc AirPlay không
 bool vbot_airplay_is_streaming();
+
+// Kiểm tra xem phiên AirPlay có đang kết nối/phát không (kể cả khi đang tạm suspend nhường VBot)
+bool vbot_airplay_is_active();
 
 // Lấy âm lượng hiện tại từ AirPlay (0-100)
 int vbot_airplay_get_volume();

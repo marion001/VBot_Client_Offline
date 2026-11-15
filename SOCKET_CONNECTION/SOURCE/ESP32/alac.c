@@ -56,6 +56,7 @@ struct {signed int x:24;} se_struct_24;
 #define SignExtend24(val) (se_struct_24.x = val)
 
 void alac_free(alac_file *alac) {
+    if (!alac) return;
     if (alac->predicterror_buffer_a)
         free(alac->predicterror_buffer_a);
     if (alac->predicterror_buffer_b)
@@ -76,14 +77,50 @@ void alac_free(alac_file *alac) {
 
 void alac_allocate_buffers(alac_file *alac)
 {
-    alac->predicterror_buffer_a = malloc(alac->setinfo_max_samples_per_frame * 4);
-    alac->predicterror_buffer_b = malloc(alac->setinfo_max_samples_per_frame * 4);
+    if (!alac) {
+        return;
+    }
 
-    alac->outputsamples_buffer_a = malloc(alac->setinfo_max_samples_per_frame * 4);
-    alac->outputsamples_buffer_b = malloc(alac->setinfo_max_samples_per_frame * 4);
+    if (alac->predicterror_buffer_a || alac->predicterror_buffer_b ||
+        alac->outputsamples_buffer_a || alac->outputsamples_buffer_b ||
+        alac->uncompressed_bytes_buffer_a || alac->uncompressed_bytes_buffer_b) {
+        return;
+    }
 
-    alac->uncompressed_bytes_buffer_a = malloc(alac->setinfo_max_samples_per_frame * 4);
-    alac->uncompressed_bytes_buffer_b = malloc(alac->setinfo_max_samples_per_frame * 4);
+    alac->allocated_samples = 4096;
+
+    alac->predicterror_buffer_a = NULL;
+    alac->predicterror_buffer_b = NULL;
+    alac->outputsamples_buffer_a = NULL;
+    alac->outputsamples_buffer_b = NULL;
+    alac->uncompressed_bytes_buffer_a = NULL;
+    alac->uncompressed_bytes_buffer_b = NULL;
+
+    alac->predicterror_buffer_a = malloc(alac->allocated_samples * sizeof(int32_t));
+    alac->predicterror_buffer_b = malloc(alac->allocated_samples * sizeof(int32_t));
+
+    alac->outputsamples_buffer_a = malloc(alac->allocated_samples * sizeof(int32_t));
+    alac->outputsamples_buffer_b = malloc(alac->allocated_samples * sizeof(int32_t));
+
+    alac->uncompressed_bytes_buffer_a = malloc(alac->allocated_samples * sizeof(int32_t));
+    alac->uncompressed_bytes_buffer_b = malloc(alac->allocated_samples * sizeof(int32_t));
+
+    if (!alac->predicterror_buffer_a || !alac->predicterror_buffer_b ||
+        !alac->outputsamples_buffer_a || !alac->outputsamples_buffer_b ||
+        !alac->uncompressed_bytes_buffer_a || !alac->uncompressed_bytes_buffer_b) {
+        free(alac->predicterror_buffer_a);
+        free(alac->predicterror_buffer_b);
+        free(alac->outputsamples_buffer_a);
+        free(alac->outputsamples_buffer_b);
+        free(alac->uncompressed_bytes_buffer_a);
+        free(alac->uncompressed_bytes_buffer_b);
+        alac->predicterror_buffer_a = NULL;
+        alac->predicterror_buffer_b = NULL;
+        alac->outputsamples_buffer_a = NULL;
+        alac->outputsamples_buffer_b = NULL;
+        alac->uncompressed_bytes_buffer_a = NULL;
+        alac->uncompressed_bytes_buffer_b = NULL;
+    }
 }
 
 void alac_set_info(alac_file *alac, char *inputbuffer)
@@ -141,6 +178,17 @@ static uint32_t readbits_16(alac_file *alac, int bits)
     uint32_t result;
     int new_accumulator;
 
+    if (!alac || bits < 0 || bits > 16 || alac->input_overflow) {
+        if (alac) alac->input_overflow = 1;
+        return 0;
+    }
+    if (bits == 0) return 0;
+    if (alac->input_bits_read > alac->input_buffer_size * 8 ||
+        (size_t)bits > alac->input_buffer_size * 8 - alac->input_bits_read) {
+        alac->input_overflow = 1;
+        return 0;
+    }
+
     result = (alac->input_buffer[0] << 16) |
              (alac->input_buffer[1] << 8) |
              (alac->input_buffer[2]);
@@ -163,6 +211,7 @@ static uint32_t readbits_16(alac_file *alac, int bits)
 
     /* and the remainder goes back into the bit accumulator */
     alac->input_buffer_bitaccumulator = (new_accumulator & 7);
+    alac->input_bits_read += (size_t)bits;
 
     return result;
 }
@@ -171,6 +220,17 @@ static uint32_t readbits_16(alac_file *alac, int bits)
 static uint32_t readbits(alac_file *alac, int bits)
 {
     int32_t result = 0;
+
+    if (!alac || bits < 0 || bits > 32 || alac->input_overflow) {
+        if (alac) alac->input_overflow = 1;
+        return 0;
+    }
+    if (bits == 0) return 0;
+    if (alac->input_bits_read > alac->input_buffer_size * 8 ||
+        (size_t)bits > alac->input_buffer_size * 8 - alac->input_bits_read) {
+        alac->input_overflow = 1;
+        return 0;
+    }
 
     if (bits > 16)
     {
@@ -189,6 +249,12 @@ static int readbit(alac_file *alac)
     int result;
     int new_accumulator;
 
+    if (!alac || alac->input_overflow ||
+        alac->input_bits_read >= alac->input_buffer_size * 8) {
+        if (alac) alac->input_overflow = 1;
+        return 0;
+    }
+
     result = alac->input_buffer[0];
 
     result = result << alac->input_buffer_bitaccumulator;
@@ -200,12 +266,17 @@ static int readbit(alac_file *alac)
     alac->input_buffer += (new_accumulator / 8);
 
     alac->input_buffer_bitaccumulator = (new_accumulator % 8);
+    alac->input_bits_read++;
 
     return result;
 }
 
 static void unreadbits(alac_file *alac, int bits)
 {
+    if (!alac || bits < 0 || (size_t)bits > alac->input_bits_read) {
+        if (alac) alac->input_overflow = 1;
+        return;
+    }
     int new_accumulator = (alac->input_buffer_bitaccumulator - bits);
 
     alac->input_buffer += (new_accumulator >> 3);
@@ -213,6 +284,7 @@ static void unreadbits(alac_file *alac, int bits)
     alac->input_buffer_bitaccumulator = (new_accumulator & 7);
     if (alac->input_buffer_bitaccumulator < 0)
         alac->input_buffer_bitaccumulator *= -1;
+    alac->input_bits_read -= (size_t)bits;
 }
 
 /* various implementations of count_leading_zero:
@@ -708,14 +780,30 @@ static void deinterlace_24(int32_t *buffer_a, int32_t *buffer_b,
 
 void alac_decode_frame(alac_file *alac,
                        unsigned char *inbuffer,
+                       size_t inbuffer_size,
                        void *outbuffer, int *outputsize)
 {
     int channels;
-    int32_t outputsamples = alac->setinfo_max_samples_per_frame;
+    int32_t outputsamples;
+
+    if (outputsize) *outputsize = 0;
+    if (!alac || !inbuffer || inbuffer_size == 0 || !outbuffer || !outputsize ||
+        !alac->predicterror_buffer_a || !alac->predicterror_buffer_b ||
+        !alac->outputsamples_buffer_a || !alac->outputsamples_buffer_b ||
+        !alac->uncompressed_bytes_buffer_a || !alac->uncompressed_bytes_buffer_b ||
+        alac->allocated_samples == 0 || alac->allocated_samples > 4096 ||
+        alac->setinfo_max_samples_per_frame == 0 ||
+        alac->setinfo_max_samples_per_frame > alac->allocated_samples) {
+        return;
+    }
+    outputsamples = alac->setinfo_max_samples_per_frame;
 
     /* setup the stream */
     alac->input_buffer = inbuffer;
     alac->input_buffer_bitaccumulator = 0;
+    alac->input_buffer_size = inbuffer_size;
+    alac->input_bits_read = 0;
+    alac->input_overflow = 0;
 
     channels = readbits(alac, 3);
 
@@ -750,6 +838,10 @@ void alac_decode_frame(alac_file *alac,
             /* now read the number of samples,
              * as a 32bit integer */
             outputsamples = readbits(alac, 32);
+            if (outputsamples <= 0 || (uint32_t)outputsamples > alac->allocated_samples) {
+                *outputsize = 0;
+                return;
+            }
             *outputsize = outputsamples * alac->bytespersample;
         }
 
@@ -927,6 +1019,10 @@ void alac_decode_frame(alac_file *alac,
             /* now read the number of samples,
              * as a 32bit integer */
             outputsamples = readbits(alac, 32);
+            if (outputsamples <= 0 || (uint32_t)outputsamples > alac->allocated_samples) {
+                *outputsize = 0;
+                return;
+            }
             *outputsize = outputsamples * alac->bytespersample;
         }
 
@@ -1121,11 +1217,14 @@ void alac_decode_frame(alac_file *alac,
         break;
     }
     }
+
+    if (alac->input_overflow) *outputsize = 0;
 }
 
 alac_file *alac_create(int samplesize, int numchannels)
 {
     alac_file *newfile = malloc(sizeof(alac_file));
+    if (!newfile) return NULL;
 
     memset(newfile, 0, sizeof(alac_file));
 

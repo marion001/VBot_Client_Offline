@@ -69,6 +69,17 @@ ESP32-S3 N16R8 WakeNet (16MB Flash, On-Device Hotword):
 0xc00000  srmodels.bin
 ```
 
+ESP32-S3 N8R2 / N8R8 WakeNet (8MB Flash, On-Device Hotword):
+
+```text
+0x0000    bootloader.bin
+0x8000    partitions.bin
+0xe000    boot_app0.bin
+0x10000   firmware.bin
+0x490000  littlefs.bin
+0x670000  srmodels.bin
+```
+
 ESP32 WakeNet (16MB Flash + PSRAM, On-Device Hotword):
 
 ```text

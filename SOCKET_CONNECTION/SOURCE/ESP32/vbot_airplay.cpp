@@ -23,8 +23,12 @@ extern "C" {
   #include "alac.h"
 }
 
+// Bật (1) nếu cần debug chi tiết từng gói tin và thống kê chu kỳ; Tắt (0) ở bản release để giải phóng CPU/RAM/UART
+#define AIRPLAY_DEBUG_VERBOSE 0
+
 static bool airplayRunning = false;
 static volatile bool airplayStreaming = false;
+static volatile bool s_airplaySuspended = false;
 static AirPlayCallbacks airplayCallbacks;
 static String airplayFriendlyName = "VBot Speaker";
 static volatile int airplayCurrentVolume = 60;
@@ -74,17 +78,29 @@ static bool s_airplay_pk_ready = false;
 
 // Jitter Audio RingBuffer 512KB trên PSRAM (~3.0 giây audio đệm)
 constexpr size_t AIRPLAY_RINGBUF_SIZE = 512 * 1024;
-constexpr size_t AIRPLAY_INITIAL_BUFFER = 96 * 1024;   // ~550ms đệm khởi đầu mượt mà
-constexpr size_t AIRPLAY_UNDERRUN_BUFFER = 48 * 1024;  // ~278ms phục hồi chống ngắt quãng khi iPhone khóa màn hình
+// RAOP is a realtime UDP stream. Keep roughly two seconds locally so Wi-Fi
+// scheduling bursts do not reach I2S as silence or chopped audio.
+constexpr size_t AIRPLAY_INITIAL_BUFFER = 264 * 1024;  // ~1.5s at 44.1kHz stereo S16 (an toan cho chu ky DTIM cua iOS)
+constexpr size_t AIRPLAY_LOW_WATERMARK = 4 * 1024;     // ~23ms reserve (chi ngung khi buffer thuc su can)
+constexpr size_t AIRPLAY_RECOVERY_BUFFER = 32 * 1024;  // ~180ms hysteresis (khoi phuc nhanh, khong im lang)
+
+static volatile uint32_t s_rtpPacketsReceived = 0;
+static volatile uint32_t s_rtpPacketsDropped = 0;
+static volatile uint32_t s_alacFramesDecoded = 0;
+static volatile uint32_t s_pcmBytesDecoded = 0;
+static volatile uint32_t s_pcmConcealedFrames = 0;
 
 struct AudioRingBuffer {
   uint8_t *buffer = nullptr;
   size_t capacity = 0;
   volatile size_t head = 0;
   volatile size_t tail = 0;
-  portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+  SemaphoreHandle_t mutex = nullptr;
 
   bool init(size_t size) {
+    if (!mutex) mutex = xSemaphoreCreateMutex();
+    if (!mutex) return false;
+    xSemaphoreTake(mutex, portMAX_DELAY);
     if (buffer) free(buffer);
     capacity = size;
     head = tail = 0;
@@ -94,69 +110,97 @@ struct AudioRingBuffer {
     if (!buffer) {
       buffer = (uint8_t*)malloc(capacity);
     }
-    return buffer != nullptr;
+    bool ok = buffer != nullptr;
+    xSemaphoreGive(mutex);
+    return ok;
   }
 
   void freeBuffer() {
+    if (mutex) xSemaphoreTake(mutex, portMAX_DELAY);
     if (buffer) {
       free(buffer);
       buffer = nullptr;
     }
     head = tail = 0;
+    if (mutex) xSemaphoreGive(mutex);
   }
 
   void reset() {
-    portENTER_CRITICAL(&mux);
+    if (!mutex) return;
+    xSemaphoreTake(mutex, portMAX_DELAY);
     head = tail = 0;
-    portEXIT_CRITICAL(&mux);
+    xSemaphoreGive(mutex);
   }
 
   size_t available() {
-    portENTER_CRITICAL(&mux);
+    if (!mutex) return 0;
+    xSemaphoreTake(mutex, portMAX_DELAY);
     size_t h = head;
     size_t t = tail;
-    portEXIT_CRITICAL(&mux);
-    if (h >= t) return h - t;
-    return capacity - (t - h);
+    size_t result = h >= t ? h - t : capacity - (t - h);
+    xSemaphoreGive(mutex);
+    return result;
   }
 
   size_t freeSpace() {
-    return capacity - 1 - available();
+    if (!mutex) return 0;
+    xSemaphoreTake(mutex, portMAX_DELAY);
+    size_t h = head;
+    size_t t = tail;
+    size_t used = h >= t ? h - t : capacity - (t - h);
+    size_t result = capacity > 0 ? capacity - 1 - used : 0;
+    xSemaphoreGive(mutex);
+    return result;
   }
 
   size_t write(const uint8_t *data, size_t len) {
-    if (!buffer || len == 0) return 0;
-    size_t space = freeSpace();
-    if (len > space) len = space;
-    if (len == 0) return 0;
-
+    if (!mutex || len == 0) return 0;
+    xSemaphoreTake(mutex, portMAX_DELAY);
+    if (!buffer || capacity == 0) {
+      xSemaphoreGive(mutex);
+      return 0;
+    }
     size_t h = head;
+    size_t t = tail;
+    size_t used = h >= t ? h - t : capacity - (t - h);
+    size_t space = capacity - 1 - used;
+    if (len > space) len = space;
+    if (len == 0) {
+      xSemaphoreGive(mutex);
+      return 0;
+    }
     size_t firstPart = (h + len <= capacity) ? len : (capacity - h);
     memcpy(buffer + h, data, firstPart);
     if (len > firstPart) {
       memcpy(buffer, data + firstPart, len - firstPart);
     }
-    portENTER_CRITICAL(&mux);
     head = (h + len) % capacity;
-    portEXIT_CRITICAL(&mux);
+    xSemaphoreGive(mutex);
     return len;
   }
 
   size_t read(uint8_t *out, size_t len) {
-    if (!buffer || len == 0) return 0;
-    size_t avail = available();
-    if (len > avail) len = avail;
-    if (len == 0) return 0;
-
+    if (!mutex || len == 0) return 0;
+    xSemaphoreTake(mutex, portMAX_DELAY);
+    if (!buffer || capacity == 0) {
+      xSemaphoreGive(mutex);
+      return 0;
+    }
+    size_t h = head;
     size_t t = tail;
+    size_t avail = h >= t ? h - t : capacity - (t - h);
+    if (len > avail) len = avail;
+    if (len == 0) {
+      xSemaphoreGive(mutex);
+      return 0;
+    }
     size_t firstPart = (t + len <= capacity) ? len : (capacity - t);
     memcpy(out, buffer + t, firstPart);
     if (len > firstPart) {
       memcpy(out + firstPart, buffer, len - firstPart);
     }
-    portENTER_CRITICAL(&mux);
     tail = (t + len) % capacity;
-    portEXIT_CRITICAL(&mux);
+    xSemaphoreGive(mutex);
     return len;
   }
 };
@@ -165,19 +209,45 @@ static AudioRingBuffer s_audioRingBuf;
 
 struct RawAudioPacket {
   uint16_t len;
+  uint16_t seq;
+  uint32_t timestamp;
+  bool ready;
   uint8_t data[1500];
 };
 
 struct RawPacketRing {
   RawAudioPacket *packets = nullptr;
-  size_t capacity = 256; // Đệm 256 gói UDP raw (~2 giây)
+  size_t capacity = 512; // Cửa sổ 512 gói UDP raw (~4 giây), hấp thụ burst/retransmit trễ.
+  size_t activePackets = 0;
   volatile size_t head = 0;
   volatile size_t tail = 0;
   portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+  bool sequenceStarted = false;
+  bool highestSequenceStarted = false;
+  uint16_t expectedSeq = 0;
+  uint16_t highestSeq = 0;
+  uint32_t gapStartedMs = 0;
+  uint16_t pendingResendFirst = 0;
+  uint16_t pendingResendCount = 0;
+  bool pendingResend = false;
+  uint16_t lastSentReqFirst = 0;
+  uint16_t lastSentReqCount = 0;
+  uint32_t lastSentReqMs = 0;
+  uint16_t pendingConcealmentFrames = 0;
+  uint8_t resendAttempts = 0;
+  uint32_t lastResendRequestMs = 0;
+  uint32_t skippedPackets = 0;
+  uint32_t reorderedPackets = 0;
+  uint32_t resendRequests = 0;
+  uint32_t retransmittedPackets = 0;
+  uint32_t sequenceResyncs = 0;
+
+  static constexpr uint8_t MAX_RESEND_ATTEMPTS = 3;
 
   bool init(size_t cap = 256) {
     capacity = cap;
     head = tail = 0;
+    activePackets = 0;
     if (packets) free(packets);
     if (psramFound()) {
       packets = (RawAudioPacket*)ps_malloc(capacity * sizeof(RawAudioPacket));
@@ -185,7 +255,19 @@ struct RawPacketRing {
     if (!packets) {
       packets = (RawAudioPacket*)malloc(capacity * sizeof(RawAudioPacket));
     }
-    return packets != nullptr;
+    if (!packets) return false;
+    memset(packets, 0, capacity * sizeof(RawAudioPacket));
+    sequenceStarted = false;
+    highestSequenceStarted = false;
+    pendingResend = false;
+    lastSentReqFirst = 0;
+    lastSentReqCount = 0;
+    lastSentReqMs = 0;
+    pendingConcealmentFrames = 0;
+    resendAttempts = 0;
+    lastResendRequestMs = 0;
+    skippedPackets = reorderedPackets = resendRequests = retransmittedPackets = sequenceResyncs = 0;
+    return true;
   }
 
   void freeBuffer() {
@@ -194,53 +276,317 @@ struct RawPacketRing {
       packets = nullptr;
     }
     head = tail = 0;
+    activePackets = 0;
+    sequenceStarted = false;
+    highestSequenceStarted = false;
+    pendingResend = false;
+    lastSentReqFirst = 0;
+    lastSentReqCount = 0;
+    lastSentReqMs = 0;
+    pendingConcealmentFrames = 0;
+    resendAttempts = 0;
+    lastResendRequestMs = 0;
   }
 
   void reset() {
     portENTER_CRITICAL(&mux);
     head = tail = 0;
+    activePackets = 0;
+    sequenceStarted = false;
+    highestSequenceStarted = false;
+    gapStartedMs = 0;
+    pendingResend = false;
+    lastSentReqFirst = 0;
+    lastSentReqCount = 0;
+    lastSentReqMs = 0;
+    pendingConcealmentFrames = 0;
+    resendAttempts = 0;
+    lastResendRequestMs = 0;
+    skippedPackets = 0;
+    reorderedPackets = 0;
+    resendRequests = 0;
+    retransmittedPackets = 0;
+    sequenceResyncs = 0;
+    if (packets) {
+      for (size_t i = 0; i < capacity; ++i) packets[i].ready = false;
+    }
     portEXIT_CRITICAL(&mux);
   }
 
   size_t count() {
     portENTER_CRITICAL(&mux);
-    size_t h = head;
-    size_t t = tail;
+    size_t readyCount = activePackets;
     portEXIT_CRITICAL(&mux);
-    if (h >= t) return h - t;
-    return capacity - (t - h);
+    return readyCount;
   }
 
-  bool push(const uint8_t *data, size_t len) {
-    if (!packets || len == 0 || len > 1500) return false;
+  bool push(const uint8_t *data, size_t len, bool retransmitted = false) {
+    if (!packets || len < 12 || len > 1500) return false;
+    // Audio RTP payload type 0x60. Sync packets are handled by the control path.
+    if ((data[1] & 0x7f) != 0x60) return false;
+    uint16_t seq = ((uint16_t)data[2] << 8) | data[3];
+    uint32_t timestamp = ((uint32_t)data[4] << 24) | ((uint32_t)data[5] << 16) |
+                         ((uint32_t)data[6] << 8) | data[7];
     portENTER_CRITICAL(&mux);
-    size_t nextHead = (head + 1) % capacity;
-    if (nextHead == tail) {
-      portEXIT_CRITICAL(&mux);
-      return false; // Queue đầy
+    if (!sequenceStarted) {
+      expectedSeq = seq;
+      sequenceStarted = true;
     }
-    size_t curHead = head;
-    head = nextHead;
+    int16_t distance = (int16_t)(seq - expectedSeq);
+    if (distance >= (int16_t)capacity) {
+      // The sender advanced beyond the receive window while we were stalled.
+      for (size_t i = 0; i < capacity; ++i) packets[i].ready = false;
+      activePackets = 0;
+      expectedSeq = seq;
+      highestSeq = seq;
+      highestSequenceStarted = true;
+      gapStartedMs = 0;
+      pendingResend = false;
+      pendingConcealmentFrames = 0;
+      resendAttempts = 0;
+      lastResendRequestMs = 0;
+      sequenceResyncs++;
+      distance = 0;
+    }
+    if (distance < 0) {
+      portEXIT_CRITICAL(&mux);
+      return false; // Duplicate or packet arrived after its playback deadline.
+    }
+    if (!highestSequenceStarted) {
+      highestSeq = seq;
+      highestSequenceStarted = true;
+    } else {
+      int16_t fromHighest = (int16_t)(seq - highestSeq);
+      if (fromHighest > 0) {
+        highestSeq = seq;
+      } else if (fromHighest < 0 && distance > 0) {
+        reorderedPackets++;
+      }
+    }
+    size_t slot = seq % capacity;
+    if (packets[slot].ready) {
+      if (packets[slot].seq == seq) {
+        portEXIT_CRITICAL(&mux);
+        return false;
+      }
+      if (activePackets > 0) activePackets--;
+    }
+    packets[slot].len = (uint16_t)len;
+    packets[slot].seq = seq;
+    packets[slot].timestamp = timestamp;
+    memcpy(packets[slot].data, data, len);
+    packets[slot].ready = true;
+    activePackets++;
+    if (retransmitted) retransmittedPackets++;
     portEXIT_CRITICAL(&mux);
-
-    packets[curHead].len = (uint16_t)len;
-    memcpy(packets[curHead].data, data, len);
     return true;
   }
 
-  bool pop(RawAudioPacket *out) {
+  bool pop(RawAudioPacket *out, size_t audioBufAvail = 0) {
     if (!packets || !out) return false;
     portENTER_CRITICAL(&mux);
-    if (head == tail) {
+    if (!sequenceStarted) {
       portEXIT_CRITICAL(&mux);
-      return false; // Rỗng
+      return false;
     }
-    size_t curTail = tail;
-    tail = (tail + 1) % capacity;
-    portEXIT_CRITICAL(&mux);
+    size_t slot = expectedSeq % capacity;
+    if (packets[slot].ready && packets[slot].seq == expectedSeq) {
+      *out = packets[slot];
+      packets[slot].ready = false;
+      if (activePackets > 0) activePackets--;
+      expectedSeq++;
 
-    *out = packets[curTail];
+      // Kiểm tra nếu gói kế tiếp đã có sẵn thì gap đã được giải quyết xong hoàn toàn
+      size_t nextSlot = expectedSeq % capacity;
+      if (packets[nextSlot].ready && packets[nextSlot].seq == expectedSeq) {
+        gapStartedMs = 0;
+        resendAttempts = 0;
+      }
+      // Nếu gói kế tiếp vẫn chưa có sẵn, ta giữ nguyên gapStartedMs và resendAttempts
+      // để tiếp tục theo dõi tiến độ retransmit mà không bị lặp gửi trùng lặp dồn dập
+      portEXIT_CRITICAL(&mux);
+      return true;
+    }
+
+    int16_t nearestDistance = INT16_MAX;
+    size_t readyCount = activePackets;
+
+    // Quét nhanh các slot ngay phía trước (tối đa 64 slot) để không lặp vô ích qua PSRAM
+    for (uint16_t d = 1; d <= 64; ++d) {
+      size_t s = (expectedSeq + d) % capacity;
+      if (packets[s].ready) {
+        int16_t dist = (int16_t)(packets[s].seq - expectedSeq);
+        if (dist > 0) {
+          nearestDistance = dist;
+          break;
+        }
+      }
+    }
+    if (nearestDistance == INT16_MAX && readyCount > 0) {
+      for (size_t i = 0; i < capacity; ++i) {
+        if (!packets[i].ready) continue;
+        int16_t dist = (int16_t)(packets[i].seq - expectedSeq);
+        if (dist > 0 && dist < nearestDistance) nearestDistance = dist;
+      }
+    }
+    if (nearestDistance == INT16_MAX) {
+      gapStartedMs = 0;
+      pendingResend = false;
+      resendAttempts = 0;
+      lastResendRequestMs = 0;
+      lastSentReqFirst = 0;
+      lastSentReqCount = 0;
+      lastSentReqMs = 0;
+      portEXIT_CRITICAL(&mux);
+      return false;
+    }
+
+    uint32_t now = millis();
+    if (gapStartedMs == 0) {
+      gapStartedMs = now ? now : 1;
+      resendAttempts = 0;
+      lastResendRequestMs = 0;
+    }
+    uint32_t gapAge = (uint32_t)(now - gapStartedMs);
+
+    // Timeout thông minh tương thích với cơ chế DTIM / Power-Save của iPhone khi khóa màn hình:
+    // Khi khóa màn hình, chip Wi-Fi iOS sleep theo chu kỳ beacon DTIM (khoảng 100-200ms) rồi mới phát burst.
+    // Khi đệm PCM dồi dào, ta kiên nhẫn cho iPhone 250-280ms để nhận gói retransmit mà không làm rớt gói.
+    uint32_t initialDelayMs = 12;
+    uint32_t retryIntervalMs = 50;
+    uint32_t maxWaitMs = 220;
+
+    if (audioBufAvail >= 150 * 1024) {
+      initialDelayMs = 15;
+      retryIntervalMs = 50;
+      maxWaitMs = 280;
+    } else if (audioBufAvail >= 70 * 1024) {
+      initialDelayMs = 10;
+      retryIntervalMs = 40;
+      maxWaitMs = 180;
+    } else if (audioBufAvail >= 24 * 1024) {
+      initialDelayMs = 6;
+      retryIntervalMs = 25;
+      maxWaitMs = 60;
+    } else {
+      initialDelayMs = 4;
+      retryIntervalMs = 15;
+      maxWaitMs = 25;
+    }
+
+    // Chỉ hạ maxWaitMs nếu hàng đợi RawPacketRing thực sự sắp đầy (gần chạm 512 slot capacity)
+    // để tránh tràn buffer UDP:
+    if (readyCount >= 420 && maxWaitMs > 50) {
+      maxWaitMs = 50;
+    } else if (readyCount >= 340 && maxWaitMs > 100) {
+      maxWaitMs = 100;
+    }
+
+    // Kiểm tra xem khoảng gói bị thiếu [expectedSeq .. expectedSeq + nearestDistance)
+    // đã được gửi yêu cầu retransmit gần đây hay chưa (tránh spam bão request làm nghẽn Wi-Fi)
+    int16_t coveredDist = (int16_t)(expectedSeq - lastSentReqFirst);
+    bool alreadyCovered = (lastSentReqMs > 0) &&
+                          (coveredDist >= 0) &&
+                          (coveredDist < (int16_t)lastSentReqCount) &&
+                          ((uint32_t)(now - lastSentReqMs) < retryIntervalMs);
+
+    bool notifyControl = false;
+    if (!pendingResend && !alreadyCovered && resendAttempts < MAX_RESEND_ATTEMPTS) {
+      if (resendAttempts == 0 && gapAge >= initialDelayMs) {
+        pendingResendFirst = expectedSeq;
+        pendingResendCount = (uint16_t)nearestDistance;
+        pendingResend = true;
+        lastSentReqFirst = expectedSeq;
+        lastSentReqCount = (uint16_t)nearestDistance;
+        lastSentReqMs = now;
+        resendAttempts++;
+        resendRequests++;
+        lastResendRequestMs = now;
+        notifyControl = true;
+      } else if (resendAttempts > 0 && (uint32_t)(now - lastResendRequestMs) >= retryIntervalMs) {
+        pendingResendFirst = expectedSeq;
+        pendingResendCount = (uint16_t)nearestDistance;
+        pendingResend = true;
+        lastSentReqFirst = expectedSeq;
+        lastSentReqCount = (uint16_t)nearestDistance;
+        lastSentReqMs = now;
+        resendAttempts++;
+        resendRequests++;
+        lastResendRequestMs = now;
+        notifyControl = true;
+      }
+    }
+    if (gapAge < maxWaitMs) {
+      portEXIT_CRITICAL(&mux);
+      if (notifyControl && audioControlTaskHandle) {
+        xTaskNotifyGive(audioControlTaskHandle);
+      }
+      return false;
+    }
+
+    // Quá thời gian chờ: Bỏ qua gói bị mất, chèn frame fade/silence để giữ nhạc trôi chảy
+    uint16_t missingCount = (uint16_t)nearestDistance;
+    expectedSeq = (uint16_t)(expectedSeq + missingCount);
+    skippedPackets += missingCount;
+    uint32_t concealment = (uint32_t)pendingConcealmentFrames + missingCount;
+    pendingConcealmentFrames = concealment > UINT16_MAX ? UINT16_MAX : (uint16_t)concealment;
+    pendingResend = false;
+    gapStartedMs = 0;
+    resendAttempts = 0;
+    lastResendRequestMs = 0;
+    lastSentReqFirst = 0;
+    lastSentReqCount = 0;
+    lastSentReqMs = 0;
+    portEXIT_CRITICAL(&mux);
+    if (notifyControl && audioControlTaskHandle) {
+      xTaskNotifyGive(audioControlTaskHandle);
+    }
+    return false;
+  }
+
+  bool takeConcealmentFrame() {
+    portENTER_CRITICAL(&mux);
+    if (pendingConcealmentFrames == 0) {
+      portEXIT_CRITICAL(&mux);
+      return false;
+    }
+    pendingConcealmentFrames--;
+    portEXIT_CRITICAL(&mux);
     return true;
+  }
+
+  bool takeResendRequest(uint16_t *first, uint16_t *count) {
+    portENTER_CRITICAL(&mux);
+    if (!pendingResend) {
+      portEXIT_CRITICAL(&mux);
+      return false;
+    }
+    *first = pendingResendFirst;
+    *count = pendingResendCount;
+    pendingResend = false;
+    portEXIT_CRITICAL(&mux);
+    return true;
+  }
+
+  void getSequenceStats(uint32_t *skipped, uint32_t *reordered) {
+    portENTER_CRITICAL(&mux);
+    if (skipped) *skipped = skippedPackets;
+    if (reordered) *reordered = reorderedPackets;
+    portEXIT_CRITICAL(&mux);
+  }
+
+  void getRetransmitStats(uint32_t *requested, uint32_t *received) {
+    portENTER_CRITICAL(&mux);
+    if (requested) *requested = resendRequests;
+    if (received) *received = retransmittedPackets;
+    portEXIT_CRITICAL(&mux);
+  }
+
+  uint32_t getSequenceResyncs() {
+    portENTER_CRITICAL(&mux);
+    uint32_t result = sequenceResyncs;
+    portEXIT_CRITICAL(&mux);
+    return result;
   }
 };
 
@@ -312,9 +658,10 @@ bool vbot_airplay_install_i2s() {
 // Gỡ bỏ driver I2S
 void vbot_airplay_uninstall_i2s() {
   if (!airplayI2sInstalled) return;
+  airplayI2sInstalled = false;
+  vTaskDelay(pdMS_TO_TICKS(10));
   i2s_zero_dma_buffer(I2S_NUM_0);
   i2s_driver_uninstall(I2S_NUM_0);
-  airplayI2sInstalled = false;
   Serial.println("[AirPlay] Đã giải phóng driver I2S DAC.");
 }
 
@@ -400,7 +747,7 @@ static String computeAppleResponse(const String &challengeB64, IPAddress localIp
   return String((char*)b64Out);
 }
 
-// Đăng ký dịch vụ mDNS chuẩn RAOP (AirTunes) không mật khẩu cho Apple Control Center
+// Đăng ký dịch vụ mDNS chuẩn RAOP (AirTunes) và AirPlay không mật khẩu cho Apple Control Center
 void vbot_airplay_register_mdns() {
   if (!WiFi.isConnected()) return;
 
@@ -437,8 +784,20 @@ void vbot_airplay_register_mdns() {
   };
   esp_err_t err = mdns_service_add(raopInstance.c_str(), "_raop", "_tcp", AIRPLAY_PORT, raopTxt, sizeof(raopTxt)/sizeof(raopTxt[0]));
 
-  Serial.printf("[AirPlay] Đăng ký Bonjour RAOP không mật khẩu: %s (port=%d, code=%d)\n",
+  Serial.printf("[AirPlay] Đăng ký Bonjour RAOP (AirPlay 1 Audio): %s (port=%d, code=%d)\n",
                 raopInstance.c_str(), AIRPLAY_PORT, (int)err);
+}
+
+// Cập nhật tên hiển thị AirPlay theo Client Name và làm mới mDNS
+void vbot_airplay_set_name(const char *friendlyName) {
+  if (friendlyName && strlen(friendlyName) > 0) {
+    airplayFriendlyName = String(friendlyName);
+  } else {
+    airplayFriendlyName = "VBot Speaker";
+  }
+  if (WiFi.isConnected() && airplayRunning) {
+    vbot_airplay_register_mdns();
+  }
 }
 
 // Xử lý một kết nối RTSP từ iPhone / Mac
@@ -487,6 +846,7 @@ static void handleRtspClient(int clientSock) {
         strncmp(rxBuf, "PAUSE", 5) == 0 || strncmp(rxBuf, "TEARDOWN", 8) == 0 ||
         strncmp(rxBuf, "FLUSH", 5) == 0 || strncmp(rxBuf, "SET_PARAMETER", 13) == 0 ||
         strncmp(rxBuf, "GET_PARAMETER", 13) == 0 || strncmp(rxBuf, "POST", 4) == 0) {
+#if AIRPLAY_DEBUG_VERBOSE
       char firstLine[64];
       char *crlf = strstr(rxBuf, "\r\n");
       size_t lineLen = crlf ? (size_t)(crlf - rxBuf) : strlen(rxBuf);
@@ -494,6 +854,7 @@ static void handleRtspClient(int clientSock) {
       memcpy(firstLine, rxBuf, lineLen);
       firstLine[lineLen] = '\0';
       Serial.printf("[AirPlay:RX] %s\n", firstLine);
+#endif
     }
     String req(rxBuf);
 
@@ -560,7 +921,12 @@ static void handleRtspClient(int clientSock) {
               alac_free(alacDecoder);
               alacDecoder = nullptr;
             }
-            alacDecoder = alac_create(fmtp[3] > 0 ? fmtp[3] : 16, 2);
+            if (fmtp[1] <= 0 || fmtp[1] > 4096 || fmtp[3] != 16 || fmtp[11] != 44100) {
+              Serial.printf("[AirPlay] Tham số ALAC không hỗ trợ/an toàn: frame=%d, bits=%d, rate=%d.\n",
+                            fmtp[1], fmtp[3], fmtp[11]);
+            } else {
+              alacDecoder = alac_create(fmtp[3], 2);
+            }
             if (alacDecoder) {
               alacDecoder->setinfo_max_samples_per_frame = fmtp[1];
               alacDecoder->setinfo_7a = fmtp[2];
@@ -574,7 +940,13 @@ static void handleRtspClient(int clientSock) {
               alacDecoder->setinfo_86 = fmtp[10];
               alacDecoder->setinfo_8a_rate = fmtp[11];
               alac_allocate_buffers(alacDecoder);
-              Serial.printf("[AirPlay] Đã khởi tạo ALAC Decoder: frame=%d, rate=%d\n", fmtp[1], fmtp[11]);
+              if (alacDecoder->allocated_samples == 0) {
+                alac_free(alacDecoder);
+                alacDecoder = nullptr;
+                Serial.println("[AirPlay] Không đủ bộ nhớ tạo decoder ALAC.");
+              } else {
+                Serial.printf("[AirPlay] Đã khởi tạo ALAC Decoder: frame=%d, rate=%d\n", fmtp[1], fmtp[11]);
+              }
             }
           }
         }
@@ -681,10 +1053,13 @@ static void handleRtspClient(int clientSock) {
     else if (req.startsWith("RECORD")) {
       s_rawPacketRing.reset();
       s_audioRingBuf.reset();
+      s_pcmConcealedFrames = 0;
       s_needRebuffer = true;
       airplayStreaming = true;
       if (airplayCallbacks.onPlay) airplayCallbacks.onPlay();
-      vbot_airplay_install_i2s();
+      if (!s_airplaySuspended) {
+        vbot_airplay_install_i2s();
+      }
       Serial.println("[AirPlay] iPhone bắt đầu truyền phát âm thanh (RECORD).");
 
       snprintf(txBuf, 2048,
@@ -692,7 +1067,7 @@ static void handleRtspClient(int clientSock) {
         "CSeq: %s\r\n"
         "Server: AirTunes/366.0\r\n"
         "Session: 1\r\n"
-        "Audio-Latency: 44100\r\n\r\n",
+        "Audio-Latency: 88200\r\n\r\n",
         cseq.c_str()
       );
       send(clientSock, txBuf, strlen(txBuf), 0);
@@ -728,15 +1103,14 @@ static void handleRtspClient(int clientSock) {
     else if (req.startsWith("FLUSH") || req.startsWith("FLUSHBUFFERED")) {
       s_rawPacketRing.reset();
       s_audioRingBuf.reset();
+      s_pcmConcealedFrames = 0;
       s_needRebuffer = true;
-      if (airplayI2sInstalled) {
-        i2s_zero_dma_buffer(I2S_NUM_0);
-      }
       snprintf(txBuf, 2048,
         "RTSP/1.0 200 OK\r\n"
         "CSeq: %s\r\n"
         "Server: AirTunes/366.0\r\n"
-        "RTP-Info: seq=0;rtptime=0\r\n\r\n",
+        "RTP-Info: seq=0;rtptime=0\r\n"
+        "Audio-Latency: 88200\r\n\r\n",
         cseq.c_str()
       );
       send(clientSock, txBuf, strlen(txBuf), 0);
@@ -904,12 +1278,15 @@ static void vbot_audio_udp_task(void *param) {
     struct sockaddr_in fromAddr;
     socklen_t fromLen = sizeof(fromAddr);
     int len = recvfrom(udpSock, packetBuf, sizeof(packetBuf), 0, (struct sockaddr*)&fromAddr, &fromLen);
-    if (len > 12) {
+    if (len > 12 && (packetBuf[1] & 0x7f) == 0x60) {
       // Đẩy ngay lập tức vào RawPacketRing (chỉ mất ~2 micro-giây) để không rớt gói
       if (s_rawPacketRing.push(packetBuf, len)) {
+        s_rtpPacketsReceived++;
         if (audioDecodeTaskHandle) {
           xTaskNotifyGive(audioDecodeTaskHandle);
         }
+      } else {
+        s_rtpPacketsDropped++;
       }
     }
   }
@@ -947,7 +1324,7 @@ static void vbot_airplay_control_task(void *param) {
 
   struct timeval tv;
   tv.tv_sec = 0;
-  tv.tv_usec = 200000; // 200ms timeout
+  tv.tv_usec = 5000; // Poll retransmit requests at low latency (5ms).
   setsockopt(ctrlSock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
   setsockopt(timingSock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
@@ -956,8 +1333,31 @@ static void vbot_airplay_control_task(void *param) {
 
   uint8_t buf[2048];
   uint32_t lastTimingPingMs = 0;
+  uint16_t resendRequestSeq = 1;
 
   while (airplayRunning) {
+    ulTaskNotifyTake(pdTRUE, 0); // Clear any pending notify from pop()
+
+    // 0. Ưu tiên kiểm tra và gửi ngay retransmit request nếu có gói cần gửi lại
+    uint16_t missingFirst = 0;
+    uint16_t missingCount = 0;
+    if (s_rawPacketRing.takeResendRequest(&missingFirst, &missingCount) &&
+        s_clientControlPort > 0 && s_clientIp.s_addr != 0) {
+      uint8_t request[8] = {0x80, 0xd5, 0, 0, 0, 0, 0, 0};
+      uint16_t netSeq = htons(resendRequestSeq++);
+      uint16_t netFirst = htons(missingFirst);
+      uint16_t netCount = htons(missingCount);
+      memcpy(request + 2, &netSeq, sizeof(netSeq));
+      memcpy(request + 4, &netFirst, sizeof(netFirst));
+      memcpy(request + 6, &netCount, sizeof(netCount));
+      struct sockaddr_in resendDest = {};
+      resendDest.sin_family = AF_INET;
+      resendDest.sin_addr = s_clientIp;
+      resendDest.sin_port = htons(s_clientControlPort);
+      sendto(ctrlSock, request, sizeof(request), 0,
+             (struct sockaddr*)&resendDest, sizeof(resendDest));
+    }
+
     // 1. Nhận trên cổng Control (6001): Sync packets (0xd4) hoặc Retransmitted audio (0xd6)
     struct sockaddr_in fromAddr;
     socklen_t fromLen = sizeof(fromAddr);
@@ -965,7 +1365,7 @@ static void vbot_airplay_control_task(void *param) {
     if (len > 0) {
       if (buf[1] == 0xd6 && len > 16) {
         // Gói audio gửi lại từ iPhone qua kênh control: bỏ 4 bytes header đầu
-        if (s_rawPacketRing.push(buf + 4, len - 4)) {
+        if (s_rawPacketRing.push(buf + 4, len - 4, true)) {
           if (audioDecodeTaskHandle) xTaskNotifyGive(audioDecodeTaskHandle);
         }
       }
@@ -1009,10 +1409,22 @@ static void vbot_airplay_control_task(void *param) {
 // Task 2: Chuyên giải mã ALAC từ RawPacketRing sang AudioRingBuffer
 static void vbot_airplay_decode_task(void *param) {
   RawAudioPacket rawPkt;
-  uint8_t *decryptedBuf = (uint8_t*)ps_malloc(4096);
-  if (!decryptedBuf) decryptedBuf = (uint8_t*)malloc(4096);
-  int16_t *pcmOutBuf = (int16_t*)ps_malloc(8192); // 4096 samples stereo 16-bit
-  if (!pcmOutBuf) pcmOutBuf = (int16_t*)malloc(8192);
+  int16_t previousLeft = 0;
+  int16_t previousRight = 0;
+  bool inConcealment = false;
+  uint8_t *decryptedBuf = (uint8_t*)ps_malloc(4098);
+  if (!decryptedBuf) decryptedBuf = (uint8_t*)malloc(4098);
+  int16_t *pcmOutBuf = (int16_t*)ps_malloc(16384); // ALAC maximum: 4096 samples x stereo x 16-bit
+  if (!pcmOutBuf) pcmOutBuf = (int16_t*)malloc(16384);
+
+  if (!decryptedBuf || !pcmOutBuf) {
+    Serial.println("[AirPlay] Không đủ bộ nhớ cho bộ đệm giải mã; dừng task giải mã.");
+    if (decryptedBuf) free(decryptedBuf);
+    if (pcmOutBuf) free(pcmOutBuf);
+    audioDecodeTaskHandle = nullptr;
+    vTaskDelete(NULL);
+    return;
+  }
 
   while (airplayRunning) {
     if (!airplayStreaming || !alacDecoder) {
@@ -1021,7 +1433,35 @@ static void vbot_airplay_decode_task(void *param) {
     }
 
     bool processedAny = false;
-    while (s_rawPacketRing.pop(&rawPkt)) {
+    while (true) {
+      if (s_rawPacketRing.takeConcealmentFrame()) {
+        size_t silenceBytes = (size_t)alacDecoder->setinfo_max_samples_per_frame *
+                              (size_t)alacDecoder->bytespersample;
+        if (silenceBytes > 0 && silenceBytes <= 16384) {
+          memset(pcmOutBuf, 0, silenceBytes);
+          if (!inConcealment && alacDecoder->numchannels == 2 &&
+              alacDecoder->setinfo_sample_size == 16) {
+            int16_t *silence = (int16_t*)pcmOutBuf;
+            size_t frames = silenceBytes / (2 * sizeof(int16_t));
+            size_t fadeFrames = frames < 32 ? frames : 32;
+            for (size_t i = 0; i < fadeFrames; ++i) {
+              int32_t gain = (int32_t)(fadeFrames - 1 - i);
+              int32_t denom = fadeFrames > 1 ? (int32_t)(fadeFrames - 1) : 1;
+              silence[i * 2] = (int16_t)(((int32_t)previousLeft * gain) / denom);
+              silence[i * 2 + 1] = (int16_t)(((int32_t)previousRight * gain) / denom);
+            }
+          }
+          size_t queued = s_audioRingBuf.write((const uint8_t*)pcmOutBuf, silenceBytes);
+          if (queued == silenceBytes) {
+            s_pcmConcealedFrames++;
+            inConcealment = true;
+          }
+        }
+        processedAny = true;
+        continue;
+      }
+      size_t curAudioAvail = s_audioRingBuf.available();
+      if (!s_rawPacketRing.pop(&rawPkt, curAudioAvail)) break;
       processedAny = true;
       if (rawPkt.len > 12) {
         uint8_t type = rawPkt.data[1] & ~0x80;
@@ -1033,7 +1473,10 @@ static void vbot_airplay_decode_task(void *param) {
           int payloadLen = rawPkt.len - offset;
 
           if (payloadLen > 0) {
+            if (payloadLen > 4096) continue;
             uint8_t *payloadPtr = rawPkt.data + offset;
+            // The bit reader loads three bytes at a time; keep two zero guard bytes.
+            memset(decryptedBuf, 0, 4098);
 
             // 1. Giải mã AES
             if (hasAesKey) {
@@ -1051,24 +1494,38 @@ static void vbot_airplay_decode_task(void *param) {
             // 2. Giải mã ALAC frame
             s_isDecoding = true;
             int outsize = 0;
-            if (alacDecoder) {
-              alac_decode_frame(alacDecoder, decryptedBuf, pcmOutBuf, &outsize);
+            if (alacDecoder && alacDecoder->allocated_samples > 0 && pcmOutBuf) {
+              alac_decode_frame(alacDecoder, decryptedBuf, (size_t)payloadLen, pcmOutBuf, &outsize);
             }
             s_isDecoding = false;
 
-            // 3. Áp dụng âm lượng và nạp vào AudioRingBuffer
-            if (outsize > 0) {
-              int16_t *samples = (int16_t*)pcmOutBuf;
-              int sampleCount = outsize / sizeof(int16_t);
-              int vol = airplayCurrentVolume;
-
-              if (vol < 100) {
-                for (int i = 0; i < sampleCount; i++) {
-                  samples[i] = (int16_t)(((int32_t)samples[i] * vol) / 100);
+            // 3. Nạp PCM vào ring buffer; xử lý volume ở giai đoạn phát.
+            if (outsize > 0 && outsize <= 16384) {
+              if (inConcealment && alacDecoder->numchannels == 2 &&
+                  alacDecoder->setinfo_sample_size == 16) {
+                int16_t *samples = (int16_t*)pcmOutBuf;
+                size_t frames = (size_t)outsize / (2 * sizeof(int16_t));
+                size_t fadeFrames = frames < 32 ? frames : 32;
+                for (size_t i = 0; i < fadeFrames; ++i) {
+                  int32_t gain = (int32_t)(i + 1);
+                  samples[i * 2] = (int16_t)(((int32_t)samples[i * 2] * gain) / 32);
+                  samples[i * 2 + 1] = (int16_t)(((int32_t)samples[i * 2 + 1] * gain) / 32);
                 }
               }
-
-              s_audioRingBuf.write((const uint8_t*)pcmOutBuf, outsize);
+              size_t queued = s_audioRingBuf.write((const uint8_t*)pcmOutBuf, outsize);
+              if (queued == (size_t)outsize) {
+                s_alacFramesDecoded++;
+                s_pcmBytesDecoded += (uint32_t)outsize;
+                if (alacDecoder->numchannels == 2 && alacDecoder->setinfo_sample_size == 16) {
+                  int16_t *samples = (int16_t*)pcmOutBuf;
+                  size_t frames = (size_t)outsize / (2 * sizeof(int16_t));
+                  if (frames > 0) {
+                    previousLeft = samples[(frames - 1) * 2];
+                    previousRight = samples[(frames - 1) * 2 + 1];
+                  }
+                }
+                inConcealment = false;
+              }
             }
           }
         }
@@ -1089,8 +1546,52 @@ static void vbot_airplay_play_task(void *param) {
   bool isBuffering = true;
   uint32_t underrunTotal = 0;
   uint32_t lastStatMs = 0;
+  uint32_t lastRxPackets = 0;
+  uint32_t lastDroppedPackets = 0;
+  uint32_t lastDecodedFrames = 0;
+  uint32_t lastDecodedBytes = 0;
 
   while (airplayRunning) {
+    // 1. Kiểm tra xem VBot Assistant có đang bận (thu âm, xử lý, phát ding/TTS) hoặc bị suspend không
+    bool assistantBusy = (airplayCallbacks.isVBotBusy && airplayCallbacks.isVBotBusy());
+    if (assistantBusy) {
+      s_airplaySuspended = true;
+    }
+
+    if (s_airplaySuspended) {
+      if (airplayI2sInstalled) {
+        Serial.println("\n[AirPlay] >>> Tạm dừng nhạc AirPlay. Trả lại DAC và Mic cho VBot Assistant!");
+        vbot_airplay_uninstall_i2s();
+        if (airplayCallbacks.onStop) airplayCallbacks.onStop();
+        if (airplayCallbacks.onResumeMic) airplayCallbacks.onResumeMic();
+      }
+      // Dọn sạch đệm PCM để khi resume không bị phát dồn nhạc cũ bị trễ
+      s_audioRingBuf.reset();
+      s_rawPacketRing.reset();
+      s_needRebuffer = true;
+      isBuffering = true;
+
+      // Chỉ hủy cờ suspend khi VBot Assistant đã xong hoàn toàn
+      if (!assistantBusy) {
+        vTaskDelay(pdMS_TO_TICKS(250));
+        // Kiểm tra lại lần nữa sau delay để đảm bảo không bị race condition
+        if (airplayCallbacks.isVBotBusy && airplayCallbacks.isVBotBusy()) {
+          continue;
+        }
+        if (airplayStreaming && !airplayI2sInstalled) {
+          Serial.println("\n[AirPlay] >>> VBot Assistant đã xong. Khôi phục phát nhạc AirPlay!");
+          vbot_airplay_install_i2s();
+          s_airplaySuspended = false;
+          if (airplayCallbacks.onPlay) airplayCallbacks.onPlay();
+        } else {
+          s_airplaySuspended = false;
+        }
+      } else {
+        vTaskDelay(pdMS_TO_TICKS(50));
+        continue;
+      }
+    }
+
     if (!airplayStreaming || !airplayI2sInstalled) {
       isBuffering = true;
       s_needRebuffer = true;
@@ -1099,26 +1600,55 @@ static void vbot_airplay_play_task(void *param) {
     }
 
     size_t avail = s_audioRingBuf.available();
+    if (!airplayStreaming) {
+      isBuffering = true;
+      vTaskDelay(pdMS_TO_TICKS(15));
+      continue;
+    }
 
+#if AIRPLAY_DEBUG_VERBOSE
     // Thống kê mỗi 2 giây
     uint32_t now = millis();
     if (now - lastStatMs >= 2000) {
       lastStatMs = now;
-      Serial.printf("[AirPlay:Stats] Buf: %u/%u KB (%.2f s), RawQ: %u pkts, Underruns: %u\n",
+      uint32_t rxPackets = s_rtpPacketsReceived;
+      uint32_t droppedPackets = s_rtpPacketsDropped;
+      uint32_t decodedFrames = s_alacFramesDecoded;
+      uint32_t decodedBytes = s_pcmBytesDecoded;
+      uint32_t skippedPackets = 0;
+      uint32_t reorderedPackets = 0;
+      uint32_t resendRequests = 0;
+      uint32_t retransmittedPackets = 0;
+      uint32_t concealedFrames = s_pcmConcealedFrames;
+      uint32_t sequenceResyncs = s_rawPacketRing.getSequenceResyncs();
+      s_rawPacketRing.getSequenceStats(&skippedPackets, &reorderedPackets);
+      s_rawPacketRing.getRetransmitStats(&resendRequests, &retransmittedPackets);
+      Serial.printf("[AirPlay:Stats] Buf:%u/%u KB (%.2f s), JitQ:%u, RTP:%u/s drop:%u/s reorder:%u skip:%u req:%u retx:%u resync:%u conceal:%u, ALAC:%u/s PCM:%u KB/s, Underruns:%u\n",
                     (unsigned)(avail / 1024), (unsigned)(AIRPLAY_RINGBUF_SIZE / 1024),
-                    (float)avail / 176400.0f, (unsigned)s_rawPacketRing.count(), (unsigned)underrunTotal);
+                    (float)avail / 176400.0f, (unsigned)s_rawPacketRing.count(),
+                    (unsigned)((rxPackets - lastRxPackets) / 2),
+                    (unsigned)((droppedPackets - lastDroppedPackets) / 2),
+                    (unsigned)reorderedPackets, (unsigned)skippedPackets,
+                    (unsigned)resendRequests, (unsigned)retransmittedPackets,
+                    (unsigned)sequenceResyncs,
+                    (unsigned)concealedFrames,
+                    (unsigned)((decodedFrames - lastDecodedFrames) / 2),
+                    (unsigned)((decodedBytes - lastDecodedBytes) / 2048),
+                    (unsigned)underrunTotal);
+      lastRxPackets = rxPackets;
+      lastDroppedPackets = droppedPackets;
+      lastDecodedFrames = decodedFrames;
+      lastDecodedBytes = decodedBytes;
     }
+#endif
 
-    // 1. Nếu đệm tụt thấp (< 8KB ~ 45ms): chủ động chuyển sang gom đệm để không bị giật lách tách
-    if (!isBuffering && avail < 8192) {
+    // Start rebuffering before I2S starves; wait for a meaningful recovery window.
+    if (!isBuffering && avail < AIRPLAY_LOW_WATERMARK) {
       isBuffering = true;
       underrunTotal++;
-      if (airplayI2sInstalled) {
-        i2s_zero_dma_buffer(I2S_NUM_0);
-      }
     }
 
-    // 2. Chế độ gom đệm: lần đầu (hoặc sau FLUSH) gom đủ INITIAL_BUFFER (96KB), sau đó gom UNDERRUN_BUFFER (48KB)
+    // Rebuffer to a separate high watermark so playback does not flap around the low watermark.
     if (s_needRebuffer) {
       if (avail >= AIRPLAY_INITIAL_BUFFER) {
         s_needRebuffer = false;
@@ -1128,7 +1658,7 @@ static void vbot_airplay_play_task(void *param) {
         continue;
       }
     } else if (isBuffering) {
-      if (avail >= AIRPLAY_UNDERRUN_BUFFER) {
+      if (avail >= AIRPLAY_RECOVERY_BUFFER) {
         isBuffering = false;
       } else {
         vTaskDelay(pdMS_TO_TICKS(2));
@@ -1152,7 +1682,16 @@ static void vbot_airplay_play_task(void *param) {
 
       size_t readBytes = s_audioRingBuf.read(pcmChunk, toRead);
       if (readBytes > 0) {
-        if (airplayCallbacks.onPeak) {
+        int volume = airplayCurrentVolume;
+        if (volume < 100) {
+          int16_t *samples = (int16_t*)pcmChunk;
+          size_t sampleCount = readBytes / sizeof(int16_t);
+          for (size_t i = 0; i < sampleCount; ++i) {
+            samples[i] = (int16_t)(((int32_t)samples[i] * volume) / 100);
+          }
+        }
+
+        if (airplayCallbacks.onPeak && !s_airplaySuspended) {
           int16_t *samples = (int16_t*)pcmChunk;
           int sampleCount = readBytes / sizeof(int16_t);
           uint16_t maxPeak = 0;
@@ -1170,7 +1709,9 @@ static void vbot_airplay_play_task(void *param) {
         }
 
         size_t written = 0;
-        i2s_write(I2S_NUM_0, pcmChunk, readBytes, &written, portMAX_DELAY);
+        if (airplayI2sInstalled && !s_airplaySuspended) {
+          i2s_write(I2S_NUM_0, pcmChunk, readBytes, &written, pdMS_TO_TICKS(100));
+        }
       }
     } else {
       // Tránh busy-loop khi buffer tạm rỗng nhưng chưa đạt mức underrun
@@ -1192,8 +1733,15 @@ bool vbot_airplay_init(const char *friendlyName, const AirPlayCallbacks &callbac
   }
 
   // 1. Khởi tạo các bộ đệm trên PSRAM
-  s_audioRingBuf.init(AIRPLAY_RINGBUF_SIZE);
-  s_rawPacketRing.init(256); // 256 gói UDP raw (~2 giây)
+  if (!s_audioRingBuf.init(AIRPLAY_RINGBUF_SIZE)) {
+    Serial.println("[AirPlay] Không cấp phát được audio ring buffer; AirPlay chưa khởi chạy.");
+    return false;
+  }
+  if (!s_rawPacketRing.init(512)) { // 512 gói UDP raw (~4 giây)
+    Serial.println("[AirPlay] Không cấp phát được RTP packet queue; AirPlay chưa khởi chạy.");
+    s_audioRingBuf.freeBuffer();
+    return false;
+  }
 
   airplayRunning = true;
 
@@ -1255,7 +1803,7 @@ bool vbot_airplay_init(const char *friendlyName, const AirPlayCallbacks &callbac
     0
   );
 
-  Serial.printf("[AirPlay] Đã khởi tạo kiến trúc 4-Stage Pipeline (RawQueue=256, AudioBuf=512KB, Control+Timing): %s\n", airplayFriendlyName.c_str());
+  Serial.printf("[AirPlay] Đã khởi tạo kiến trúc 4-Stage Pipeline (RawQueue=512, AudioBuf=512KB, Control+Timing): %s\n", airplayFriendlyName.c_str());
   return true;
 }
 
@@ -1307,8 +1855,24 @@ bool vbot_airplay_is_running() {
   return airplayRunning;
 }
 
-bool vbot_airplay_is_streaming() {
+void vbot_airplay_suspend() {
+  s_airplaySuspended = true;
+}
+
+void vbot_airplay_resume() {
+  s_airplaySuspended = false;
+}
+
+bool vbot_airplay_is_suspended() {
+  return s_airplaySuspended;
+}
+
+bool vbot_airplay_is_active() {
   return airplayStreaming;
+}
+
+bool vbot_airplay_is_streaming() {
+  return airplayStreaming && !s_airplaySuspended && airplayI2sInstalled;
 }
 
 int vbot_airplay_get_volume() {
