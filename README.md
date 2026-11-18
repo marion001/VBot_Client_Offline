@@ -60,3 +60,6 @@ Hệ thống Client thông minh dành riêng cho **VBot Assistant (Loa Chủ)**,
 * [Hướng Dẫn Nạp Flash Cho Tất Cả Các Dòng Chip](SOCKET_CONNECTION/README_FLASH.md)
 * [Hướng Dẫn Module Bluetooth ESP32 RECEIVER](SOCKET_CONNECTION/Bluetooth_ESP32_RECEIVER/README.md)
 * [Trang Chính VBot Assistant (Loa Chủ)](https://github.com/marion001/VBot_Offline)
+
+
+<img width="1857" height="1224" alt="ESP32S3_N16R8_BLE_bb" src="https://github.com/user-attachments/assets/8f708e2d-6396-4505-819a-ab9960e56c03" />

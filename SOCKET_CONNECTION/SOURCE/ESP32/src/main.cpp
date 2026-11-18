@@ -382,7 +382,7 @@ static inline void markWebUiActive() {
 
 static inline bool isWebUiActive() {
   return webUiStateInFlight.load() ||
-         (webUiLastActiveMs != 0 && (uint32_t)(millis() - webUiLastActiveMs) < 6000);
+         (webUiLastActiveMs != 0 && (uint32_t)(millis() - webUiLastActiveMs) < 15000);
 }
 static constexpr uint8_t MQTT_STATE_CACHE_SIZE = 26;
 struct MqttStateCacheEntry { String topic; String payload; };
@@ -956,12 +956,20 @@ public:
   LightFileResponse(File &&source, const char *contentType, bool gzip, bool cache) : file(std::move(source)) {
     _code = 200;
     _contentType = contentType;
-    _contentLength = file.size();
+    _contentLength = file ? file.size() : 0;
+    _sendContentLength = true;
+    _chunked = false;
     if (gzip) addHeader("Content-Encoding", "gzip");
     addHeader("Cache-Control", cache ? "private, no-cache" : "no-store");
   }
+  ~LightFileResponse() override {
+    if (file) file.close();
+  }
   bool _sourceValid() const override { return (bool)file; }
-  size_t _fillBuffer(uint8_t *buffer, size_t maxLen) override { return file.read(buffer, maxLen); }
+  size_t _fillBuffer(uint8_t *buffer, size_t maxLen) override {
+    if (!file || !maxLen) return 0;
+    return file.read(buffer, maxLen);
+  }
 };
 
 static uint8_t *s_cachedIndexHtmlGz = nullptr;
@@ -1007,6 +1015,10 @@ static void sendLittleFsFile(AsyncWebServerRequest *request, const char *path, c
       }
     }
     File file = LittleFS.open(gzPath, "r");
+    if (!file) {
+      request->send(404, CONTENT_TEXT, "Không thể đọc file WebUI nén.");
+      return;
+    }
     auto *response = new (std::nothrow) LightFileResponse(std::move(file), contentType, true, cache);
     if (!response) {
       request->send(503, CONTENT_TEXT, "Không đủ RAM để mở WebUI.");
@@ -1021,6 +1033,10 @@ static void sendLittleFsFile(AsyncWebServerRequest *request, const char *path, c
   }
   if (LittleFS.exists(path)) {
     File file = LittleFS.open(path, "r");
+    if (!file) {
+      request->send(404, CONTENT_TEXT, "Không thể đọc file WebUI.");
+      return;
+    }
     auto *response = new (std::nothrow) LightFileResponse(std::move(file), contentType, false, cache);
     if (!response) {
       request->send(503, CONTENT_TEXT, "Không đủ RAM để mở WebUI.");
@@ -4028,16 +4044,17 @@ static void websocketTask(void *) {
           wsBackpressureSinceMs = 0;
         } else {
           if (!wsBackpressureSinceMs) wsBackpressureSinceMs = millis();
-          if (millis() - wsBackpressureSinceMs >= 5000) {
+          const uint32_t timeoutMs = recording ? 5000 : 2000;
+          if (millis() - wsBackpressureSinceMs >= timeoutMs) {
             if (!recording && !ws.pendingMicFrameStarted()) {
               ws.resetPendingMicFrame();
               if (micQueue) xQueueReset(micQueue);
-              hotwordBackpressureUntilMs = millis() + 10000;
-              UART_LOGF("Hotword stream tạm nghỉ 10 giây vì TCP đầy; giữ WebSocket và ưu tiên WebUI. free=%u max_block=%u",
+              hotwordBackpressureUntilMs = millis() + 5000;
+              UART_LOGF("Hotword stream tạm dừng 5 giây vì TCP bận; giữ WebSocket và ưu tiên WebUI. free=%u max_block=%u",
                         (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
             } else {
-              UART_LOGF("WebSocket có frame mic gửi dở quá 5 giây; đóng socket. recording=%d free=%u max_block=%u",
-                        recording ? 1 : 0, (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
+              UART_LOGF("WebSocket có frame mic %s dở quá %u ms; đóng socket. recording=%d free=%u max_block=%u",
+                        recording ? "ghi âm" : "hotword", (unsigned)timeoutMs, recording ? 1 : 0, (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
               wsForceReconnectAtMs = millis() + WS_RECONNECT_INTERVAL_MS;
               ws.disconnect();
             }
@@ -4048,10 +4065,14 @@ static void websocketTask(void *) {
         wsBackpressureSinceMs = 0;
         if (xQueueReceive(micQueue, &wsSendFrame, 0) == pdTRUE &&
             !ws.queueMicFrame(wsSendFrame.data, FRAME_BYTES)) {
-          UART_LOGF("Không thể xếp frame mic vào WebSocket; đóng socket. recording=%d free=%u",
-                    recording ? 1 : 0, (unsigned)ESP.getFreeHeap());
-          wsForceReconnectAtMs = millis() + WS_RECONNECT_INTERVAL_MS;
-          ws.disconnect();
+          if (recording) {
+            UART_LOGF("Không thể xếp frame mic ghi âm vào WebSocket; đóng socket. free=%u",
+                      (unsigned)ESP.getFreeHeap());
+            wsForceReconnectAtMs = millis() + WS_RECONNECT_INTERVAL_MS;
+            ws.disconnect();
+          } else {
+            hotwordBackpressureUntilMs = millis() + 3000;
+          }
         }
       }
 
@@ -5736,6 +5757,14 @@ static void initWeb() {
     vbot_bt_slave_sync_config(cfg.clientName, cfg.btSlaveEnabled);
     vbot_bt_slave_init(btCb);
   }
+  web.onNotFound([](AsyncWebServerRequest *request) {
+    markWebUiActive();
+    if (request->url() == "/favicon.ico") {
+      request->send(204);
+      return;
+    }
+    request->send(404, CONTENT_TEXT, "404 Not Found");
+  });
   ElegantOTA.begin(&web);
   web.begin();
 }

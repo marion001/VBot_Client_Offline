@@ -66,3 +66,5 @@ esptool.py -p COM6 -b 921600 --before default_reset --after hard_reset --chip es
 - Chọn chế độ: **WakeNet On-Device (ESP32-S3)**.
 - Chọn các từ khóa có sẵn hoặc tải lên file `.bin` từ kho mẫu:  
   [ESP_WakeNet_Hotword_Sample](https://github.com/marion001/VBot_Client_Offline/tree/main/SOCKET_CONNECTION/ESP_WakeNet_Hotword_Sample)
+
+<img width="1857" height="1224" alt="ESP32S3_N16R8_BLE_bb" src="https://github.com/user-attachments/assets/8f708e2d-6396-4505-819a-ab9960e56c03" />

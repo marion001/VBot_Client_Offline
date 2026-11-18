@@ -247,3 +247,5 @@ http://<IP_ESP32>/update
 - `session_id` gửi tới WebSocket được tạo ngẫu nhiên ở mỗi phiên kết nối, dùng giá trị Session ID trong WebUI làm prefix.
 - Phiên bản firmware hiện tại nằm trong biến `VBOT_CLIENT_VERSION` và hiển thị trong `/VBot_Client_Info`.
 - Default GPIO đã tránh các chân boot-strapping nhạy cảm của ESP32. Mặc định mới: LED 23, nút Mic 32, Volume+ 33, Volume- 18, WakeUP 19, INMP441 BCLK 14/WS 13/DOUT 34, MAX98357 BCLK 27/LRC 26/DIN 25.
+
+<img width="1857" height="1224" alt="ESP32S3_N16R8_BLE_bb" src="https://github.com/user-attachments/assets/8f708e2d-6396-4505-819a-ab9960e56c03" />
