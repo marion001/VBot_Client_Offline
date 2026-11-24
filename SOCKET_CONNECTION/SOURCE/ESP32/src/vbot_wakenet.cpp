@@ -368,6 +368,10 @@ bool vbot_wakenet_init(WakeNetModelId initialModel) {
       isRunning = false;
       return false;
     }
+    if (wakenetHandle && modelData) {
+      wakenetHandle->destroy(modelData);
+      modelData = nullptr;
+    }
     wakenetHandle = esp_wn_handle_from_name(wn_name);
     if (!wakenetHandle) {
       Serial.printf("[WakeNet] Không lấy được handle cho '%s'.\n", wn_name);
@@ -498,6 +502,10 @@ bool vbot_aec_init() {
   aecHandle = aec_pro_create(32, 1, 5);
   if (!aecHandle) {
     Serial.println("[AEC] Khởi tạo aec_pro_create thất bại.");
+    if (aecRefBuffer) {
+      free(aecRefBuffer);
+      aecRefBuffer = nullptr;
+    }
     return false;
   }
   aecInitialized = true;
@@ -581,31 +589,30 @@ void vbot_aec_feed_ref(const int16_t *samples, size_t sample_count) {
 void vbot_aec_process(const int16_t *mic_in, int16_t *clean_out) {
   if (!mic_in || !clean_out) return;
 #if HAVE_NATIVE_ESP_SR
-  if (!aecInitialized || !aecHandle || !aecPlaybackActive) {
+  if (!aecInitialized || !aecHandle || !aecPlaybackActive || !aecMutex) {
     memcpy(clean_out, mic_in, AEC_FRAME_SAMPLES * sizeof(int16_t));
     return;
   }
 
   static int16_t refFrame[AEC_FRAME_SAMPLES];
-  bool haveRef = false;
-  if (aecMutex && xSemaphoreTake(aecMutex, 0) == pdTRUE) {
-    if (aecRefCount >= AEC_FRAME_SAMPLES) {
+  bool processed = false;
+  if (xSemaphoreTake(aecMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+    if (aecInitialized && aecHandle && aecRefBuffer && aecRefCount >= AEC_FRAME_SAMPLES) {
       for (size_t i = 0; i < AEC_FRAME_SAMPLES; i++) {
         refFrame[i] = aecRefBuffer[aecRefTail];
         aecRefTail = (aecRefTail + 1) % AEC_RING_BUFFER_SIZE;
       }
       aecRefCount -= AEC_FRAME_SAMPLES;
-      haveRef = true;
-    } else {
+      aec_process(aecHandle, (int16_t*)mic_in, refFrame, clean_out);
+      processed = true;
+    } else if (aecRefCount < AEC_FRAME_SAMPLES) {
       // Hết mẫu tham chiếu trong đệm
       aecPlaybackActive = false;
     }
     xSemaphoreGive(aecMutex);
   }
 
-  if (haveRef) {
-    aec_process(aecHandle, (int16_t*)mic_in, refFrame, clean_out);
-  } else {
+  if (!processed) {
     memcpy(clean_out, mic_in, AEC_FRAME_SAMPLES * sizeof(int16_t));
   }
 #else
@@ -698,11 +705,27 @@ bool vbot_agc_is_active() {
 void vbot_audio_dsp_process(const int16_t *mic_in, int16_t *clean_out, size_t sample_count, bool enable_ns, bool enable_agc) {
   if (!mic_in || !clean_out || sample_count == 0) return;
 
+  // Bảo vệ chống tràn bộ đệm nếu caller truyền frame != 512 mẫu
+  if (sample_count != 512) {
+    memcpy(clean_out, mic_in, sample_count * sizeof(int16_t));
+    return;
+  }
+
   // Bước 1: Chạy lọc hồi tiếp âm thanh loa (AEC)
   vbot_aec_process(mic_in, clean_out);
 
   // Nếu không cần chạy NS lẫn AGC, trả về ngay sau AEC
   if ((!enable_ns || !nsHandle) && (!enable_agc || !agcHandle)) {
+    return;
+  }
+
+  // Khóa không chặn bằng wakenetMutex để tránh use-after-free khi deinit/đổi model
+  if (!wakenetMutex || xSemaphoreTakeRecursive(wakenetMutex, 0) != pdTRUE) {
+    return;
+  }
+
+  if ((!enable_ns || !nsHandle) && (!enable_agc || !agcHandle)) {
+    xSemaphoreGiveRecursive(wakenetMutex);
     return;
   }
 
@@ -716,7 +739,7 @@ void vbot_audio_dsp_process(const int16_t *mic_in, int16_t *clean_out, size_t sa
   memcpy(&dspBuffer[DSP_PREFILL_SIZE], clean_out, sample_count * sizeof(int16_t));
 
   // Bước 2 & 3: Chạy 4 khối 160 mẫu (640 mẫu) qua NS và AGC
-  int16_t chunk[DSP_CHUNK_SIZE];
+  static int16_t chunk[DSP_CHUNK_SIZE];
   for (size_t b = 0; b < 4; b++) {
     int16_t *blockPtr = &dspBuffer[b * DSP_CHUNK_SIZE];
 
@@ -738,6 +761,7 @@ void vbot_audio_dsp_process(const int16_t *mic_in, int16_t *clean_out, size_t sa
 
   // Dịch 160 mẫu còn lại (672 - 512 = 160) về đầu đệm cho frame kế tiếp
   memmove(dspBuffer, &dspBuffer[sample_count], DSP_PREFILL_SIZE * sizeof(int16_t));
+  xSemaphoreGiveRecursive(wakenetMutex);
 }
 
 bool vbot_wakenet_add_custom_model(const char *tempFilePath, const char *displayName, String &errOut) {

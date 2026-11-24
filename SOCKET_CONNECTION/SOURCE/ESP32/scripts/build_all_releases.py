@@ -51,14 +51,16 @@ def sync_sources():
     for p in PROJECT_DIR.glob("partitions*.csv"):
         shutil.copy2(p, src_dest / p.name)
 
-    # 4. Sync Bluetooth ESP32 receiver sources
-    bt_dest = RELEASE_BASE / "Bluetooth_ESP32_RECEIVER"
-    bt_src_dest = bt_dest / "src"
-    bt_src_dest.mkdir(parents=True, exist_ok=True)
-    for f in (BT_PROJECT_DIR / "src").iterdir():
-        if f.is_file():
-            shutil.copy2(f, bt_src_dest / f.name)
-    shutil.copy2(BT_PROJECT_DIR / "platformio.ini", bt_dest / "platformio.ini")
+    # 4. Sync Bluetooth ESP32 receiver sources (nếu có thư mục cục bộ)
+    if (BT_PROJECT_DIR / "src").exists():
+        bt_dest = RELEASE_BASE / "Bluetooth_ESP32_RECEIVER"
+        bt_src_dest = bt_dest / "src"
+        bt_src_dest.mkdir(parents=True, exist_ok=True)
+        for f in (BT_PROJECT_DIR / "src").iterdir():
+            if f.is_file():
+                shutil.copy2(f, bt_src_dest / f.name)
+        if (BT_PROJECT_DIR / "platformio.ini").exists():
+            shutil.copy2(BT_PROJECT_DIR / "platformio.ini", bt_dest / "platformio.ini")
     print("Source files synchronized successfully!")
 
 def build_esp_clients():
@@ -96,18 +98,17 @@ def update_version_jsons():
     import json
     print("\n--- Updating Version.json for all release targets ---")
     desc = (
-        "Phiên bản 15/11/2026: Tối ưu hoá toàn diện âm thanh Apple AirPlay 1, "
-        "khử triệt để bão gửi lại gói tin (retransmit storm) khi khóa màn hình iOS, "
-        "khắc phục hiện tượng tụt/hẫng âm thanh DTIM sleep; tự do phát nhạc độc lập "
-        "qua Bluetooth, AirPlay, DLNA mượt mà ngay cả khi mất kết nối máy chủ VBot; "
-        "tự động hiển thị lại LED mất kết nối socket khi dừng phát nhạc mà chưa kết nối lại máy chủ; "
-        "tối ưu WebUI tốc độ cao, mở trang quản trị cực mượt và không bị lag/treo hay chặn busy khi đang phát nhạc; "
-        "tự động nhường và khôi phục mượt mà I2S DAC/Mic khi tương tác Trợ lý ảo VBot, và tắt log debug AirPlay cho bản phát hành chính thức."
+        "Phiên bản 24/11/2026: Khắc phục triệt để các lỗi gây reset mạch trên ESP32/ESP32-S3 WakeNet "
+        "khi đánh thức, phát nhạc và phát Bluetooth dài hạn: sửa lỗi Use-After-Free xuyên lõi con trỏ MP3, "
+        "chống đói Watchdog (TWDT) cho micTask (Core 0), dacTask HTTPS và task Bluetooth I2S Slave (Core 1), "
+        "tăng stack cho dacTask (12KB) và bt_slave (8KB), đồng bộ giải phóng I2S_NUM_0 giữa VBot/Bluetooth/AirPlay, "
+        "tắt xuất xung MCLK ra chân GPIO0 (BOOT), bảo vệ Mutex cho AEC/NS/AGC WakeNet, "
+        "và nâng cấp chuyển hiệu ứng đèn LED liền mạch không nháy tắt giữa các trạng thái Đánh thức -> Xử lý -> Trả lời."
     )
     for _, rel_dir in ENV_MAP:
         v_file = RELEASE_BASE / rel_dir / "Version.json"
         data = {
-            "build_date": "15/11/2026",
+            "build_date": "24/11/2026",
             "description": desc
         }
         with open(v_file, "w", encoding="utf-8") as f:

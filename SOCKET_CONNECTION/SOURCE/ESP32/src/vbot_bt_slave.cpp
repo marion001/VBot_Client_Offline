@@ -99,12 +99,12 @@ static bool installSlaveI2s() {
     .fixed_mclk = 0
   };
 
-  i2s_pin_config_t slavePins = {
-    .bck_io_num = s_slaveBclk,
-    .ws_io_num = s_slaveWs,
-    .data_out_num = I2S_PIN_NO_CHANGE,
-    .data_in_num = s_slaveDin
-  };
+  i2s_pin_config_t slavePins = {};
+  slavePins.mck_io_num = I2S_PIN_NO_CHANGE;
+  slavePins.bck_io_num = s_slaveBclk;
+  slavePins.ws_io_num = s_slaveWs;
+  slavePins.data_out_num = I2S_PIN_NO_CHANGE;
+  slavePins.data_in_num = s_slaveDin;
 
   esp_err_t err = i2s_driver_install(BT_SLAVE_I2S_PORT, &slaveConfig, 0, NULL);
   if (err != ESP_OK) {
@@ -157,6 +157,7 @@ static bool prepareDacForBluetooth() {
     dacConfig.tx_desc_auto_clear = true;
 
     i2s_pin_config_t pinConfig = {};
+    pinConfig.mck_io_num = I2S_PIN_NO_CHANGE;
     pinConfig.bck_io_num = s_dacBclk;
     pinConfig.ws_io_num = s_dacLrc;
     pinConfig.data_out_num = s_dacDout;
@@ -191,7 +192,7 @@ static void restoreDacForVBot() {
 void vbot_bt_slave_suspend() {
   s_btSuspended = true;
   uint32_t t0 = millis();
-  while ((s_btStreaming || s_slaveInstalled) && (millis() - t0 < 300)) {
+  while ((s_btStreaming || s_slaveInstalled || s_dacInstalled) && (millis() - t0 < 500)) {
     vTaskDelay(pdMS_TO_TICKS(5));
   }
 }
@@ -245,7 +246,10 @@ static void handleUartLine(const String &line) {
     strlcpy(s_btInfo.status, "PLAYING", sizeof(s_btInfo.status));
     portEXIT_CRITICAL(&s_btInfoMux);
     s_waitingBclkStop = false;
-    s_btSuspended = false;
+    bool busyNow = (s_callbacks.isVBotBusy && s_callbacks.isVBotBusy()) || vbot_airplay_is_active();
+    if (!busyNow) {
+      s_btSuspended = false;
+    }
     Serial.println("[BT-UART] >> Trạng thái: PLAYING");
     if (s_callbacks.onStatus) s_callbacks.onStatus("PLAYING");
   }
@@ -356,10 +360,11 @@ static void vbot_bt_uart_task(void *param) {
 
 static void vbot_bt_slave_task(void *param) {
   constexpr size_t BUF_SAMPLES = 256;
-  int16_t pcmBuffer[BUF_SAMPLES * 2]; // Stereo 16-bit
+  static int16_t pcmBuffer[BUF_SAMPLES * 2]; // Stereo 16-bit (static để không chiếm 1KB stack của task)
   size_t bytesRead = 0;
   size_t bytesWritten = 0;
   uint32_t lastI2sDataMs = 0;
+  uint32_t streamLoopTicks = 0;
 
   Serial.println("[BT-Slave] Task giám sát nhạc Bluetooth bắt đầu hoạt động.");
 
@@ -444,16 +449,23 @@ static void vbot_bt_slave_task(void *param) {
         // Tạm dừng Mic INMP441 để giải phóng cổng phần cứng I2S_NUM_1
         if (s_callbacks.onSuspendMic) s_callbacks.onSuspendMic();
 
-        // Tạm dừng phát âm thanh nội bộ của VBot
+        // Tạm dừng phát âm thanh nội bộ của VBot và chờ DAC giải phóng
         if (s_callbacks.onPlay) s_callbacks.onPlay();
 
-        // Cài đặt I2S Slave RX trên I2S_NUM_1
-        installSlaveI2s();
-
-        // Chuyển DAC Loa MAX98357 sang 44.1kHz Stereo
-        prepareDacForBluetooth();
+        // Cài đặt I2S Slave RX trên I2S_NUM_1 & chuẩn bị DAC 44.1kHz Stereo
+        if (!installSlaveI2s() || !prepareDacForBluetooth()) {
+          Serial.println("[BT-Slave] Lỗi khởi tạo I2S Slave/DAC -> khôi phục lại Mic & VBot.");
+          uninstallSlaveI2s();
+          restoreDacForVBot();
+          s_btStreaming = false;
+          if (s_callbacks.onStop) s_callbacks.onStop();
+          if (s_callbacks.onResumeMic) s_callbacks.onResumeMic();
+          vTaskDelay(pdMS_TO_TICKS(150));
+          continue;
+        }
 
         lastI2sDataMs = millis();
+        streamLoopTicks = 0;
       } else {
         // Chưa có nhạc: Ngủ 100ms, tiêu thụ 0% CPU để Mic và WakeNet hoạt động tối đa
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -462,7 +474,7 @@ static void vbot_bt_slave_task(void *param) {
     }
 
     // Kiểm tra nhanh trước khi đọc I2S
-    if (s_btSuspended || (s_callbacks.isVBotBusy && s_callbacks.isVBotBusy()) || vbot_airplay_is_active()) {
+    if (s_btSuspended || !s_slaveInstalled || (s_callbacks.isVBotBusy && s_callbacks.isVBotBusy()) || vbot_airplay_is_active()) {
       s_btSuspended = true;
       continue;
     }
@@ -485,10 +497,10 @@ static void vbot_bt_slave_task(void *param) {
       uint16_t outPeak = 0;
 
       for (int i = 0; i < sampleCount; i++) {
-        int32_t s = (pcmBuffer[i] * volFactor) / 100;
+        int32_t s = ((int32_t)pcmBuffer[i] * volFactor) / 100;
         pcmBuffer[i] = (int16_t)constrain(s, -32768, 32767);
-        int16_t absVal = abs(pcmBuffer[i]);
-        if (absVal > outPeak) outPeak = absVal;
+        int32_t absVal = labs((int32_t)pcmBuffer[i]);
+        if (absVal > (int32_t)outPeak) outPeak = (uint16_t)(absVal > 32767 ? 32767 : absVal);
       }
 
       // Ghi ra Loa MAX98357 (chỉ ghi khi DAC còn được cài đặt và AirPlay không chiếm)
@@ -503,16 +515,21 @@ static void vbot_bt_slave_task(void *param) {
 
       // Cập nhật mốc thời gian nhận dữ liệu I2S từ ESP32 thường
       lastI2sDataMs = millis();
+      // Nhường CPU định kỳ cho IDLE1 trên Core 1 để tránh Task Watchdog Reset khi phát Bluetooth lâu
+      if ((++streamLoopTicks & 3U) == 0U) {
+        vTaskDelay(1);
+      }
     } else {
       // Đọc timeout hoặc không có dữ liệu (> 1000ms không có xung I2S từ ESP32 thường do đã tạm dừng/ngắt kết nối)
       if (millis() - lastI2sDataMs > 1000) {
         Serial.println("\n[BT-Slave] >>> Xung I2S Bluetooth đã ngắt (> 1000ms). Đang khôi phục lại Microphone và VBot WakeNet...");
-        s_btStreaming = false;
         s_waitingBclkStop = true;
         s_waitingBclkStopStartMs = millis();
 
         uninstallSlaveI2s();
         restoreDacForVBot();
+        // Chỉ bỏ cờ s_btStreaming SAU KHI đã trả xong I2S_NUM_1 và I2S_NUM_0
+        s_btStreaming = false;
 
         if (s_callbacks.onStop) s_callbacks.onStop();
         if (s_callbacks.onResumeMic) s_callbacks.onResumeMic();
@@ -561,11 +578,11 @@ bool vbot_bt_slave_init(const BtSlaveCallbacks &callbacks) {
     );
   }
 
-  // Khởi tạo task giám sát I2S Slave
+  // Khởi tạo task giám sát I2S Slave (8192B stack để an toàn khi gọi callback I2S/Audio/Serial)
   xTaskCreatePinnedToCore(
     vbot_bt_slave_task,
     "bt_slave",
-    4096,
+    8192,
     nullptr,
     2,
     &s_btSlaveTaskHandle,
@@ -579,15 +596,14 @@ bool vbot_bt_slave_init(const BtSlaveCallbacks &callbacks) {
 void vbot_bt_slave_stop() {
   if (!s_btRunning) return;
 
+  s_btSuspended = true;
   s_btRunning = false;
-  if (s_btUartTaskHandle) {
-    vTaskDelete(s_btUartTaskHandle);
-    s_btUartTaskHandle = nullptr;
+  uint32_t t0 = millis();
+  while ((s_btStreaming || s_slaveInstalled || s_dacInstalled) && (millis() - t0 < 400)) {
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
-  if (s_btSlaveTaskHandle) {
-    vTaskDelete(s_btSlaveTaskHandle);
-    s_btSlaveTaskHandle = nullptr;
-  }
+  s_btUartTaskHandle = nullptr;
+  s_btSlaveTaskHandle = nullptr;
   uninstallSlaveI2s();
   restoreDacForVBot();
 }

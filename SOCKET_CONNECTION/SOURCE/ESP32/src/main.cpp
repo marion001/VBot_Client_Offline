@@ -45,7 +45,7 @@
 
 #define VBOT_I2S_COMM_FORMAT I2S_COMM_FORMAT_STAND_I2S
 
-static const char *VBOT_CLIENT_VERSION = "15/11/2026";
+static const char *VBOT_CLIENT_VERSION = "24/11/2026";
 static constexpr uint16_t DEFAULT_VBOT_API_PORT = 5002;
 #ifndef VBOT_BUILD_TARGET
 #define VBOT_BUILD_TARGET "ESP32"
@@ -74,7 +74,7 @@ static constexpr uint32_t MIC_TASK_STACK = 10240;
 static constexpr uint32_t MIC_TASK_STACK = 6144;
 #endif
 static constexpr uint32_t WEBSOCKET_TASK_STACK = 8192;
-static constexpr uint32_t DAC_TASK_STACK = 8192;
+static constexpr uint32_t DAC_TASK_STACK = 12288;
 // FastLED trên ESP32-S3 cần nhiều stack hơn ESP32 thường. Stack 2048 có thể làm
 // core chạy LED rơi vào panic/double exception trước khi setup() hoàn tất, sau
 // đó TG1WDT reset toàn hệ thống mà chưa kịp in Guru Meditation/backtrace.
@@ -516,6 +516,7 @@ class VBotWebSocketsClient : public WebSocketsClient {
 };
 VBotWebSocketsClient ws;
 AudioGeneratorMP3 *mp3 = nullptr;
+static volatile bool mp3RunningFlag = false;
 AudioFileSource *mp3File = nullptr;
 AudioFileSource *mp3RawFile = nullptr;
 static volatile uint16_t currentAudioPeak = 0;
@@ -855,7 +856,7 @@ class AudioFileSourceHTTPSStream : public AudioFileSource {
     if ((size > 0) && (len > (uint32_t)(size - pos))) len = size - pos;
     if (!nonBlock) {
       uint32_t start = millis();
-      while ((stream->available() < (int)len) && (millis() - start < 500)) yield();
+      while ((stream->available() < (int)len) && (millis() - start < 500)) vTaskDelay(pdMS_TO_TICKS(1));
     }
     size_t avail = stream->available();
     if (!nonBlock && !avail) {
@@ -2608,7 +2609,7 @@ static void ledTask(void *) {
       effect = idleLedEffect();
       ledEffect = effect;
     }
-    if (!audioIdle() && !volumeLedActive) {
+    if (!audioIdle() && !volumeLedActive && !recording && effect != LED_THINK && effect != LED_STARTUP) {
       effect = LED_SPEAK;
     } else if (!wsReady && audioIdle() && (effect == LED_OFF || effect == LED_SPEAK)) {
       effect = LED_SOCKET_ERROR;
@@ -2716,6 +2717,7 @@ static void installSilentDac() {
   i2sConfig.use_apll = false;
   i2sConfig.tx_desc_auto_clear = true;
   i2s_pin_config_t pinConfig = {};
+  pinConfig.mck_io_num = I2S_PIN_NO_CHANGE;
   pinConfig.bck_io_num = cfg.dacBclk;
   pinConfig.ws_io_num = cfg.dacLrc;
   pinConfig.data_out_num = cfg.dacDout;
@@ -2742,6 +2744,8 @@ static void installSilentDac() {
 }
 
 static void stopMp3(bool keepSilentDac) {
+  mp3RunningFlag = false;
+  __sync_synchronize();
   vbotPlaybackPending = false;
   vbot_aec_set_playback_active(false);
   if (mp3Out) {
@@ -2780,6 +2784,7 @@ static bool installPcmTx(uint32_t sampleRate) {
   i2sConfig.use_apll = false;
   i2sConfig.tx_desc_auto_clear = true;
   i2s_pin_config_t pinConfig = {};
+  pinConfig.mck_io_num = I2S_PIN_NO_CHANGE;
   pinConfig.bck_io_num = cfg.dacBclk;
   pinConfig.ws_io_num = cfg.dacLrc;
   pinConfig.data_out_num = cfg.dacDout;
@@ -2863,7 +2868,7 @@ static bool startMp3Source(const char *source, bool localFile, bool feedbackOnFa
     resumeMicAfterAudio();
     return false;
   }
-  mp3Out->SetPinout(cfg.dacBclk, cfg.dacLrc, cfg.dacDout);
+  mp3Out->SetPinout(cfg.dacBclk, cfg.dacLrc, cfg.dacDout, I2S_PIN_NO_CHANGE);
   mp3Out->SetGain((float)cfg.volume / 100.0f);
   if (mp3PreallocBuffer) {
     mp3 = new (std::nothrow) AudioGeneratorMP3(mp3PreallocBuffer, (int)MP3_PREALLOC_SIZE);
@@ -2890,6 +2895,8 @@ static bool startMp3Source(const char *source, bool localFile, bool feedbackOnFa
     resumeMicAfterAudio();
     return false;
   }
+  __sync_synchronize();
+  mp3RunningFlag = true;
   // mp3->begin() vừa cài lại I2S. Gửi silence qua chính AudioOutputI2S mới
   // trước khi gọi mp3->loop(), nếu không frame MP3 đầu tiên có thể bị phát
   // trong lúc ampli đang thoát shutdown.
@@ -3102,7 +3109,7 @@ static void micTask(void *) {
       continue;
     }
 
-    int16_t cleanFrame[FRAME_SAMPLES];
+    static int16_t cleanFrame[FRAME_SAMPLES];
     vbot_audio_dsp_process((const int16_t*)micWorkFrame.data, cleanFrame, FRAME_SAMPLES, cfg.nsEnabled, cfg.agcEnabled);
 
     if (!recording && (waitingToWake || !audioIdle()) && cfg.wakenetEnabled) {
@@ -3116,8 +3123,10 @@ static void micTask(void *) {
             stopAudioPlayback(true);
           }
           wakeSkipRequest = true;
+          setLedEffect(LED_THINK);
         }
         if (!cfg.hotwordStreamEnabled && audioIdle()) {
+          vTaskDelay(1);
           continue;
         }
       }
@@ -3128,6 +3137,7 @@ static void micTask(void *) {
 
     // Nếu đang phát âm thanh và chưa vào phiên ghi âm, không gửi âm thanh môi trường lên server
     if (!audioIdle() && !recording) {
+      vTaskDelay(1);
       continue;
     }
 
@@ -3137,6 +3147,7 @@ static void micTask(void *) {
       if (vadPreRollCount > 0) resetMicVadState();
       micVadGateOpen = true;
       enqueueMicFrameDropOldest(micWorkFrame);
+      vTaskDelay(1);
       continue;
     }
 
@@ -3180,6 +3191,7 @@ static void micTask(void *) {
       vadPreRollWriteIdx = (vadPreRollWriteIdx + 1) % VAD_PREROLL_FRAMES;
       if (vadPreRollCount < VAD_PREROLL_FRAMES) vadPreRollCount++;
     }
+    vTaskDelay(1);
   }
 }
 
@@ -3300,7 +3312,7 @@ static String wifiResetOkFeedbackUrl() {
 }
 
 static bool audioIdle() {
-  return !audioOpening && (!mp3 || !mp3->isRunning()) &&
+  return !audioOpening && !mp3RunningFlag &&
          !pcmPlaybackActive && (millis() - lastPcmPlaybackMs >= 300) &&
          (!audioQueue || uxQueueMessagesWaiting(audioQueue) == 0) &&
          !vbot_airplay_is_streaming() &&
@@ -3311,7 +3323,7 @@ static bool isVBotAssistantBusy() {
   if (otaUpdateActive) return true;
   if (pcmPlaybackActive) return true;
   if (audioOpening) return true;
-  if (mp3 && mp3->isRunning()) return true;
+  if (mp3RunningFlag) return true;
   if (vbotPlaybackPending) return true;
   if (startupAudioPlaying) return true;
   if (wsReady) {
@@ -3409,7 +3421,8 @@ static bool queueGoogleTranslateTts(const String &input) {
 
 static bool stopAudioPlayback(bool clearSuspendedAudio = true) {
   vbotPlaybackPending = false;
-  if (audioIdle() && (!audioQueue || uxQueueMessagesWaiting(audioQueue) == 0)) {
+  if (!mp3RunningFlag && !pcmPlaybackActive && !audioOpening && !pcmTxInstalled &&
+      (!audioQueue || uxQueueMessagesWaiting(audioQueue) == 0)) {
     return true;
   }
   clearPendingAudioCommands();
@@ -3417,6 +3430,16 @@ static bool stopAudioPlayback(bool clearSuspendedAudio = true) {
   cmd.type = AUDIO_CMD_STOP;
   cmd.clearSuspendedAudio = clearSuspendedAudio;
   return queueAudioCommand(cmd);
+}
+
+static void stopAudioPlaybackAndWait(bool clearSuspendedAudio = true, uint32_t timeoutMs = 450) {
+  stopAudioPlayback(clearSuspendedAudio);
+  uint32_t t0 = millis();
+  while ((mp3RunningFlag || pcmPlaybackActive || audioOpening || pcmTxInstalled ||
+          (audioQueue && uxQueueMessagesWaiting(audioQueue) > 0)) &&
+         (millis() - t0 < timeoutMs)) {
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
 }
 
 static bool stopAudioPlaybackWithFeedback(bool clearSuspendedAudio = true) {
@@ -3579,6 +3602,9 @@ static void dacTask(void *) {
       }
       //phát MP3 từ URL, Local file
       if (cmd.type == AUDIO_CMD_MP3_URL || cmd.type == AUDIO_CMD_MP3_FILE) {
+        if (vbot_bt_slave_is_streaming()) {
+          vbot_bt_slave_suspend();
+        }
         //LOGF("Audio URL: %s", cmd.url);
         pendingAutoContinue = false;
         lockMediaState();
@@ -3610,6 +3636,9 @@ static void dacTask(void *) {
         }
       }
       else if (cmd.type == AUDIO_CMD_GOOGLE_TTS) {
+        if (vbot_bt_slave_is_streaming()) {
+          vbot_bt_slave_suspend();
+        }
         pendingAutoContinue = false;
         String originalUrl = googleTranslateTtsUrl(cmd.url);
         String proxyUrl = effectiveAudioProxyUrl(originalUrl.c_str());
@@ -3631,6 +3660,9 @@ static void dacTask(void *) {
       }
       //Phát PCM raw thô realtime từ máy chủ VBot
       else if (cmd.type == AUDIO_CMD_PCM_CHUNK) {
+        if (vbot_bt_slave_is_streaming()) {
+          vbot_bt_slave_suspend();
+        }
         pcmPlaybackActive = true;
         if ((!pcmTxInstalled || currentPcmSampleRate != cmd.sampleRate) && !installPcmTx(cmd.sampleRate)) {
           LOG("Khởi tạo DAC PCM thất bại");
@@ -3676,7 +3708,12 @@ static void dacTask(void *) {
         pendingAutoContinue = false;
         bool airplayActive = vbot_airplay_is_active() || vbot_airplay_is_streaming();
         bool btSlaveActive = vbot_bt_slave_is_streaming();
-        stopMp3(!airplayActive && !btSlaveActive);
+        if (airplayActive || btSlaveActive) {
+          uninstallPcmTx();
+          stopMp3(false);
+        } else {
+          stopMp3(true);
+        }
         lockMediaState();
         currentAudioUrl = "";
         if (googleTtsState != 0) {
@@ -3716,7 +3753,7 @@ static void dacTask(void *) {
       wakeSkipRequest = true;
       setLedEffect(LED_THINK);
     }
-    if (!pendingAutoContinue && !wakeSkipRequest && !recording && audioIdle()
+    if (waitingToWake && !pendingAutoContinue && !wakeSkipRequest && !recording && audioIdle()
         && (ledEffect == LED_SPEAK || ledEffect == LED_STARTUP) && deadlineReached(testLedUntilMs)) {
       setLedEffect(idleLedEffect());
     }
@@ -3827,8 +3864,8 @@ static void handleJsonMessage(uint8_t *payload, size_t length) {
     if (hasAudio) {
       if (validAudioUrl(tts)) {
         setLedEffect(LED_SPEAK);
-      } else {
-        setLedEffect(idleLedEffect());
+      } else if (ledEffect == LED_LOADING || ledEffect == LED_THINK) {
+        setLedEffect(LED_SPEAK);
       }
       playMp3Url(audioUrl);
     } else {
@@ -3850,13 +3887,15 @@ static void handleJsonMessage(uint8_t *payload, size_t length) {
       setLedEffect(LED_SPEAK);
       playMp3Url(validAudioUrl(tts) ? tts : status, cfg.conversationMode);
     } else {
-      if (!pcmPlaybackRecentlyActive() && uxQueueMessagesWaiting(audioQueue) == 0) {
-        setLedEffect(idleLedEffect());
-      }
       if (cfg.conversationMode) {
         // Phản hồi main_processing có thể là PCM raw. Chờ DAC phát hết hàng đợi
         // rồi mới yêu cầu lượt thu tiếp để không cắt mất phần cuối câu trả lời.
         pendingAutoContinue = true;
+        if (!pcmPlaybackRecentlyActive() && uxQueueMessagesWaiting(audioQueue) == 0) {
+          setLedEffect(LED_THINK);
+        }
+      } else if (!pcmPlaybackRecentlyActive() && uxQueueMessagesWaiting(audioQueue) == 0) {
+        setLedEffect(idleLedEffect());
       }
     }
     return;
@@ -4720,10 +4759,7 @@ static void onAirPlayPlay() {
   currentMqttMediaCover = "";
   unlockMediaState();
   mqttStateDirty = true;
-  if (mp3 && mp3->isRunning()) {
-    stopAudioPlayback(true);
-  }
-  uninstallPcmTx();
+  stopAudioPlaybackAndWait(true, 450);
   vbot_bt_slave_suspend();
   suspendMicForAudio();
   if (!isVBotAssistantBusy()) {
@@ -4741,7 +4777,6 @@ static void onAirPlayStop() {
   stopAudioPlayback(true);
   resumeMicAfterAudio();
   vTaskDelay(pdMS_TO_TICKS(15));
-  installSilentDac();
   vbot_bt_slave_resume();
   if (!isVBotAssistantBusy()) {
     setLedEffect(idleLedEffect());
@@ -5686,7 +5721,7 @@ static void initWeb() {
       currentMqttMediaCover = "";
       unlockMediaState();
       mqttStateDirty = true;
-      stopAudioPlayback(true);
+      stopAudioPlaybackAndWait(true, 450);
       suspendMicForAudio();
       // Khong bat LED_SPEAK o day de tranh nhay LED khi moi ket noi hoac khi chua phat nhac
     };
