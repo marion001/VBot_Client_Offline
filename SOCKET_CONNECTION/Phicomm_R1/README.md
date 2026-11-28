@@ -1,6 +1,6 @@
 # VBot Phicomm R1 Android Client
 
-- **Phiên bản phát hành hiện tại:** `28/11/2026-1` (Tích hợp Xiaozhi `2.2.6`)
+- **Phiên bản phát hành hiện tại:** `28/11/2026-2` (Tích hợp Xiaozhi `2.2.6`)
 - **Tên gói cài đặt:** `PhicommR1_VBotClient.apk` (`com.vbot_client.phicommr1`)
 - **Thiết bị mục tiêu:** Loa thông minh Phicomm R1 (Android 5.1.1 / RK3229)
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 1. Các tính năng nổi bật (Phiên bản `28/11/2026-1`)
+## 1. Các tính năng nổi bật (Phiên bản `28/11/2026-2`)
 
 - **Chế độ hoạt động kép (Dual Working Mode)**:
   - **VBot Assistant Client**: Giao tiếp WebSocket thời gian thực với Loa chủ / VBot Server (`ws://<host>:<port><path>`), đồng bộ trạng thái, thu mic PCM 16kHz và phát phản hồi trợ lý.
@@ -28,9 +28,9 @@
   - Tự động lưu và khôi phục vị trí nghe dở cho **Truyện / Podcast**.
   - **Bộ chỉnh âm Equalizer 6 dải tần số** kèm Preset, Bass Boost, Loudness và Preamp (áp dụng đồng bộ cho cả Media và Multiroom).
   - Hỗ trợ **DLNA / UPnP MediaRenderer** và **Bluetooth A2DP**.
-- **Tiện ích Gia đình & Lịch Âm - Dương Việt Nam Offline**:
-  - Tính toán **Lịch Âm - Dương, Can Chi, Tiết Khí và Giờ Hoàng Đạo** hoàn toàn Offline trên thiết bị.
-  - Tự động đọc lịch mỗi sáng, nhắc trước 1 ngày và nhắc đúng sáng **Mùng 1 / Ngày Rằm**; hỗ trợ chia đoạn đọc TTS tiếng Việt dài mượt mà không giới hạn ký tự.
+- **Tiện ích Gia đình, Giọng đọc AI Microsoft Edge Neural TTS & Lịch Âm - Dương Offline**:
+  - Tích hợp **Microsoft Edge Neural TTS** miễn phí không cần API Key với giọng đọc AI tiếng Việt tự nhiên (**Hoài My Nữ**, **Nam Minh Nam** cùng 14 giọng quốc tế, tùy chỉnh tốc độ & cao độ `pitch`, tự động chuyển dự phòng sang Google Translate TTS nếu mất kết nối máy chủ).
+  - Tính toán **Lịch Âm - Dương, Can Chi, Tiết Khí và Giờ Hoàng Đạo** hoàn toàn Offline trên thiết bị; tự động đọc lịch mỗi sáng, nhắc trước 1 ngày và nhắc đúng sáng **Mùng 1 / Ngày Rằm**.
   - **Báo thức thông minh đa tác vụ** (Chuông, Đọc TTS, Mở Đài Radio, Phát Playlist, Nhạc chuông MP3), **Điểm chuông báo giờ chẵn**, **Hẹn giờ tắt nhạc giảm dần âm lượng (Sleep Timer)** và khung giờ **Không làm phiền (DND)**.
   - Quản lý thư viện **Nhạc chuông MP3 tùy chỉnh**, phát **Cảnh báo thông minh** (`doorbell`, `security`, `fire`, `warning`, `chime`, `alarm`) và **Đàm thoại nội bộ (Intercom)** từ trình duyệt.
 - **Tùy biến Nút nhấn cứng đỉnh loa & Hiệu ứng LED**:
@@ -72,22 +72,21 @@ adb -s <ip>:5555 shell run-as com.vbot_client.phicommr1 "cat /data/data/com.vbot
 
 Thay `IP_LOA` bằng địa chỉ IP của loa Phicomm R1. Các endpoint dưới đây có thể gọi trực tiếp từ mạng LAN (Home Assistant, Node-RED, Script...) mà không cần phiên đăng nhập WebUI:
 
-### 3.1 Đọc văn bản tiếng Việt (TTS — hỗ trợ cả văn bản dài)
+### 3.1 Đọc văn bản tiếng Việt (TTS — Microsoft Edge Neural AI & Google TTS)
 
-`POST /tts` — tham số: `text`, `lang` (mặc định `vi-VN`), `speed` (mặc định `1.0`).
+`POST /tts` — tham số: `text`, `engine` (`edge` hoặc `google`), `voice` (`vi-VN-HoaiMyNeural`, `vi-VN-NamMinhNeural`...), `lang` (mặc định `vi-VN`), `speed` (mặc định `1.0`).
 
 ```bash
+# Đọc bằng giọng AI Microsoft Edge Neural (Hoài My / Nam Minh)
 curl -X POST \
   --data-urlencode "text=Xin chào gia đình, chúc một ngày tốt lành!" \
-  -d "lang=vi-VN" \
+  -d "engine=edge" \
+  -d "voice=vi-VN-HoaiMyNeural" \
   -d "speed=1.0" \
   "http://IP_LOA:8081/tts"
-```
 
-Cũng hỗ trợ truyền tham số trên URL:
-
-```bash
-curl -X POST "http://IP_LOA:8081/tts?text=ch%C3%A0o+b%E1%BA%A1n&lang=vi-VN&speed=1.0"
+# Hoặc gọi nhanh theo cấu hình nguồn & giọng đọc đang lưu trên WebUI
+curl -X POST "http://IP_LOA:8081/tts?text=ch%C3%A0o+b%E1%BA%A1n&speed=1.0"
 ```
 
 ### 3.2 Phát chuông cảnh báo thông minh kèm lời đọc
@@ -174,9 +173,9 @@ adb -s <ip>:5555 shell am start -n com.vbot_client.phicommr1/.MainActivity
 
 ## 5. Cấu trúc thư mục phát hành `Phicomm_R1`
 
-- `apk/PhicommR1_VBotClient.apk`: Gói cài đặt chính thức phiên bản `28/11/2026-1` (dùng cho cài mới thủ công và cập nhật OTA trực tiếp từ WebUI).
+- `apk/PhicommR1_VBotClient.apk`: Gói cài đặt chính thức phiên bản `28/11/2026-2` (dùng cho cài mới thủ công và cập nhật OTA trực tiếp từ WebUI).
 - `adb_tools_VBot_Client_PhicommR1_Auto_Install/`: Bộ công cụ tự động trên Windows gồm `Update_R1.bat`, `PhicommR1_VBotClient.apk` mới nhất, `adb.exe`, gói nâng cấp Firmware OTA và các gói hỗ trợ hệ thống R1 (`unisound.apk`, `autodlna.apk`, `new_EchoService.apk`).
 - `adb_tools.zip`: Bộ công cụ `adb` độc lập cho Windows khi chỉ cần chạy dòng lệnh thủ công.
-- `Version.json`: Thông tin phiên bản (`build_date`: `28/11/2026-1`) và mô tả chi tiết bản cập nhật phục vụ kiểm tra OTA.
+- `Version.json`: Thông tin phiên bản (`build_date`: `28/11/2026-2`) và mô tả chi tiết bản cập nhật phục vụ kiểm tra OTA.
 
 <img width="1902" height="1092" alt="Image" src="https://github.com/user-attachments/assets/363614f6-bc84-40e4-9ab7-e616e1a3532c" />

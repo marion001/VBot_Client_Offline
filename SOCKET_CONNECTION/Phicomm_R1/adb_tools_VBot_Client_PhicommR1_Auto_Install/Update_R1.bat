@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Cong Cu Cai Dat va Cap Nhat Loa Phicomm R1 - VBot Client (28/11/2026-1)
+title Cong Cu Cai Dat va Cap Nhat Loa Phicomm R1 - VBot Client (28/11/2026-2)
 cd /d "%~dp0"
 set "ADB=.\adb.exe"
 
@@ -10,7 +10,7 @@ color 07
 echo.
 echo =======================================================
 echo    CONG CU CAI DAT LOA PHICOMM R1 - VBOT CLIENT
-echo    Phien ban goi APK: 28/11/2026-1
+echo    Phien ban goi APK: 28/11/2026-2
 echo =======================================================
 echo.
 echo Vui long chon thao tac:
